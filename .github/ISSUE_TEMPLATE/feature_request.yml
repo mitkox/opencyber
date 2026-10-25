@@ -1,0 +1,80 @@
+name: Feature request
+description: Propose a new capability, tool, integration, or workflow improvement.
+title: "[feature]: "
+labels: ["enhancement"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Describe the problem before the solution. This helps distinguish a
+        missing capability from a documentation gap. Do not use this form for
+        security vulnerabilities; follow `SECURITY.md` instead.
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Primary audience
+      description: Who benefits from this change?
+      options:
+        - Security practitioner using tools through an MCP client
+        - MCP/AI developer building or integrating with the harness
+        - Both
+    validations:
+      required: true
+
+  - type: dropdown
+    id: layer
+    attributes:
+      label: Layer
+      description: Where does the change belong?
+      options:
+        - Software layer (network, web, credentials, analysis, cloud, forensics)
+        - Physical layer (SDR, wireless, NFC/RFID, USB, JTAG, serial, CAN, logic, GPS, IR)
+        - MCP integration and tool contracts
+        - Installer, image, launcher, or airgap operation
+        - Documentation and developer experience
+        - Not sure
+    validations:
+      required: true
+
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem or use case
+      description: What are you trying to accomplish, and what blocks you today? Include the workflow and the tool calls involved.
+    validations:
+      required: true
+
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed change
+      description: Describe the behavior you want. If this adds or changes an MCP tool, sketch the name, arguments, and result fields.
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: Existing tools, workarounds, or a smaller change that would also solve the problem.
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Links to standards, upstream tool documentation, related issues, or examples. Do not include secrets or engagement data.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmations
+      options:
+        - label: I searched existing issues and the documentation before opening this request.
+          required: true
+        - label: This request is for authorized security work, not for evading authorization or scope controls.
+          required: true

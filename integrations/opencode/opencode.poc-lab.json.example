@@ -1,0 +1,37 @@
+{
+  "$schema": "https://opencode.ai/config.json",
+
+  "//": "Project-scoped config for the OpenCyber PoC lab. Copy this file to a lab",
+  "//2": "directory as opencode.json (strict JSON; a .jsonc file is ignored for",
+  "//3": "project config), then run `opencode mcp list` from that directory.",
+  "//4": "The lab server is the built opencyber:0.5.0 image in a disposable",
+  "//5": "container (docs/POC_LAB.md). Keep the global config pointing at your",
+
+  "//6": "container: this entry only applies inside the lab directory.",
+
+  "mcp": {
+    "servers": {
+      "opencyber": {
+        "type": "local",
+        "command": [
+          "docker", "exec", "-i",
+          "-e", "OPENCYBER_WORKSPACE=/workspace",
+          "-e", "OPENCYBER_APPROVAL_KEY_FILE=/run/secrets/opencyber-poc.key",
+          "opencyber-poc-lab",
+          "opencyber-mcp"
+        ],
+        "codemode": true
+      }
+    }
+  },
+
+  "permissions": [
+    { "action": "opencyber_*", "resource": "*", "effect": "allow" },
+    { "action": "opencyber_oc_bash", "resource": "*", "effect": "deny" },
+    { "action": "opencyber_oc_python", "resource": "*", "effect": "deny" },
+    { "action": "opencyber_oc_workspace_delete", "resource": "*", "effect": "deny" },
+    { "action": "opencyber_oc_poc_spec_create", "resource": "*", "effect": "ask" },
+    { "action": "opencyber_oc_poc_render", "resource": "*", "effect": "ask" },
+    { "action": "opencyber_oc_poc_run", "resource": "*", "effect": "ask" }
+  ]
+}

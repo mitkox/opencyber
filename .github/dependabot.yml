@@ -1,0 +1,49 @@
+version: 2
+updates:
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      github-actions:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pip"
+    directory: "/"
+    ignore:
+      - dependency-name: "mcp"
+        update-types: ["version-update:semver-major"]
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      python-dependencies:
+        patterns:
+          - "*"
+
+  - package-ecosystem: "pre-commit"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+    open-pull-requests-limit: 5
+    groups:
+      pre-commit-hooks:
+        patterns:
+          - "*"
+
+  # Base images are digest-pinned. A Kali digest bump changes the package
+  # snapshot and therefore the installed tool set, so it is not a routine
+  # dependency update. Do not group or auto-merge Docker updates. For every
+  # Dockerfile update, rebuild the image and manually verify:
+  #   opencyber-doctor --json
+  #   opencyber-mcp --self-test
+  #   opencyber-assets --verify --json
+  #   scripts/check-image-compliance.sh <image>
+  # then run the release smoke checks before merging.
+  - package-ecosystem: "docker"
+    directory: "/"
+    schedule:
+      interval: "monthly"
+    open-pull-requests-limit: 3

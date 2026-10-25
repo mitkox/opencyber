@@ -1,0 +1,70 @@
+name: Documentation issue
+description: Report a page that is wrong, stale, contradictory, or missing information.
+title: "[docs]: "
+labels: ["documentation"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Documentation claims are expected to match the code and the tests.
+        Quote the incorrect text exactly so it can be found and corrected.
+
+  - type: input
+    id: page
+    attributes:
+      label: Page
+      description: Repository path or URL of the page, for example `docs/CONFIGURATION.md`.
+      placeholder: "docs/CONFIGURATION.md"
+    validations:
+      required: true
+
+  - type: textarea
+    id: incorrect_claim
+    attributes:
+      label: Incorrect or missing content
+      description: Quote the affected text and explain why it is wrong, stale, or missing.
+    validations:
+      required: true
+
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Evidence
+      description: Show what the code, command output, or a supported release actually does. Include the file and line, tool call, or doctor output.
+    validations:
+      required: true
+
+  - type: textarea
+    id: correction
+    attributes:
+      label: Suggested correction
+      description: Propose replacement text, or describe the fact that should be documented.
+    validations:
+      required: false
+
+  - type: dropdown
+    id: audience
+    attributes:
+      label: Affected audience
+      options:
+        - Security practitioner
+        - MCP/AI developer
+        - Both
+    validations:
+      required: true
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional context
+      description: Related pages, issues, or screenshots. Do not include secrets or engagement data.
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: confirmations
+    attributes:
+      label: Confirmation
+      options:
+        - label: I checked the current default branch and searched existing issues before opening this report.
+          required: true

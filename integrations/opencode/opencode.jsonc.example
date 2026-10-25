@@ -1,0 +1,37 @@
+// OpenCode V2 fragment for the OpenCyber CVE-chain PoC workflow.
+// Merge these keys into ~/.config/opencode/opencode.jsonc — do not replace the
+// file. Comments are JSONC and accepted by OpenCode.
+//
+// Install the rest of the adapter next to the skill:
+//   mkdir -p ~/.config/opencode/skills
+//   cp -r integrations/skills/cve-chain-poc ~/.config/opencode/skills/
+//   cp integrations/opencode/agents/cve-research.md ~/.config/opencode/agents/
+//   cp integrations/opencode/plugins/opencyber-poc-guard.ts ~/.config/opencode/plugins/
+
+{
+  // Code Mode keeps the ~80 native OpenCyber tools out of the native tool list
+  // and exposes them as tools.opencyber.oc_* inside the code sandbox. That is
+  // the intended surface for chaining: batch lookups, transform nuclei JSON,
+  // and hand results straight to oc_chain_plan / oc_poc_spec_create.
+  "mcp": {
+    "servers": {
+      "opencyber": {
+        "type": "local",
+        "command": ["docker", "exec", "-i", "opencyber", "opencyber-mcp"],
+        "codemode": true
+      }
+    }
+  },
+
+  // Appended after the global permission baseline (last match wins). The
+  // server enforces the real gate; these rows just make the human visible.
+  "permissions": [
+    { "action": "opencyber_*", "resource": "*", "effect": "allow" },
+    { "action": "opencyber_oc_bash", "resource": "*", "effect": "deny" },
+    { "action": "opencyber_oc_python", "resource": "*", "effect": "deny" },
+    { "action": "opencyber_oc_workspace_delete", "resource": "*", "effect": "deny" },
+    { "action": "opencyber_oc_poc_spec_create", "resource": "*", "effect": "ask" },
+    { "action": "opencyber_oc_poc_render", "resource": "*", "effect": "ask" },
+    { "action": "opencyber_oc_poc_run", "resource": "*", "effect": "ask" }
+  ]
+}

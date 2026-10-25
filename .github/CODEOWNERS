@@ -1,0 +1,8 @@
+# Default owner for the entire repository.
+* @mitkox
+
+# Review from the maintainer is required for documentation claims,
+# community and automation files, and license/compliance policy.
+/docs/ @mitkox
+/.github/ @mitkox
+/compliance/ @mitkox

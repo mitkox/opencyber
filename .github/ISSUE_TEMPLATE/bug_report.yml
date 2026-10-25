@@ -1,0 +1,125 @@
+name: Bug report
+description: Report a reproducible defect in the harness, image, installer, or tooling.
+title: "[bug]: "
+labels: ["bug"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for the report. Do not use this form for security
+        vulnerabilities; report those privately as described in `SECURITY.md`.
+        Redact credentials, bearer tokens, target addresses, customer names,
+        and engagement artifacts before posting.
+
+  - type: input
+    id: version
+    attributes:
+      label: OpenCyber Harness version
+      description: The version reported by `opencyber-doctor --json`, or the image tag.
+      placeholder: "0.5.0"
+    validations:
+      required: true
+
+  - type: input
+    id: source_commit
+    attributes:
+      label: Source commit
+      description: Run `git rev-parse HEAD` in your source checkout, or use the frozen commit supplied with the candidate image.
+      placeholder: Full commit ID
+    validations:
+      required: true
+
+  - type: input
+    id: digest
+    attributes:
+      label: Image digest
+      description: Provide the exact private candidate reference and platform digest from the maintainer. Leave blank for a source-only checkout.
+      placeholder: "ghcr.io/mitkox/opencyber-beta-candidates@sha256:..."
+    validations:
+      required: false
+
+  - type: dropdown
+    id: install_path
+    attributes:
+      label: Install path
+      options:
+        - Qualified private beta candidate image
+        - Future public release image
+        - Local image build from Dockerfile
+        - install.sh
+        - Source checkout with an editable install
+        - opencyber-airgap.sh import
+    validations:
+      required: true
+
+  - type: dropdown
+    id: architecture
+    attributes:
+      label: Architecture
+      options:
+        - linux/amd64
+        - linux/arm64
+        - Other (describe in the environment field)
+    validations:
+      required: true
+
+  - type: textarea
+    id: doctor
+    attributes:
+      label: opencyber-doctor --json output
+      description: Paste the complete JSON report. If the doctor cannot run, say so and include `docker logs` output.
+      render: json
+    validations:
+      required: true
+
+  - type: textarea
+    id: environment
+    attributes:
+      label: Host and runtime environment
+      description: Host OS, Docker/Engine version, MCP client and version, launcher profile or `docker run` flags, and relevant `OPENCYBER_*` variables with secrets redacted.
+      placeholder: |
+        Host OS:
+        Docker/Engine:
+        MCP client:
+        Launcher profile or docker run flags:
+        OPENCYBER_* variables:
+    validations:
+      required: true
+
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Steps to reproduce
+      description: Start from a clean container where possible, and include the exact MCP tool call or command.
+      placeholder: |
+        1.
+        2.
+        3.
+    validations:
+      required: true
+
+  - type: textarea
+    id: expected_actual
+    attributes:
+      label: Expected and actual behavior
+      description: What you expected to happen, and what happened instead.
+    validations:
+      required: true
+
+  - type: textarea
+    id: logs
+    attributes:
+      label: Relevant logs or output
+      description: Stack traces, command output, or MCP client logs. Redact credentials, tokens, target data, and engagement artifacts.
+      render: shell
+    validations:
+      required: false
+
+  - type: checkboxes
+    id: authorization
+    attributes:
+      label: Authorization and data handling
+      description: This project supports authorized security testing only.
+      options:
+        - label: I was authorized to test every system involved, and I have removed sensitive data from this report.
+          required: true

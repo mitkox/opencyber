@@ -1,0 +1,255 @@
+name: Publish qualified prerelease
+'on':
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Qualified prerelease version; dispatch against its annotated tag
+        required: true
+        default: 0.5.0
+        type: string
+      candidate_run_id:
+        description: Successful build-candidate workflow run ID
+        required: true
+        type: string
+      selection_sha256:
+        description: SHA-256 of candidate-selection.json from the frozen build
+        required: true
+        type: string
+      qualification_sha256:
+        description: Optional SHA-256 of real-device evidence; omit for experimental hardware
+        required: false
+        type: string
+concurrency:
+  group: publish-container-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: mitkox/opencyber
+  STAGING_NAME: mitkox/opencyber-beta-candidates
+jobs:
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Verify exact release version
+      run: |
+        declared="$(python3 scripts/check-version-consistency.py --print)"
+        requested="${REQUESTED_VERSION:-${GITHUB_REF_NAME#v}}"
+        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        [[ "$GITHUB_REPOSITORY" == mitkox/opencyber && "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == "v$declared" ]]
+        [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == tag ]]
+        [[ "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" == "$GITHUB_SHA" ]]
+        python3 scripts/check-version-consistency.py
+        echo "version=$declared" >> "$GITHUB_OUTPUT"
+      id: release
+      env:
+        REQUESTED_VERSION: ${{ inputs.version }}
+  publish:
+    name: Source first, then exact image promotion
+    needs:
+    - prepare
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    timeout-minutes: 180
+    permissions:
+      contents: write
+      actions: read
+      packages: write
+      attestations: write
+      id-token: write
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Fetch the frozen candidate and record hardware qualification status
+      run: |
+        mkdir -p "$RUNNER_TEMP/inputs"
+        gh release download "$GITHUB_REF_NAME" --pattern candidate-selection.json --dir "$RUNNER_TEMP/inputs"
+        python3 scripts/release-gate.py fetch --selection "$RUNNER_TEMP/inputs/candidate-selection.json" --sha256 "$SELECTION_SHA256" --run-id "$CANDIDATE_RUN_ID" --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/evidence" > "$RUNNER_TEMP/records.json"
+        if [[ -n "$QUALIFICATION_SHA256" ]]; then
+          gh release download "$GITHUB_REF_NAME" --pattern hardware-qualification.zip --dir "$RUNNER_TEMP/inputs"
+          python3 scripts/release-gate.py qualify --archive "$RUNNER_TEMP/inputs/hardware-qualification.zip" --sha256 "$QUALIFICATION_SHA256" --records "$RUNNER_TEMP/records.json" --run-id "$CANDIDATE_RUN_ID" --commit "$GITHUB_SHA" --output "$RUNNER_TEMP/qualification" > "$RUNNER_TEMP/inputs/qualification-status.json"
+        else
+          python3 - <<'PYTHON'
+        import json, os
+        from pathlib import Path
+        status = {"schema_version": 1, "status": "not_qualified", "commit": os.environ["GITHUB_SHA"], "candidate_run_id": int(os.environ["CANDIDATE_RUN_ID"]), "reason": "Real-device evidence deferred for the first public prerelease; all hardware interfaces are experimental."}
+        Path(os.environ["RUNNER_TEMP"], "inputs", "qualification-status.json").write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
+        PYTHON
+        fi
+        test "$(gh api "repos/$GITHUB_REPOSITORY" --jq .visibility)" = public
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        CANDIDATE_RUN_ID: ${{ inputs.candidate_run_id }}
+        SELECTION_SHA256: ${{ inputs.selection_sha256 }}
+        QUALIFICATION_SHA256: ${{ inputs.qualification_sha256 }}
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+    - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+    - name: Validate both candidates and publish anonymous source downloads
+      run: |
+        sudo apt-get update && sudo apt-get install -y skopeo
+        python3 scripts/release-gate.py public "$IMAGE_NAME" "${REGISTRY}/${IMAGE_NAME}:bootstrap"
+        mkdir -p "$RUNNER_TEMP/assets"
+        for arch in amd64 arm64; do
+          tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --format=gnu -C "$RUNNER_TEMP/evidence/release-evidence-$arch" -cf - . | split -b 1G - "$RUNNER_TEMP/assets/opencyber-${VERSION}-linux-${arch}-compliance.tar.part-"
+        done
+        cp "$RUNNER_TEMP/inputs/candidate-selection.json" "$RUNNER_TEMP/inputs/qualification-status.json" "$RUNNER_TEMP/assets/"
+        if [[ -f "$RUNNER_TEMP/inputs/hardware-qualification.zip" ]]; then cp "$RUNNER_TEMP/inputs/hardware-qualification.zip" "$RUNNER_TEMP/assets/"; fi
+        (
+          cd "$RUNNER_TEMP/assets"
+          checksum_files=(./*.part-* candidate-selection.json qualification-status.json)
+          if [[ -f hardware-qualification.zip ]]; then checksum_files+=(hardware-qualification.zip); fi
+          sha256sum "${checksum_files[@]}" > SHA256SUMS
+        )
+        python3 scripts/release-gate.py assets "$GITHUB_REF_NAME" "$RUNNER_TEMP/assets"
+        gh release edit "$GITHUB_REF_NAME" --draft=false --prerelease --latest=false --title "OpenCyber $VERSION — verification pending" --notes 'Qualified source and compliance archives are available. Public image verification is pending.' 
+        gh api "repos/${GITHUB_REPOSITORY}/releases/tags/${GITHUB_REF_NAME}" --jq '.assets[].browser_download_url' > "$RUNNER_TEMP/source-urls"
+        while IFS= read -r url; do curl --fail --silent --location --head "$url" >/dev/null; done < "$RUNNER_TEMP/source-urls"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        VERSION: ${{ needs.prepare.outputs.version }}
+    - name: Promote and sign without rebuilding
+      run: |
+        python3 scripts/promote-images.py "$RUNNER_TEMP/records.json" "$RUNNER_TEMP/image-digests.json"
+      id: promotion
+    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+      name: Attest amd64 SBOM
+      with:
+        subject-name: ghcr.io/mitkox/opencyber
+        subject-digest: ${{ steps.promotion.outputs.amd64_digest }}
+        push-to-registry: true
+        create-storage-record: false
+        sbom-path: ${{ runner.temp }}/evidence/release-evidence-amd64/image.cdx.json
+    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+      name: Attest amd64 provenance
+      with:
+        subject-name: ghcr.io/mitkox/opencyber
+        subject-digest: ${{ steps.promotion.outputs.amd64_digest }}
+        push-to-registry: true
+        create-storage-record: false
+    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+      name: Attest arm64 SBOM
+      with:
+        subject-name: ghcr.io/mitkox/opencyber
+        subject-digest: ${{ steps.promotion.outputs.arm64_digest }}
+        push-to-registry: true
+        create-storage-record: false
+        sbom-path: ${{ runner.temp }}/evidence/release-evidence-arm64/image.cdx.json
+    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+      name: Attest arm64 provenance
+      with:
+        subject-name: ghcr.io/mitkox/opencyber
+        subject-digest: ${{ steps.promotion.outputs.arm64_digest }}
+        push-to-registry: true
+        create-storage-record: false
+    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
+      name: Attest manifest provenance
+      with:
+        subject-name: ghcr.io/mitkox/opencyber
+        subject-digest: ${{ steps.promotion.outputs.digest }}
+        push-to-registry: true
+        create-storage-record: false
+    - name: Retain immutable published digest evidence
+      run: |
+        mkdir -p "$RUNNER_TEMP/digest-assets"
+        cp "$RUNNER_TEMP/image-digests.json" "$RUNNER_TEMP/digest-assets/"
+        python3 scripts/release-gate.py assets "$GITHUB_REF_NAME" "$RUNNER_TEMP/digest-assets"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+    outputs:
+      digest: ${{ steps.promotion.outputs.digest }}
+      amd64_digest: ${{ steps.promotion.outputs.amd64_digest }}
+      arm64_digest: ${{ steps.promotion.outputs.arm64_digest }}
+  accept:
+    name: Published acceptance ${{ matrix.arch }}
+    needs:
+    - publish
+    - prepare
+    if: github.ref_type == 'tag'
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 45
+    permissions:
+      contents: read
+      packages: read
+      attestations: read
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - arch: amd64
+          runner: ubuntu-24.04
+        - arch: arm64
+          runner: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
+    - name: Verify anonymous signatures, provenance and native runtime
+      run: |
+        sudo apt-get update && sudo apt-get install -y skopeo
+        mkdir -p "$RUNNER_TEMP/anonymous"
+        printf '{"auths":{}}' > "$RUNNER_TEMP/anonymous/auth.json"
+        for digest in "$PLATFORM_DIGEST" "$INDEX_DIGEST"; do
+          reference="${REGISTRY}/${IMAGE_NAME}@${digest}"
+          skopeo inspect --authfile "$RUNNER_TEMP/anonymous/auth.json" "docker://${reference}"
+          cosign verify "$reference" --certificate-identity "https://github.com/${GITHUB_REPOSITORY}/.github/workflows/publish-container.yml@${GITHUB_REF}" --certificate-oidc-issuer https://token.actions.githubusercontent.com
+          gh attestation verify "oci://${reference}" --repo "$GITHUB_REPOSITORY"
+        done
+        export DOCKER_CONFIG="$RUNNER_TEMP/anonymous"
+        reference="${REGISTRY}/${IMAGE_NAME}@${PLATFORM_DIGEST}"
+        docker pull "$reference"
+        docker run --rm --network none --entrypoint opencyber-doctor "$reference" --json
+        PYTHONPATH=src python3 tests/mcp_smoke.py docker run --rm -i --network none --entrypoint opencyber-mcp "$reference"
+        PYTHONPATH=src python3 tests/blue_team_smoke.py "$reference"
+        bash scripts/poc-lab-image.sh "$reference" "$RUNNER_TEMP/published-poc-lab.json"
+        export OPENCYBER_IMAGE="${REGISTRY}/${IMAGE_NAME}"
+        export OPENCYBER_CONTAINER_NAME="opencyber-install-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}"
+        export OPENCYBER_VOLUME_NAME="${OPENCYBER_CONTAINER_NAME}-workspace"
+        trap 'bash install.sh --uninstall --purge-workspace' EXIT
+        bash install.sh --version "$VERSION" --digest "$PLATFORM_DIGEST" --verify-attestation
+        test "$(docker inspect --format '{{.Config.Image}}' "$OPENCYBER_CONTAINER_NAME")" = "$reference"
+        docker exec "$OPENCYBER_CONTAINER_NAME" opencyber-doctor --json
+        PYTHONPATH=src python3 tests/mcp_smoke.py docker exec -i "$OPENCYBER_CONTAINER_NAME" opencyber-mcp
+      env:
+        GH_TOKEN: ${{ github.token }}
+        VERSION: ${{ needs.prepare.outputs.version }}
+        PLATFORM_DIGEST: ${{ matrix.arch == 'amd64' && needs.publish.outputs.amd64_digest || needs.publish.outputs.arm64_digest }}
+        INDEX_DIGEST: ${{ needs.publish.outputs.digest }}
+  finalize:
+    name: Finalize verified prerelease version
+    needs:
+    - prepare
+    - publish
+    - accept
+    if: github.ref_type == 'tag'
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: write
+      packages: write
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+    - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Publish the version reference after both platform checks
+      run: |
+        sudo apt-get update && sudo apt-get install -y skopeo
+        python3 scripts/promote-images.py finalize "${REGISTRY}/${IMAGE_NAME}:${VERSION}" "$DIGEST"
+        gh release edit "$GITHUB_REF_NAME" --prerelease --latest=false --title "OpenCyber $VERSION — pre-production" --notes 'Pre-production release. Both native architectures passed software acceptance. Hardware interfaces are experimental; see qualification-status.json for any real-device evidence. See image-digests.json, SHA256SUMS and the release guide. This is not production qualification.'
+      env:
+        GH_TOKEN: ${{ github.token }}
+        GH_REPO: ${{ github.repository }}
+        VERSION: ${{ needs.prepare.outputs.version }}
+        DIGEST: ${{ needs.publish.outputs.digest }}

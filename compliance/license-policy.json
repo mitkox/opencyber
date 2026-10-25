@@ -1,0 +1,43 @@
+{
+  "schema_version": 1,
+  "reviewed_license_components": [],
+  "blocked_components": [
+    {
+      "name": "burpsuite",
+      "reason": "Current Community Edition terms do not provide a clear public-container redistribution grant."
+    },
+    {
+      "name": "waybackurls",
+      "reason": "No upstream license or affirmative redistribution grant was found."
+    },
+    {
+      "name": "maltego",
+      "reason": "Redistribution rights are unresolved and installed package metadata does not match current product messaging."
+    },
+    {
+      "name": "wpscan",
+      "reason": "Public-source terms impose restrictions that are not appropriate for this container distribution."
+    }
+  ],
+  "review_required_components": [
+    {"name": "nmap", "reason": "Packaged 7.99+dfsg-1kali1 declares NPSL-0.94; public redistribution basis is unresolved."},
+    {"name": "nmap-common", "reason": "Contains Nmap assets under the same unresolved packaged NPSL-0.94 basis."},
+    {"name": "ncat", "reason": "Nmap source-package component; redistribution review remains unresolved."},
+    {"name": "ndiff", "reason": "Nmap source-package component; redistribution review remains unresolved."},
+    {"name": "nping", "reason": "Nmap source-package component; redistribution review remains unresolved."}
+  ],
+  "notice_required_components": [
+    {
+      "name": "volatility3",
+      "reason": "Retain the complete Volatility Software License 1.0 text."
+    },
+    {
+      "name": "whatweb",
+      "reason": "Retain GPL-2.0 terms and corresponding-source information."
+    },
+    {
+      "name": "subzy",
+      "reason": "Retain GPL terms and corresponding-source information."
+    }
+  ]
+}

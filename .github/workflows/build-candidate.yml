@@ -1,0 +1,174 @@
+name: Build release candidate
+'on':
+  workflow_dispatch:
+    inputs:
+      version:
+        description: Version to build and qualify privately
+        required: true
+        default: 0.5.0
+        type: string
+concurrency:
+  group: build-candidate-${{ github.ref }}
+  cancel-in-progress: false
+permissions:
+  contents: read
+env:
+  REGISTRY: ghcr.io
+  STAGING_NAME: mitkox/opencyber-beta-candidates
+jobs:
+  quality:
+    uses: ./.github/workflows/ci.yml
+    permissions:
+      contents: read
+  prepare:
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.release.outputs.version }}
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Verify exact release version
+      run: |
+        declared="$(python3 scripts/check-version-consistency.py --print)"
+        requested="${REQUESTED_VERSION:-${GITHUB_REF_NAME#v}}"
+        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        python3 scripts/check-version-consistency.py
+        echo "version=$declared" >> "$GITHUB_OUTPUT"
+      id: release
+      env:
+        REQUESTED_VERSION: ${{ inputs.version }}
+  staging:
+    name: Verify private candidate storage
+    needs:
+    - quality
+    - prepare
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      packages: write
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - name: Bootstrap harmless content, then verify private visibility
+      run: |
+        sudo apt-get update && sudo apt-get install -y skopeo
+        if ! gh api "users/${STAGING_NAME%/*}/packages/container/${STAGING_NAME#*/}" > /tmp/staging-package.json; then
+          printf 'FROM scratch\nLABEL org.opencontainers.image.source=https://github.com/mitkox/opencyber\nLABEL com.opencyber.staging-bootstrap=true\n' | docker build -t "${REGISTRY}/${STAGING_NAME}:bootstrap" -
+          docker push "${REGISTRY}/${STAGING_NAME}:bootstrap"
+        fi
+        python3 scripts/release-gate.py staging "$STAGING_NAME" "${REGISTRY}/${STAGING_NAME}:bootstrap"
+      env:
+        GH_TOKEN: ${{ github.token }}
+  build:
+    name: Verify ${{ matrix.platform }}
+    needs:
+    - quality
+    - prepare
+    - staging
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 360
+    permissions:
+      contents: read
+      packages: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+        - platform: linux/amd64
+          artifact: amd64
+          runner: ubuntu-24.04
+        - platform: linux/arm64
+          artifact: arm64
+          runner: ubuntu-24.04-arm
+    steps:
+    - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+    - name: Prepare ephemeral runner
+      run: |
+        sudo rm -rf /usr/local/lib/android /usr/share/dotnet /opt/ghc /usr/local/.ghcup /opt/hostedtoolcache/CodeQL
+        sudo apt-get update && sudo apt-get install -y skopeo
+        python3 -m venv "$RUNNER_TEMP/release-tools"
+        "$RUNNER_TEMP/release-tools/bin/python" -m pip install packaging==26.3
+        echo "$RUNNER_TEMP/release-tools/bin" >> "$GITHUB_PATH"
+        df -h /
+    - uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069
+    - uses: docker/login-action@81c6f93d4bc991e510b342a00b419b3bb4efc5c6
+      with:
+        registry: ghcr.io
+        username: ${{ github.actor }}
+        password: ${{ secrets.GITHUB_TOKEN }}
+    - uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc
+      name: Build runtime once without public distribution
+      with:
+        context: .
+        platforms: ${{ matrix.platform }}
+        load: true
+        tags: opencyber:candidate
+        provenance: false
+        labels: org.opencontainers.image.revision=${{ github.sha }}
+    - name: Runtime, stdio, blue-team, hardened and airgap gates
+      run: |
+        docker run --rm --network none --entrypoint opencyber-doctor opencyber:candidate --json
+        docker run --rm --network none -e OPENCYBER_STRICT_CATALOG=1 --entrypoint opencyber-mcp opencyber:candidate --self-test
+        docker run --rm --network none --entrypoint opencyber-assets opencyber:candidate --verify --json
+        scripts/check-image-compliance.sh opencyber:candidate
+        PYTHONPATH=src python3 tests/mcp_smoke.py docker run --rm -i --network none --entrypoint opencyber-mcp opencyber:candidate
+        PYTHONPATH=src python3 tests/blue_team_smoke.py opencyber:candidate
+        mkdir -p "$RUNNER_TEMP/evidence"
+        bash scripts/poc-lab-image.sh opencyber:candidate "$RUNNER_TEMP/evidence/poc-lab.json"
+        scripts/opencyber-run.sh --profile blue-team --image opencyber:candidate --name opencyber-release-check --volume opencyber-release-check
+        trap 'docker rm -f opencyber-release-check >/dev/null 2>&1 || true; docker volume rm opencyber-release-check >/dev/null 2>&1 || true' EXIT
+        docker exec opencyber-release-check opencyber-doctor --json
+        docker exec -i opencyber-release-check opencyber-mcp --self-test
+        scripts/opencyber-airgap.sh export --image opencyber:candidate --output "$RUNNER_TEMP/airgap"
+        scripts/opencyber-airgap.sh verify --input "$RUNNER_TEMP/airgap"
+        scripts/opencyber-airgap.sh import --input "$RUNNER_TEMP/airgap"
+        rm -rf "$RUNNER_TEMP/airgap"
+    - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
+      name: Scan local candidate before upload
+      with:
+        image-ref: opencyber:candidate
+        severity: HIGH,CRITICAL
+        ignore-unfixed: false
+        exit-code: '1'
+        format: json
+        output: trivy.json
+    - name: Capture and match actual corresponding source
+      run: |
+        docker buildx build --platform "$PLATFORM" --target corresponding-source --output "type=local,dest=$RUNNER_TEMP/source-capture" .
+        mkdir -p "$RUNNER_TEMP/evidence"
+        scripts/generate-corresponding-source.sh opencyber:candidate "$RUNNER_TEMP/evidence" "$PLATFORM" "$RUNNER_TEMP/source-capture"
+        scripts/generate-license-bundle.sh opencyber:candidate "$RUNNER_TEMP/evidence" "$PLATFORM"
+      env:
+        PLATFORM: ${{ matrix.platform }}
+    - uses: anchore/sbom-action/download-syft@66cbf4bc1f1c0d2edc94016e65bc221b6bb0ad6c
+    - name: Exact candidate SBOM and license gates
+      run: |
+        scripts/generate-sbom.sh docker:opencyber:candidate "$RUNNER_TEMP/evidence" "$PLATFORM"
+        cp "$RUNNER_TEMP/evidence/opencyber-${PLATFORM//\//-}.cdx.json" "$RUNNER_TEMP/evidence/image.cdx.json"
+        cp "$RUNNER_TEMP/evidence/opencyber-${PLATFORM//\//-}.spdx.json" "$RUNNER_TEMP/evidence/image.spdx.json"
+        test "$(wc -c < "$RUNNER_TEMP/evidence/image.cdx.json")" -lt 16777216
+        cp trivy.json "$RUNNER_TEMP/evidence/"
+      env:
+        PLATFORM: ${{ matrix.platform }}
+    - name: Recheck privacy and stage tested bytes
+      run: |
+        python3 scripts/release-gate.py staging "$STAGING_NAME" "${REGISTRY}/${STAGING_NAME}:bootstrap"
+        candidate="${REGISTRY}/${STAGING_NAME}:run-${GITHUB_RUN_ID}-${GITHUB_RUN_ATTEMPT}-${ARCH}"
+        docker tag opencyber:candidate "$candidate"
+        docker push "$candidate"
+        python3 scripts/release-gate.py record --image opencyber:candidate --staged "$candidate" --platform "$PLATFORM" --commit "$GITHUB_SHA" --source "$RUNNER_TEMP/evidence/release-source-manifest.json" --output "$RUNNER_TEMP/evidence/${ARCH}.record.json"
+      env:
+        GH_TOKEN: ${{ github.token }}
+        PLATFORM: ${{ matrix.platform }}
+        ARCH: ${{ matrix.artifact }}
+    - uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9
+      name: Only source, notices, SBOMs and receipts; never image bytes or engagements
+      with:
+        name: release-evidence-${{ matrix.artifact }}
+        path: ${{ runner.temp }}/evidence/
+        compression-level: 0
+        if-no-files-found: error
+        retention-days: 90

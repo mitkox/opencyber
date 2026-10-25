@@ -1,0 +1,8 @@
+# Accepted container vulnerability findings.
+#
+# One identifier per line, followed by a comment with an owner and an expiry.
+# The release workflow fails on HIGH and CRITICAL findings, including unfixed findings, so an entry here is
+# an explicit, time-boxed exception -- not a way to make the scan quiet.
+#
+# Example:
+#   CVE-2026-00000  # owner: @mitkox expires: 2026-12-31 reason: no vendor fix

@@ -1,0 +1,32 @@
+# DSH profile patch for the OpenCyber MCP server (CVE-chain PoC workflow).
+#
+# Merge this `insert` entry into the profile patch layer:
+#   ~/.dsh/profiles/<profile>/cordis.patch.yml     (usually "web" or "headless")
+#
+# The patch file is a top-level YAML array of loader entries. Keep any existing
+# entries; append this object to the array. `env` scrubbing note: DSH removes
+# ambient names matching KEY|PASSWORD|SECRET|TOKEN from MCP children, so the
+# OpenCyber server must receive OPENCYBER_APPROVAL_KEY from the container
+# environment, not from DSH. Run the PoC approval CLI inside the container:
+#   docker exec -i opencyber opencyber-poc approve --help
+#
+# Tools appear to the model as mcp__opencyber__oc_* (for example
+# mcp__opencyber__oc_poc_run). Load the skill by copying
+# integrations/skills/cve-chain-poc to ~/.dsh/skills/cve-chain-poc (or
+# <project>/.dsh/skills/cve-chain-poc for a project-scoped install).
+
+- insert:
+    - id: mcp-opencyber
+      name: '@deepseek-ai/dsh-mcp-client'
+      config:
+        serverName: opencyber
+        transport: stdio
+        command: docker
+        args:
+          - exec
+          - -i
+          - opencyber
+          - opencyber-mcp
+        # PoC runs are bounded by the server (60 s default) but MCP startup and
+        # chains of tool calls can exceed the default client timeout.
+        toolCallTimeoutMs: 300000

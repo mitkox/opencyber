@@ -1,0 +1,104 @@
+[build-system]
+requires = ["setuptools>=77"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "opencyber"
+dynamic = ["version"]
+description = "OpenCyber Harness: a container-native red and blue team security MCP toolkit"
+readme = "README.md"
+license = "Apache-2.0"
+license-files = ["LICENSE", "THIRD_PARTY_NOTICES.md", "SOURCE_OFFER.md"]
+requires-python = ">=3.11"
+authors = [{ name = "OpenCyber Maintainers" }]
+maintainers = [{ name = "OpenCyber Maintainers" }]
+keywords = ["mcp", "security", "offensive-security", "defensive-security", "incident-response", "security-automation", "ai-agents"]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Environment :: Console",
+  "Intended Audience :: Information Technology",
+  "Operating System :: POSIX :: Linux",
+  "Programming Language :: Python :: 3",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Topic :: Security",
+  "Topic :: System :: Networking",
+]
+# The server uses the MCPServer API and snake_case protocol model attributes
+# verified with the 2.3 SDK. Keep future major changes outside this contract.
+dependencies = [
+  "mcp>=2.3,<3",
+  "playwright==1.64.1",
+  "requests>=2.31",
+]
+
+[project.urls]
+Homepage = "https://github.com/mitkox/opencyber"
+Repository = "https://github.com/mitkox/opencyber"
+Issues = "https://github.com/mitkox/opencyber/issues"
+Changelog = "https://github.com/mitkox/opencyber/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/mitkox/opencyber/blob/main/docs/README.md"
+Security = "https://github.com/mitkox/opencyber/security/policy"
+
+[project.scripts]
+opencyber-mcp = "opencyber.server:main"
+opencyber-doctor = "opencyber.doctor:main"
+opencyber-assets = "opencyber.assets:main"
+opencyber-hardware = "opencyber.hardware:main"
+opencyber-poc = "opencyber.poc_approval:main"
+
+[project.optional-dependencies]
+test = ["mcp>=2.3,<3", "packaging>=24.2", "requests>=2.31"]
+dev = [
+  "build>=1.2",
+  "coverage[toml]>=7.6",
+  "mypy>=1.11",
+  "packaging>=24.2",
+  "pre-commit>=3.7",
+  "pytest>=8",
+  "ruff>=0.6",
+  "twine>=5",
+  "types-requests>=2.31",
+]
+
+[tool.setuptools.dynamic]
+version = { attr = "opencyber.__version__" }
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.setuptools.package-data]
+opencyber = ["py.typed", "data/*.json"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 120
+
+[tool.ruff.lint]
+# Start conservative: real errors only. Formatting and import sorting are a
+# separate change so the launch diff stays reviewable.
+select = ["E4", "E7", "E9", "F"]
+
+[tool.mypy]
+python_version = "3.11"
+files = ["src/opencyber"]
+ignore_missing_imports = true
+check_untyped_defs = false
+warn_unused_ignores = false
+no_implicit_optional = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+
+[tool.coverage.run]
+branch = true
+source = ["opencyber"]
+
+[tool.coverage.report]
+show_missing = true
+# The suite covers ~77% of lines and branches. Keep the gate below that so small
+# unrelated changes do not fail while a real regression still does.
+fail_under = 70

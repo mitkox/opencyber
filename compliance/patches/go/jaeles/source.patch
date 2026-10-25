@@ -1,0 +1,7 @@
+--- a/core/update.go
++++ b/core/update.go
+@@ -7,2 +7,2 @@
+-	"gopkg.in/src-d/go-git.v4"
+-	"gopkg.in/src-d/go-git.v4/plumbing/transport/http"
++	"github.com/go-git/go-git/v5"
++	"github.com/go-git/go-git/v5/plumbing/transport/http"

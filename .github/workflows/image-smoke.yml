@@ -1,0 +1,107 @@
+name: Container smoke test
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "0 4 * * 1"
+  pull_request:
+    paths:
+      - "Dockerfile"
+      - ".dockerignore"
+      - "src/**"
+      - "pyproject.toml"
+      - "docs/**"
+      - "packaging/**"
+      - "scripts/**"
+      - "install.sh"
+      - ".github/workflows/image-smoke.yml"
+
+concurrency:
+  group: image-smoke-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-smoke:
+    name: Build amd64 and smoke test
+    runs-on: ubuntu-24.04
+    timeout-minutes: 120
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Reclaim runner disk space
+        shell: bash
+        run: |
+          df -h /
+          # The Kali-based image plus BuildKit's content store is close to the
+          # runner's ~72 GB disk, and the export step needs room for both. Reclaim
+          # every preinstalled toolchain this job does not use: the previous
+          # Android/dotnet/ghc/CodeQL list alone left too little headroom.
+          sudo rm -rf -- \
+            /usr/local/lib/android \
+            /usr/share/dotnet \
+            /opt/ghc \
+            /usr/local/.ghcup \
+            /opt/hostedtoolcache \
+            /usr/share/swift \
+            /usr/share/miniconda \
+            /opt/microsoft \
+            /opt/google \
+            /opt/az \
+            /usr/local/share/powershell \
+            /usr/local/lib/node_modules
+          docker system prune -af --volumes || true
+          docker builder prune -af || true
+          df -h /
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@f87e5991a6d7451dcb8d9637bfbc97413f497069 # v4
+
+      - name: Build the image
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7
+        with:
+          context: .
+          platforms: linux/amd64
+          load: true
+          tags: opencyber:smoke
+          provenance: false
+
+      - name: Show disk after build
+        if: always()
+        run: df -h /
+
+      - name: Doctor
+        run: docker run --rm --entrypoint opencyber-doctor opencyber:smoke --json
+
+      - name: MCP self-test
+        run: docker run --rm -e OPENCYBER_STRICT_CATALOG=1 --entrypoint opencyber-mcp opencyber:smoke --self-test
+
+      - name: Offline asset verification
+        run: docker run --rm --entrypoint opencyber-assets opencyber:smoke --verify --json
+
+      - name: Image compliance
+        run: scripts/check-image-compliance.sh opencyber:smoke
+
+      - name: MCP stdio smoke
+        run: PYTHONPATH=src python tests/mcp_smoke.py docker run --rm -i --entrypoint opencyber-mcp opencyber:smoke
+
+      - name: Launcher dry run
+        run: scripts/opencyber-run.sh --profile software --image opencyber:smoke --dry-run
+
+      - name: Hardened runtime smoke
+        run: |
+          docker volume create opencyber-smoke-ws
+          docker run -d --name opencyber-smoke \
+            --cap-drop=ALL \
+            --cap-add=NET_RAW --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
+            --security-opt no-new-privileges \
+            --read-only --tmpfs /tmp --tmpfs /run \
+            --tmpfs /root/.config --tmpfs /root/.cache \
+            -v opencyber-smoke-ws:/workspace \
+            opencyber:smoke
+          trap 'docker rm -f opencyber-smoke >/dev/null 2>&1 || true; docker volume rm opencyber-smoke-ws >/dev/null 2>&1 || true' EXIT
+          docker exec opencyber-smoke opencyber-doctor --json
+          docker exec -e OPENCYBER_STRICT_CATALOG=1 -i opencyber-smoke opencyber-mcp --self-test

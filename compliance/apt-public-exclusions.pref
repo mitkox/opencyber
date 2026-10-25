@@ -1,0 +1,4 @@
+# Public-image redistribution exclusions also apply to transitive dependencies.
+Package: nmap nmap-common ncat ndiff nping python3-libnmap autorecon metasploit-framework netexec rustscan burpsuite maltego wpscan waybackurls
+Pin: version *
+Pin-Priority: -1

@@ -1,0 +1,244 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+  secrets:
+    name: Source and history secret scan
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Install verified scanner
+        run: |
+          curl -fsSL -o /tmp/gitleaks.tar.gz https://github.com/gitleaks/gitleaks/releases/download/v8.30.1/gitleaks_8.30.1_linux_x64.tar.gz
+          echo '551f6fc83ea457d62a0d98237cbad105af8d557003051f41f3e7ca7b3f2470eb  /tmp/gitleaks.tar.gz' | sha256sum -c -
+          tar -xzf /tmp/gitleaks.tar.gz -C /tmp gitleaks
+      - name: Scan publishable history and checked-out files
+        run: |
+          /tmp/gitleaks git --redact --no-banner --log-opts=--all .
+          /tmp/gitleaks dir --redact --no-banner .
+
+  lint:
+    name: Lint and documentation drift
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the package
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test,dev]'
+
+      - name: Ruff
+        run: python -m ruff check src tests scripts
+
+      - name: Version declarations agree
+        run: python scripts/check-version-consistency.py
+
+      - name: Import boundaries and test discovery
+        run: python scripts/check-test-discovery.py && python scripts/check-boundaries.py
+
+      - name: Vulnerability exceptions have owners and expiry dates
+        run: python scripts/release-gate.py exceptions .trivyignore
+
+      - name: Generated references are current
+        run: |
+          PYTHONPATH=src python scripts/generate-tool-docs.py --check
+          python scripts/generate-error-docs.py --check
+          python scripts/generate-limit-docs.py --check
+          python scripts/record-catalog.py --check
+
+      - name: Documentation contract tests
+        run: python -m unittest tests.test_docs tests.test_version_consistency -v
+
+  typecheck:
+    name: Type check
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the package
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test,dev]'
+
+      - name: mypy
+        run: python -m mypy src/opencyber
+
+  shellcheck:
+    name: Shell entrypoints
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Install shellcheck
+        run: sudo apt-get update && sudo apt-get install -y shellcheck
+
+      - name: Shell syntax and lint
+        run: |
+          bash -n install.sh
+          for script in scripts/*.sh; do bash -n "$script"; done
+          shellcheck -x install.sh scripts/*.sh
+
+  test:
+    name: Unit tests (Python ${{ matrix.python }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        python: ["3.11", "3.12", "3.13"]
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: ${{ matrix.python }}
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the package
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test]'
+
+      - name: Run unit tests
+        run: python -m unittest discover -s tests -v
+
+  coverage:
+    name: Coverage
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the package
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test,dev]'
+
+      - name: Run tests under coverage
+        run: |
+          python -m coverage run -m unittest discover -s tests
+          python -m coverage report
+          python -m coverage xml
+
+      - name: Upload coverage report
+        uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
+        with:
+          name: coverage-xml
+          path: coverage.xml
+          if-no-files-found: error
+          retention-days: 14
+
+  build:
+    name: Build distribution
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install build tooling
+        run: python -m pip install --upgrade pip build twine
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Validate metadata
+        run: python -m twine check dist/*
+
+      - name: Install the wheel in a clean environment
+        run: |
+          python -m venv /tmp/wheel-smoke
+          /tmp/wheel-smoke/bin/python -m pip install --upgrade pip
+          /tmp/wheel-smoke/bin/python -m pip install dist/*.whl
+          /tmp/wheel-smoke/bin/python -m zipfile -e dist/*.whl /tmp/wheel-contents
+          test -f /tmp/wheel-contents/opencyber/py.typed
+          /tmp/wheel-smoke/bin/opencyber-mcp --catalog-json > /tmp/catalog.json
+          python - <<'PY'
+          import json
+          catalog = json.load(open("/tmp/catalog.json"))
+          assert len(catalog) == 173, len(catalog)
+          print("wheel catalog entries:", len(catalog))
+          PY
+
+  doctor:
+    name: Doctor (installed package)
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Set up Python
+        uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
+        with:
+          python-version: "3.12"
+          cache: pip
+          cache-dependency-path: pyproject.toml
+
+      - name: Install the package
+        run: python -m pip install --upgrade pip && python -m pip install -e '.[test]'
+
+      # A bare host is intentionally degraded: no Kali tools, no templates.
+      # The check is that the doctor reports the gaps and exits non-zero
+      # instead of pretending the harness is ready.
+      - name: Doctor must fail closed on a bare host
+        run: |
+          if opencyber-doctor --json > doctor.json; then
+            echo "doctor unexpectedly reported a healthy image on a bare runner"
+            exit 1
+          fi
+          python - <<'PY'
+          import json
+
+          report = json.load(open("doctor.json"))
+          assert report["status"] == "degraded", report
+          assert report["problems"], report
+          print("degraded as expected:", len(report["problems"]), "problem(s)")
+          PY
