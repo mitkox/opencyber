@@ -1,102 +1,139 @@
 # Start beta testing 0.5.0
 
-OpenCyber 0.5.0 is being prepared in a private repository. The maintainer adds
-beta testers; accept that invitation before cloning. The first public open
-source prerelease remains planned. Use an owned lab and synthetic evidence.
-Hardware interfaces are experimental and unqualified; production acceptance is
-separate.
+The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+is available for **Linux amd64**. The maintainer adds beta testers; accept the
+private repository invitation before downloading. Use an owned lab and
+synthetic evidence.
 
-**Shared container images are not ready yet.** License review and native
-platform qualification still block distribution, including private sharing.
-Until the maintainer supplies the source commit and image digest below, invited
-contributors can use the [source development path](INSTALL.md#path-c-source-install-for-development).
-A source install or local image build is an unqualified development build.
+| Preview identity | Value |
+| --- | --- |
+| Source and runtime revision | `c1201976caf49c45068bb507032aee75e4509e20` |
+| Local image tag | `opencyber:0.5.0-private-beta.1-amd64` |
+| First-party source archive | `opencyber-source-c120197.tar.gz` |
+
+This preview retains the full toolkit, including Oracle tooling and PDB
+components. It is **unqualified**. Recorded amd64 checks include 689 tests
+with one skip and 81% coverage, actual offline image checks, and a Trivy scan
+with no HIGH or CRITICAL findings. They do not qualify all features or live
+Oracle/PDB integrations. Native arm64, hardware and production acceptance remain
+open. Two vendor reviews and 2,086 unknown license metadata records across
+5,129 components remain open; private access does not establish legal clearance
+or waive third-party terms. Public publication and broader distribution need
+separate approval. See the release's `release-manifest.json`, SBOM, license
+inventory and captured gate results for the recorded limits.
 
 ## What you need
 
-- A Linux host with Docker Engine on `amd64` or `arm64`, and a user who can
-  already run `docker info`.
-- Git, GitHub CLI (`gh`), Bash and enough free Docker storage for a large
-  Kali-based image and your evidence. The first pull can take time.
-- Access to `mitkox/opencyber` and, once images are shared, read access to
-  the private GHCR package. Repository access and package access are separate.
+- A native Linux `amd64` Docker engine, and a user who can already run
+  `docker info`. This preview is not an arm64 image.
+- Bash and Python 3 on the Docker host. GitHub CLI (`gh`) is needed only on
+  the connected download machine.
+- Read access to `mitkox-dev/opencyber` and all 38 private release assets
+  (13,310,405,014 bytes, about 13.3 GB). Allow additional space for the assembled
+  image archive, Docker's expanded image, evidence and any source assembly.
 - An MCP client that can launch a local stdio server. OpenCyber supplies tools;
   the client supplies the agent and model.
 
-The repository belongs to a personal GitHub account. Its collaborator
-invitations include write access, even when you only intend to test. Follow the
-contribution process before pushing changes; use the assigned frozen commit
-for beta results. Package permissions are configured separately.
+The repository belongs to the `mitkox-dev` organization. External beta testers
+join as **outside collaborators with Read access**. You can browse, clone and
+download the complete reviewed source, read documentation and report issues;
+you cannot push or change repository settings. Organization membership is not
+required. The private release download uses that repository access directly;
+no GHCR token, Docker login or package grant is needed. Keep the assets private
+and retain all original license, source and use restrictions; see
+[vendor terms](BETA_VENDOR_TERMS.md). Maintainers: see [beta access](BETA_ACCESS.md).
 
 This first exercise needs no hardware, target credentials, API keys or PoC
 signing key. It writes and analyzes one synthetic log without contacting a
-target. For a container with no network at all, use the
-[blue-team profile](BLUE_TEAM.md#start-an-isolated-case).
+target. The launch command below uses the
+[blue-team profile](BLUE_TEAM.md#start-an-isolated-case), with no container network.
 
-## 1. Access the source and install the assigned candidate
+## 1. Download, verify and start the preview
 
 Authenticate with the GitHub account that received the invitation:
 
 ```sh
 gh auth login
-gh repo clone mitkox/opencyber
-cd opencyber
+gh release download v0.5.0-private-beta.1 \
+  --repo mitkox-dev/opencyber --dir opencyber-beta
 ```
 
-Before installing a shared image, get these two values from the maintainer:
+For an offline machine, transfer the **whole `opencyber-beta` folder**. Keep
+all 14 numbered image/source parts, checksum lists, helper, source snapshot,
+notices, SBOMs and metadata together. The numbered parts are no larger than
+1 GiB each. Do not extract or load individual parts.
 
-| Value | Required identity |
-| --- | --- |
-| `BETA_SOURCE_COMMIT` | Full commit ID for the reviewed source snapshot |
-| `BETA_PLATFORM_DIGEST` | Complete `sha256:` digest qualified for your host's `linux/amd64` or `linux/arm64` platform |
-
-Check your architecture with `docker info --format '{{.Architecture}}'`.
-Replace both placeholders below with the supplied values. Do not substitute a
-tag, a digest for another architecture or a locally built image.
+On the Linux amd64 Docker host, use a normal Linux filesystem with room for
+the assembled files:
 
 ```sh
-BETA_SOURCE_COMMIT='REPLACE_WITH_FULL_COMMIT_FROM_MAINTAINER'
-BETA_PLATFORM_DIGEST='sha256:REPLACE_WITH_PLATFORM_DIGEST_FROM_MAINTAINER'
-git checkout --detach "$BETA_SOURCE_COMMIT"
-git rev-parse HEAD
+cd opencyber-beta
+bash beta-import.sh --verify-only
+bash beta-import.sh
 ```
 
-For GHCR authentication, create a GitHub personal access token **(classic)**
-with `read:packages`. Use an account that has read access to the private
-package. Enter the token at Docker's password prompt:
+`--verify-only` checks the downloaded parts and metadata without assembling
+archives or using Docker. The default command verifies and assembles the image,
+checks the complete archive hash, and imports it with `docker load`. It checks
+the platform, RootFS layers, runtime configuration and source/version labels.
+Doctor and the strict MCP self-test then run in disposable containers with no
+network, capabilities, devices or host directory mounts, a read-only root and
+temporary scratch directories. The helper installs nothing, makes no pulls or
+network requests, and creates no persistent container or workspace volume.
+
+An existing archive or image tag is reused only when it matches the recorded
+identity. A mismatch stops the helper and preserves the existing bytes or tag.
+A pre-existing `.partial` file is preserved; inspect and move or remove that
+incomplete file before retrying. Keep the original parts until import passes.
+Checksums detect damaged or changed bytes; obtain the bundle and its expected
+identity through the maintainer's authenticated release.
+
+To assemble the captured third-party source archive as well, allow more disk
+space and run:
 
 ```sh
-docker login ghcr.io --username YOUR_GITHUB_USERNAME
+bash beta-import.sh --assemble-source
 ```
 
-Use the token as the password, not your GitHub account password. Keep it out of
-shell commands, MCP configuration, images and reports. `gh auth login` and
-`docker login` authenticate different clients; doing one does not replace the
-other. A denied pull can mean missing package permission even when cloning works.
-
-From the pinned source checkout:
+The complete first-party archive is already supplied. Extract it into a **new**
+directory:
 
 ```sh
-docker info
-less install.sh
-OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
-  bash install.sh --version 0.5.0 --digest "$BETA_PLATFORM_DIGEST"
+mkdir source-c120197
+tar -xzf opencyber-source-c120197.tar.gz -C source-c120197
 ```
 
-The installer creates container `opencyber` and persistent volume
-`opencyber-workspace`. It refuses to replace an unrelated container with that
-name. Keep this checkout for uninstall. See [Install](INSTALL.md) for custom
-names, manual containers and local development builds. Public release tags and
-promotion attestations are not prerequisites for this private candidate path.
+Use unused container and volume names. If either name exists, choose different
+names in both the check and launch command:
+
+```sh
+if docker container inspect opencyber-beta >/dev/null 2>&1 || \
+   docker volume inspect opencyber-beta >/dev/null 2>&1; then
+  echo "opencyber-beta already exists; choose unused container and volume names" >&2
+else
+  bash source-c120197/opencyber/scripts/opencyber-run.sh \
+    --profile blue-team --offline \
+    --image opencyber:0.5.0-private-beta.1-amd64 \
+    --name opencyber-beta --volume opencyber-beta
+fi
+```
+
+This creates container `opencyber-beta` and persistent workspace volume
+`opencyber-beta`. The blue-team profile disables container networking,
+capabilities and device passthrough. Other profiles retain the image's tools
+but require the operator's authorization for real targets, network exposure
+or hardware. See [Install](INSTALL.md) for the development path and future
+qualified candidates. Repository documentation may advance while the supplied
+source snapshot and image remain frozen at `c120197`.
 
 Check readiness:
 
 ```sh
-docker exec opencyber opencyber-doctor --json
-docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber opencyber-mcp --self-test
+docker exec opencyber-beta opencyber-doctor --json
+docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber-beta opencyber-mcp --self-test
 ```
 
-Both commands should exit 0. Doctor should report `healthy`; the self-test's
+Both commands should exit 0. Doctor should report `status: "ok"` with no problems; the self-test's
 `catalog.matches` should be `true` in default full mode. Optional integrations
 may be unavailable and are listed separately from `missing_required_tools`,
 which should be empty. A healthy container does not prove that a passed-through
@@ -109,7 +146,7 @@ If a check fails, stop here and use [Troubleshooting](TROUBLESHOOTING.md).
 Configure the client to launch this command:
 
 ```sh
-docker exec -i opencyber opencyber-mcp
+docker exec -i opencyber-beta opencyber-mcp
 ```
 
 For clients using a `mcpServers` JSON configuration, the server entry is:
@@ -119,7 +156,7 @@ For clients using a `mcpServers` JSON configuration, the server entry is:
   "mcpServers": {
     "opencyber": {
       "command": "docker",
-      "args": ["exec", "-i", "opencyber", "opencyber-mcp"]
+      "args": ["exec", "-i", "opencyber-beta", "opencyber-mcp"]
     }
   }
 }
@@ -132,7 +169,7 @@ protocol. Starting the command in a terminal opens a protocol stream, not an
 interactive chat.
 
 Ask the client to call `oc_catalog()` and `oc_doctor()`. In default full mode
-the catalog advertises 255 tools. Tool availability depends on the image;
+the catalog advertises 256 tools. Tool availability depends on the image;
 registered optional adapters can return `integration_unavailable` with a
 remediation. Do not ask the agent to install missing integrations automatically.
 
@@ -194,7 +231,7 @@ Read [PoC chains](POC_CHAINS.md) before using approval-gated execution.
 
 ## 4. Send a useful report
 
-Use the private repository's [bug report form](https://github.com/mitkox/opencyber/issues/new/choose)
+Use the private repository's [bug report form](https://github.com/mitkox-dev/opencyber/issues/new/choose)
 for ordinary defects. Other invited collaborators may read those reports.
 Email suspected vulnerabilities or conduct concerns privately to
 [tech@mitkox.com](mailto:tech@mitkox.com); follow [Security](../SECURITY.md)
@@ -215,31 +252,33 @@ These commands collect a small starting record:
 ```sh
 docker version --format '{{.Server.Version}}'
 docker info --format '{{.Architecture}}'
-docker inspect --format '{{.Config.Image}} {{.Image}}' opencyber
-docker exec opencyber opencyber-doctor --json > beta-doctor.json
-docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber opencyber-mcp --self-test > beta-self-test.json
+docker inspect --format '{{.Config.Image}} {{.Image}}' opencyber-beta
+docker exec opencyber-beta opencyber-doctor --json > beta-doctor.json
+docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber-beta opencyber-mcp --self-test > beta-self-test.json
 ```
 
 Review and redact those files before attaching them. Device serial numbers,
 paths, target data and credentials can appear in diagnostics and tool results.
 Share a synthetic reproduction instead of an engagement workspace, HTTP/browser
 state or a full `docker inspect` dump. MCP server stderr is normally in the
-client's server log; `docker logs opencyber` does not collect a separate
+client's server log; `docker logs opencyber-beta` does not collect a separate
 `docker exec` session's stderr.
 
 ## 5. Stop or remove the beta
 
 ```sh
-docker stop opencyber
-docker start opencyber
+docker stop opencyber-beta
+docker start opencyber-beta
 ```
 
-To remove the installer-managed container while keeping all evidence:
+To stop and remove the launcher-created container while keeping its evidence:
 
 ```sh
-bash install.sh --uninstall
+docker stop opencyber-beta
+docker rm opencyber-beta
 ```
 
-The workspace volume remains. `--purge-workspace` also destroys the managed
-volume and every engagement in it; use it only after saving anything you need.
-See [Install](INSTALL.md#uninstall) for the destructive removal command.
+The named workspace volume `opencyber-beta` remains. Do not use installer
+uninstall commands for this launcher-created container. Removing the volume
+destroys every engagement in it; only do so explicitly after saving anything
+you need. See [Install](INSTALL.md#uninstall) for that destructive command.

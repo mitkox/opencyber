@@ -1,6 +1,6 @@
 # Security model
 
-The 0.5.0 private pre-production beta uses a trusted-client, container-root model. This page states its limits and the controls an operator applies from the host. Start with [BETA_TESTING.md](BETA_TESTING.md) for an owned software-only exercise; hardware interfaces remain experimental and unqualified.
+The 0.5.0 private pre-production beta uses a trusted-client, container-root model. This page states its limits and the controls an operator applies from the host. Start with [BETA_TESTING.md](BETA_TESTING.md) for an owned software-only exercise; hardware integrations are supported for beta use, with device qualification recorded separately.
 
 > OpenCyber Harness provides offensive-security capability, not permission. Use it only against systems you own or are explicitly authorized to test.
 
@@ -30,13 +30,13 @@ Executable output, native tool results, workspace contents, HTTP responses, brow
 
 ## Deployment baseline
 
-The image runs as root. Complete the authenticated setup in
-[BETA_TESTING.md](BETA_TESTING.md) and obtain the maintainer-selected qualified
-platform digest before using a private candidate. No 0.5.0 release or image tag
-is published yet. Harden from the host:
+The image runs as root. Import the private Linux amd64 preview using
+[BETA_TESTING.md](BETA_TESTING.md). That guide starts a file-only session with
+no network or capabilities. The following example is a networked software-lab
+profile using the imported image; apply host authorization and egress controls:
 
 ```sh
-BETA_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates@BETA_PLATFORM_DIGEST
+BETA_IMAGE=opencyber:0.5.0-private-beta.1-amd64
 docker run -d --name opencyber \
   --cap-drop=ALL \
   --cap-add=NET_RAW --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
@@ -44,6 +44,7 @@ docker run -d --name opencyber \
   --read-only \
   --tmpfs /tmp --tmpfs /run \
   --tmpfs /root/.config --tmpfs /root/.cache \
+  --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
   -v opencyber-workspace:/workspace \
   "$BETA_IMAGE"
 ```
@@ -53,7 +54,7 @@ docker run -d --name opencyber \
 | `--cap-drop=ALL` plus three adds | Limits raw sockets, interface changes, and low-port binding to what the toolchain needs. | `NET_RAW` and `NET_ADMIN` are still powerful. Remove them for workloads that do not need packet capture or interface changes. |
 | `--security-opt no-new-privileges` | Prevents a child process from gaining privileges through setuid or file capabilities. | Root already has most in-container privileges. |
 | `--read-only` | Prevents persistent modification of the image filesystem. | `/workspace` and the listed tmpfs mounts remain writable. |
-| tmpfs `/tmp`, `/run`, `/root/.config`, `/root/.cache` | Provides scratch space and lets Chromium's crashpad handler start under a read-only rootfs. | tmpfs is memory-backed; large tool caches can consume RAM. |
+| tmpfs `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Provides scratch space for Chromium, AutoRecon, NetExec and Metasploit under a read-only rootfs. | tmpfs is memory-backed; large tool caches can consume RAM. |
 | No `--privileged` | The included tooling does not require it. | `--privileged` would effectively remove the container boundary. Do not add it for convenience. |
 | Device flags per profile | Passes only the needed device nodes. | `/dev/bus/usb` exposes the whole USB bus; prefer specific nodes and host udev rules. |
 | `--network host` for Wi-Fi, Bluetooth, and CAN | Gives access to host network interfaces and stacks. | It also removes Docker network isolation. Pair it with host firewall rules or a dedicated lab network. |
@@ -220,10 +221,10 @@ A workspace volume shared by multiple containers is shared data. File locks seri
 
 ## Supply chain
 
-- Publication requires native `linux/amd64` and `linux/arm64` candidate receipts, corresponding source, license evidence, Syft SBOMs and a Trivy gate covering `HIGH` and `CRITICAL`, including unfixed vulnerabilities. Promotion copies the qualified digests without rebuilding, signs platform and manifest digests with keyless cosign, and attaches provenance. A local build or this document is not evidence that those release gates passed.
+- Qualified candidate/public promotion requires native `linux/amd64` and `linux/arm64` receipts, corresponding source, license evidence, Syft SBOMs and a Trivy gate covering `HIGH` and `CRITICAL`, including unfixed vulnerabilities. Promotion copies qualified digests without rebuilding, signs platform and manifest digests with keyless cosign, and attaches provenance. A private preview or this document does not establish that those gates passed.
 - Base images, Go/Rust tool versions, yq, and nuclei templates are pinned in the Dockerfile. The image records license bundles under `/usr/share/opencyber/licenses/`.
-- The current repository and candidate package are private. Repository read access and package access are separate, and neither establishes qualification. Binary distribution remains blocked by unresolved license metadata and incomplete matching-commit software acceptance. Private beta sharing must satisfy those gates too.
-- There is no PyPI publication. Use authenticated source access for development; a source install does not bundle the container toolchain. Once the maintainer supplies a qualified candidate, install its exact platform digest as described in the beta guide.
+- The repository and current preview release are private. Repository Read includes all of that release's image/source assets. It cannot enforce separate recipient-specific asset permissions. The maintainer released this unqualified amd64 preview with vendor reviews and license metadata still open; private access does not grant vendor rights or establish qualification. Future GHCR access remains separate from repository access.
+- There is no PyPI publication. Use the preview archive for its bundled toolchain and authenticated source for development. A future qualified registry candidate uses its exact platform digest under the release procedure.
 - A future public 0.5.0 prerelease will use the explicit version reference or an immutable digest and will not advance `latest`, major or minor aliases. Publication and anonymous access remain future gates; see [RELEASE.md](RELEASE.md). Verify supplied attestations rather than assuming private access proves provenance.
 - The image build itself requires network access and executes upstream package repositories and projects. Treat a locally built image as trusted only as far as that build environment is.
 

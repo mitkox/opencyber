@@ -5,21 +5,53 @@ container image is a collection of independently licensed software. The
 repository's Apache-2.0 license does not replace or override any third-party
 license.
 
+OpenCyber is intended for security research, defensive analysis and explicitly
+authorized testing. This purpose statement grants no rights to third-party
+software, databases, services or target systems. Each component's original
+license, copyright notices, source obligations and use restrictions remain in
+effect, including custom and commercial terms.
+
 ## Release evidence
 
-0.5.0 is currently a private beta. Qualified candidates may be shared from the
-private `ghcr.io/mitkox/opencyber-beta-candidates` package only after source,
-license and runtime gates pass; the maintainer supplies the exact platform
-digest and compliance bundle. Repository access does not by itself prove
-package access. Unresolved obligations block private binary sharing too.
+The full-toolkit [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+is published for native `linux/amd64`, from source commit
+`c1201976caf49c45068bb507032aee75e4509e20`, with local tag
+`opencyber:0.5.0-private-beta.1-amd64`. Its catalog has 256 MCP tools: 174
+executable integrations and 82 native tools. The maintainer chose to retain
+the full toolkit for a small invited group. Oracle connectivity and optional
+Microsoft PDB components remain included with vendor review unresolved; no
+accepted agreement or redistribution entitlement is asserted.
+
+The preview is **unqualified**. The recorded amd64 offline runtime, MCP,
+export/import and source checks passed, and the recorded Trivy scan found zero
+HIGH/CRITICAL vulnerabilities, including unfixed findings. However, the strict
+license gate is not green: the 5,129-component inventory contains 2,086
+unresolved license records and two vendor reviews. Unknown scanner metadata
+does not by itself establish that a component is unlicensed. Native arm64,
+physical hardware, live Oracle/PDB workflows and production remain unqualified.
+Private access does not waive original terms or resolve those obligations.
+
+All 38 release assets (about 13.3 GB) include the numbered image and captured
+source parts, first-party snapshot, notices, SBOMs, checksums, actual license-gate
+report and offline import helper. Every reader of the private source repository
+can retrieve these release assets; no separate GHCR grant or recipient-specific
+release permission applies. See [docs/BETA_ACCESS.md](docs/BETA_ACCESS.md),
+[docs/BETA_VENDOR_TERMS.md](docs/BETA_VENDOR_TERMS.md),
+[docs/AIRGAP.md](docs/AIRGAP.md) and [SOURCE_OFFER.md](SOURCE_OFFER.md).
+
+Qualified candidates still require all source, license, vulnerability and
+native amd64/arm64 runtime gates under [docs/RELEASE.md](docs/RELEASE.md). The
+private `ghcr.io/mitkox-dev/opencyber-beta-candidates` package is a separate
+candidate workflow channel, not required for this preview. A configured
+Dockerfile, catalog entry or private download does not prove qualification.
 
 A future public release will publish versioned multi-platform images at
-`ghcr.io/mitkox/opencyber` after additional public acceptance. No such
+`ghcr.io/mitkox-dev/opencyber` after additional public acceptance. No such
 publication is claimed here.
 
-Resolve the current immutable index and platform digests directly from the
-registry with `docker buildx imagetools inspect`. The candidate receipt binds
-the Git revision recorded in OCI metadata to the tested platform digest and
+For a qualified registry candidate or future public image, resolve immutable
+index and platform digests with `docker buildx imagetools inspect`. The candidate
+receipt binds the Git revision recorded in OCI metadata to the tested platform digest and
 SBOMs. Future public promotion adds signatures and attestations without
 rebuilding the qualified images. Digests are registry-generated evidence and are
 therefore not embedded recursively inside the image whose digest they identify.
@@ -61,7 +93,7 @@ states what is actually enforced:
 
 | Component | Audited version | Upstream | Declared license | Current status |
 | --- | --- | --- | --- | --- |
-| OpenCyber Harness | 0.5.0 | <https://github.com/mitkox/opencyber> | Apache-2.0 | Independently written project source |
+| OpenCyber Harness | 0.5.0 | <https://github.com/mitkox-dev/opencyber> | Apache-2.0 | Independently written project source |
 | MCP Python SDK | Python SDK (`mcp>=2.3,<3` declared; exact version in SBOM) | <https://github.com/modelcontextprotocol/python-sdk> | MIT | Notice required |
 | Playwright for Python | 1.64.1 | <https://github.com/microsoft/playwright-python> | Apache-2.0 | Notice required |
 | Requests | Kali package (`requests>=2.31` declared; exact version in SBOM) | <https://github.com/psf/requests> | Apache-2.0 | Notice required |
@@ -73,8 +105,8 @@ states what is actually enforced:
 | zsteg | 0.2.14 | <https://github.com/zed-0xff/zsteg> | MIT | Notice required |
 | one_gadget | 2.1.1 | <https://github.com/david942j/one_gadget> | MIT | Notice required |
 | anew | 0.1.1 | <https://github.com/tomnomnom/anew> | MIT | Pinned module; module licenses copied |
-| URLFinder | 0.0.3 | <https://github.com/projectdiscovery/urlfinder> | MIT | Replaces unlicensed waybackurls; copy module licenses |
-| subzy | 1.2.1 | <https://github.com/PentestPad/subzy> | GPL | Replaces WPScan; source obligations apply |
+| URLFinder | 0.0.3 | <https://github.com/projectdiscovery/urlfinder> | MIT | URL discovery alternative to waybackurls; copy module licenses |
+| subzy | 1.2.1 | <https://github.com/PentestPad/subzy> | GPL | Subdomain takeover checks; source obligations apply |
 | Jaeles | commit `d40305ffe42a`, maintained go-git v5, Gorilla WebSocket `e064f32e3674` | <https://github.com/jaeles-project/jaeles> | MIT | Narrow import migration and frozen security dependency graph; modified source retained |
 | kube-bench | 0.16.0 | <https://github.com/aquasecurity/kube-bench> | Apache-2.0 | Copy module licenses and NOTICE |
 | x8 | 4.3.2 | <https://github.com/Sh1Yo/x8> | GPL-3.0-or-later | Source obligations apply; crate licenses copied |
@@ -84,11 +116,62 @@ states what is actually enforced:
 | nuclei-templates | v10.5.1 | <https://github.com/projectdiscovery/nuclei-templates> | MIT | Pinned tarball with SHA-256; license retained in the template tree |
 | yq (mikefarah) | v4.54.1 | <https://github.com/mikefarah/yq> | MIT | Built from source with patched Go/dependencies; source and binary fingerprint retained |
 | ripgrep | Kali package | <https://github.com/BurntSushi/ripgrep> | MIT/Unlicense | Installed via apt; package copyright retained |
-| rockyou wordlist | Kali `wordlists` package | <https://www.kali.org/tools/wordlists/> | GPL-2.0-or-later | Decompressed at build time from the packaged archive |
-| SecLists | Kali `seclists` package | <https://github.com/danielmiessler/SecLists> | MIT | Symlinked at `/usr/share/wordlists/seclists` |
+| Generated baseline dictionary | SecLists 2026.1 `Keyboard-Walks/walk-the-line.txt` | <https://github.com/danielmiessler/SecLists/tree/2026.1/Passwords/Keyboard-Walks> | MIT | Retain upstream license; generated patterns are not RockYou-equivalent empirical coverage |
+| SecLists | 2026.1, source archive pinned by SHA-256 | <https://github.com/danielmiessler/SecLists/tree/2026.1> | MIT, with any file-specific terms retained | Only the selected data tree is copied into runtime layers; imported RockYou files are excluded |
+| WPScan local detection metadata | Build-time snapshot; exact content bound to the tested image and source bundle | <https://data.wpscan.org/> | WPScan Public Source License; full captured text retained | Public detection metadata only; API and enterprise vulnerability data are separate |
+
+WPScan's update endpoint is mutable. A connected rebuild can receive different
+metadata. Candidate matching therefore checks the expanded tree's paths and
+content against the tested runtime and supplied source archive, rather than
+treating the WPScan package version as the database identity. This snapshot is
+not an input pinned in advance; pin it before satisfying the future public
+release condition below.
 
 Each component also has transitive dependencies. Their package URLs, versions,
 checksums, and detected license expressions belong in the release SBOM.
+
+The earlier GPL claim for the RockYou data was unsupported: Kali's package
+copyright covers its Debian packaging under GPL, while describing the corpus
+only as free and widely accessible. This image does not redistribute that
+corpus or its named SecLists subsets without an applicable grant. The default
+is an honestly named generated dictionary; cracking tools remain included.
+
+## Required assessment tools and custom licenses
+
+The Dockerfile includes Nmap, Ncat, Ndiff, Nping (supplied by the Nmap package),
+RustScan, AutoRecon, Metasploit, NetExec and WPScan. Nmap scripts and Metasploit
+modules are required offline assets. Exact installed versions, licenses and
+asset hashes must come from the built image and its qualification bundle.
+These tools are not excluded merely because they use custom or reciprocal
+licenses.
+
+The reviewed Kali Nmap candidate is `7.991+dfsg-1kali1`; this is not a claim that
+it is the latest upstream version or a qualified image input. Preserve its
+packaged license text, notices and exact corresponding source, including
+distribution patches and build scripts. The
+[NPSL annotation](https://nmap.org/npsl/npsl-annotated.html) describes an
+aggregation route and additional conditions for Nmap-specific integration.
+The [upstream changelog](https://nmap.org/changelog.html#7.94) permits older
+NPSL releases under 0.95. Record the applicable terms and integration assessment
+for the exact package; an Apache-2.0 label on OpenCyber does not relicense Nmap
+or resolve those conditions. Do not add restrictions to recipients' rights
+under the applicable component license.
+
+[WPScan 4.1.0's license](https://github.com/wpscanteam/wpscan/blob/v4.1.0/LICENSE)
+permits redistribution with unchanged license and copyright notices when its
+commercialization clause is satisfied, and explicitly includes penetration
+testing distributions and assessment toolkits among its permitted examples.
+This free private beta must retain those terms. Commercial product,
+managed-service, SaaS or value-added distribution needs the appropriate grant;
+calling a distribution research does not settle that question. WPScan API and
+database access or redistribution rights are separate from the software license.
+
+Custom licenses with incomplete SBOM metadata need an attributed decision in
+`compliance/license-policy.json` for the exact versioned package URL. Preserve
+the captured license file, its SHA-256, its source URL, the redistribution basis
+and the notice/source obligations. Unknown metadata without that evidence,
+unfulfilled obligations and missing required source remain release blockers.
+There is no blanket waiver for custom licenses or unknown metadata.
 
 ## Hardware and physical-layer additions
 
@@ -114,24 +197,25 @@ and scope policy are original OpenCyber code under Apache-2.0.
 
 ## Components deliberately excluded
 
-The remediated image deliberately excludes these components. The license policy
-fails a release if any of them reappear, including as a transitive package.
+The build excludes the components below for the stated reasons. The license
+policy blocks Burp Suite Community Edition, waybackurls and Maltego until an
+applicable redistribution grant is recorded. Terrascan and ScoutSuite have
+separate maintenance and vulnerability blockers; their adapters remain optional.
 
 | Component | Evidence | Required resolution |
 | --- | --- | --- |
-| Burp Suite Community Edition | No clean public-container redistribution grant was established. | Replaced at the catalog level by the existing ZAP, mitmproxy, HTTP workbench, and browser tooling; `subzy` occupies the released executable slot. |
-| waybackurls | No upstream license or affirmative redistribution grant was found. | Replaced by MIT-licensed URLFinder; GAU also remains available. |
-| Maltego | Redistribution rights were not established and it was not exposed as a distinct MCP tool. | Removed; SpiderFoot remains the graph/OSINT-oriented alternative. |
-| WPScan | Its public-source terms restrict commercialization and value-added products. | Removed; GPL-licensed WhatWeb provides CMS and web-technology fingerprinting. |
-| Nmap, nmap-common, Ncat, Ndiff, Nping | The inspected Kali package `7.99+dfsg-1kali1` declares `NPSL-0.94`; the package copyright explicitly identifies Kali's non-free classification. Public-image redistribution review remains unresolved. | Excluded until an exact packaged-license decision is recorded. `oc_nmap` remains an optional adapter for operator-supplied installations. |
-| AutoRecon, Metasploit, NetExec, RustScan | AutoRecon and Metasploit depend directly on the Nmap package; NetExec depends on `python3-libnmap`, which depends on Nmap. RustScan's default scan pipeline invokes Nmap. | Excluded from the base image; adapters remain optional and report missing binaries or dependencies. |
-| Terrascan | Upstream is archived; its dependency graph has unresolved high/critical advisories that require a broad maintenance fork. | Binary excluded; `oc_terrascan` remains an optional adapter. |
-| ScoutSuite | The latest upstream release requires sqlitedict 2.1.0, which has an unresolved high-severity deserialization advisory. | Binary excluded; `oc_scout_suite` remains an optional adapter. |
+| Burp Suite Community Edition | Redistribution permission is not established for the exact binary. [Current PortSwigger terms](https://portswigger.net/burp/eula) restrict third-party availability; older packaged terms contain a conditional transfer provision whose applicability to a current binary is unresolved. | Capture the applicable grant and satisfy its conditions, or obtain written permission. ZAP, mitmproxy, the HTTP workbench and browser tooling remain available. |
+| waybackurls | No license or affirmative redistribution grant was established for the [upstream source](https://github.com/tomnomnom/waybackurls). Source visibility alone supplies no grant. | Obtain permission; URLFinder and GAU remain available. |
+| Maltego | [Vendor terms](https://www.maltego.com/license-agreement/) restrict copying and third-party distribution. No grant covering the proposed image and recipients is recorded. | Obtain an applicable written grant; SpiderFoot remains available. |
+| Terrascan | [Upstream](https://github.com/tenable/terrascan) is archived and explicitly no longer maintained. | Binary excluded; `oc_terrascan` remains an optional adapter for separately supplied installations. Reintroduction requires a maintained, qualified replacement or fork. |
+| ScoutSuite | Its sqlitedict dependency is affected by [CVE-2024-35515](https://nvd.nist.gov/vuln/detail/CVE-2024-35515). NVD records CISA-ADP's CVSS 3.1 score of 9.8 critical; [GitHub's advisory](https://github.com/advisories/GHSA-g4r7-86gm-pgqc) scores it 8.6 high under CVSS 4.0 and lists no patched version. | Binary excluded; `oc_scout_suite` remains an optional adapter. A secure dependency graph must pass the unchanged HIGH/CRITICAL gate before inclusion. |
 
 ## Components with special obligations
 
 | Component | Reason |
 | --- | --- |
+| Nmap family | Preserve the exact applicable NPSL terms, notices, source and distribution/integration assessment described above. |
+| WPScan | Preserve its custom license and copyright notices and comply with commercialization and database/API terms. |
 | Volatility 3 | Preserve the complete Volatility Software License 1.0 text and corresponding source information. |
 | GPL/AGPL/CPL components | The image contains GPL, AGPL, LGPL, CPL, and other reciprocal licenses. Preserve notices and provide complete corresponding source or the published source offer for the exact binaries distributed. |
 | Nikto databases | The database files are all-rights-reserved and may be distributed and used only with the full Nikto package. Keep the package intact and preserve its license text. |
@@ -143,7 +227,13 @@ scripts. Extract it and build from its `context/` directory.
 
 ## Release requirements
 
-A public image is ready for promotion only when all of the following are true:
+Qualified private candidates require completed software, vulnerability, license
+and source gates, including matching native amd64/arm64 software acceptance.
+The published unqualified preview does not satisfy or change those gates, and
+its pending obligations remain unresolved. Public promotion additionally
+requires anonymous public acceptance and resolution of vendor reviews under
+the release procedure. A public image is ready for promotion only when all of
+the following are true:
 
 1. Every direct non-package-manager build input is pinned to a version, commit,
    or digest as appropriate; the Kali package set is resolved by `apt-get` from

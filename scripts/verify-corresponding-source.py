@@ -8,6 +8,10 @@ import hashlib
 import json
 from pathlib import Path, PurePosixPath
 import re
+import tarfile
+
+
+DIRECT_ASSETS = {"docker-bench-security", "nuclei-templates", "seclists", "wpscan-metadata"}
 
 
 def digest(path: Path) -> str:
@@ -16,6 +20,60 @@ def digest(path: Path) -> str:
         while chunk := handle.read(1024 * 1024):
             value.update(chunk)
     return value.hexdigest()
+
+
+def direct_archive_digest(path: Path) -> str:
+    records = {}
+    root_name = None
+    total_bytes = 0
+    try:
+        with tarfile.open(path, "r:gz") as archive:
+            for index, member in enumerate(archive):
+                name = PurePosixPath(member.name)
+                if (index >= 100_000 or name.is_absolute() or ".." in name.parts
+                        or str(name) != member.name or ".git" in name.parts):
+                    raise ValueError("unsafe direct source archive member")
+                if root_name is None:
+                    if not member.isdir() or len(name.parts) != 1:
+                        raise ValueError("direct source archive must start with its root directory")
+                    root_name = name.parts[0]
+                    continue
+                if not name.parts or name.parts[0] != root_name or len(name.parts) < 2:
+                    raise ValueError("direct source archive has inconsistent root")
+                relative = PurePosixPath(*name.parts[1:]).as_posix()
+                if relative in records:
+                    raise ValueError("duplicate direct source archive member")
+                if member.issym():
+                    record = ("symlink", member.linkname)
+                elif member.islnk():
+                    target = PurePosixPath(member.linkname)
+                    if (not target.parts or target.is_absolute() or ".." in target.parts
+                            or target.parts[0] != root_name):
+                        raise ValueError("unsafe direct source archive hard link")
+                    record = records.get(PurePosixPath(*target.parts[1:]).as_posix())
+                    if record is None or record[0] != "file-sha256":
+                        raise ValueError("unresolved direct source archive hard link")
+                elif member.isfile():
+                    if member.size > 16 * 1024 ** 3:
+                        raise ValueError("direct source archive exceeds data limit")
+                    value = hashlib.sha256()
+                    with archive.extractfile(member) as handle:
+                        while chunk := handle.read(1024 * 1024):
+                            total_bytes += len(chunk)
+                            if total_bytes > 16 * 1024 ** 3:
+                                raise ValueError("direct source archive exceeds data limit")
+                            value.update(chunk)
+                    record = ("file-sha256", value.hexdigest())
+                elif member.isdir():
+                    record = ("directory", "")
+                else:
+                    raise ValueError("unsupported direct source archive member")
+                records[relative] = record
+    except (tarfile.TarError, OSError, KeyError) as error:
+        raise ValueError(f"invalid direct source archive: {path.name}") from error
+    if root_name is None:
+        raise ValueError("empty direct source archive")
+    return hashlib.sha256(json.dumps(records, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def verify(root: Path, runtime_inventory: Path | None = None, platform: str | None = None,
@@ -56,6 +114,12 @@ def verify(root: Path, runtime_inventory: Path | None = None, platform: str | No
         not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value) for value in first_party.values()
     ):
         raise ValueError("first-party source hash inventory is missing or invalid")
+    direct_assets = ecosystems.get("direct_assets_sha256")
+    if (not isinstance(direct_assets, dict)
+            or set(direct_assets) != DIRECT_ASSETS
+            or any(not isinstance(value, str) or not re.fullmatch(r"[0-9a-f]{64}", value)
+                   for value in direct_assets.values())):
+        raise ValueError("direct asset hash inventory is missing or invalid")
     if runtime_inventory and inventory != runtime_inventory.read_text():
         raise ValueError("captured source inventory differs from tested runtime")
     if runtime_ecosystems and ecosystems != json.loads(runtime_ecosystems.read_text()):
@@ -101,6 +165,18 @@ def verify(root: Path, runtime_inventory: Path | None = None, platform: str | No
                            if package["kind"] == ecosystem}
         if expected_packages != actual_packages:
             raise ValueError(f"installed {ecosystem} source coverage is incomplete")
+    direct_entries = [package for package in manifest["packages"]
+                      if package["kind"] == "direct" and package["name"] in DIRECT_ASSETS]
+    direct_packages = {package["name"]: package for package in direct_entries}
+    if len(direct_entries) != len(DIRECT_ASSETS) or set(direct_packages) != DIRECT_ASSETS:
+        raise ValueError("direct source archive coverage is incomplete")
+    for name, package in direct_packages.items():
+        archives = package["archives"]
+        if (len(archives) != 1 or package["source_status"] != "captured"
+                or package["version"] != "sha256:" + recorded[archives[0]]["sha256"]):
+            raise ValueError(f"direct source archive identity mismatch: {name}")
+        if direct_archive_digest(root / archives[0]) != direct_assets[name]:
+            raise ValueError(f"direct source archive differs from recorded assets: {name}")
     return manifest
 
 

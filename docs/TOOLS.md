@@ -2,10 +2,10 @@
 
 # Tool reference
 
-OpenCyber Harness 0.5.0 exposes **255 MCP tools**:
-173 executable-backed tools and 82 native tools.
+OpenCyber Harness 0.5.0 exposes **256 MCP tools**:
+174 executable-backed tools and 82 native tools.
 
-Contract digest: `6ff0d628d1e93da78345b05ad63cdcd27adade55de29938ead97c4a7560b6660`. A running server reports the digest it
+Contract digest: `7e13189b44b4f331b1f54e570c0ab26d6eec4c73c21126720291239f1ebfb1e9`. A running server reports the digest it
 actually advertises with `oc_catalog`, so a stale container or a modified
 registration is detectable. Pass `expected_catalog_digest` to `oc_catalog`
 to pin the contract a client was built against.
@@ -31,7 +31,7 @@ the advertised executable set; it has no effect in compact mode.
 
 | Task shape | Tools |
 | --- | ---: |
-| `execute` | 177 |
+| `execute` | 178 |
 | `inspect` | 41 |
 | `manage` | 15 |
 | `observe` | 9 |
@@ -41,10 +41,10 @@ the advertised executable set; it has no effect in compact mode.
 | Effect | Tools |
 | --- | ---: |
 | `device` | 75 |
-| `filesystem` | 227 |
-| `mutation` | 211 |
-| `network` | 127 |
-| `process` | 196 |
+| `filesystem` | 228 |
+| `mutation` | 212 |
+| `network` | 128 |
+| `process` | 197 |
 | `secret` | 5 |
 
 ## Executable-backed tools
@@ -73,11 +73,11 @@ Every call runs under a named deadline and per-stream output cap; see
 | rf (hardware) | 13 |
 | usb (hardware) | 2 |
 | utilities | 2 |
-| web | 30 |
+| web | 31 |
 | wireless | 5 |
 | wireless_attack (hardware) | 15 |
 
-**Total: 173**
+**Total: 174**
 
 ### automotive
 
@@ -313,6 +313,7 @@ Every call runs under a named deadline and per-stream output cap; see
 | `oc_wafw00f` | `wafw00f` | Run wafw00f from the OpenCyber web toolkit. The container executes `wafw00f` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_wfuzz` | `wfuzz` | Run wfuzz from the OpenCyber web toolkit. The container executes `wfuzz` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_whatweb` | `whatweb` | Run whatweb from the OpenCyber web toolkit. The container executes `whatweb` directly with the supplied argv tokens; shell parsing is never used. |
+| `oc_wpscan` | `wpscan` | Run wpscan from the OpenCyber web toolkit. The container executes `wpscan` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_x8` | `x8` | Run x8 from the OpenCyber web toolkit. The container executes `x8` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_xsser` | `xsser` | Run xsser from the OpenCyber web toolkit. The container executes `xsser` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_zap` | `zaproxy` | Run zap from the OpenCyber web toolkit. The container executes `zaproxy` directly with the supplied argv tokens; shell parsing is never used. |

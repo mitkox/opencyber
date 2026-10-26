@@ -1,19 +1,22 @@
 <p align="center"><strong>OpenCyber Harness</strong><br>
 A container-native red and blue team security MCP toolkit for agent runtimes.</p>
 
-> **0.5.0 is in private beta preparation.** Repository access is by maintainer
-> invitation. The first public open source prerelease is still planned; images
-> are not yet cleared for distribution. Hardware interfaces are experimental
-> and unqualified. Production qualification is separate.
+> **0.5.0 has an invited-tester private preview for Linux amd64.** Download
+> [v0.5.0-private-beta.1](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+> with repository Read access. This preview is unqualified; native arm64,
+> hardware and production acceptance remain open. Public publication and
+> broader distribution require separate approval.
 
-**Beta testers: start with the [beta guide](docs/BETA_TESTING.md).** It covers
-installation, MCP client setup and a synthetic first exercise with expected
-results. The maintainer will provide an approved source commit and platform
-image digest when image qualification and license review pass. Source testing
-is available to invited contributors now; local builds remain development builds.
+**Beta testers: start with the [beta guide](docs/BETA_TESTING.md).**
+External testers receive Read access to `mitkox-dev/opencyber`; maintainers
+manage invitations using the [beta access guide](docs/BETA_ACCESS.md). The beta
+guide covers the published archive, MCP client setup and a synthetic first
+exercise. The preview includes the full toolkit, including Oracle tooling and
+PDB components. Vendor reviews and license metadata follow-ups remain open;
+private access does not establish legal clearance or waive third-party terms.
 
 OpenCyber Harness is the execution substrate for authorized security work: one
-container that exposes **255 security MCP tools** over stdio — 173
+container that exposes **256 security MCP tools** over stdio — 174
 executable-backed tools and 82 native ones — across the software and physical
 layers: SDR, Wi-Fi, Bluetooth/BLE, NFC/RFID, USB, JTAG/SWD, UART, CAN/automotive,
 logic analyzers, GPS, and IR. It ships isolated engagement workspaces, serial
@@ -32,12 +35,13 @@ API and hardware integrations. Blue teams can analyze supplied files, logs and
 PCAPs offline, build timelines, and export independently verifiable evidence.
 Start with the [blue-team guide](docs/BLUE_TEAM.md) for that workflow.
 
-The catalog has 173 executable integrations and 82 native tools. The image
-configuration omits eight optional adapters' binaries. Nmap and its dependent adapters
-(`rustscan`, `autorecon`, `metasploit`, `msfvenom`, `netexec`) await redistribution
-review. Terrascan and ScoutSuite do not meet the dependency vulnerability gate.
-Catalog and doctor output distinguish registered, bundled and
-available tools; see the [third-party notices](THIRD_PARTY_NOTICES.md).
+The catalog has 174 executable integrations and 82 native tools. The image
+includes Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, Metasploit, NetExec and
+WPScan, with their local assets. Terrascan is excluded because upstream is
+archived; ScoutSuite is excluded because its sqlitedict dependency has an unresolved critical
+advisory. Their optional adapters report the reason when unavailable.
+Custom licenses are permitted with their own notices, source and use terms;
+see the [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Choose your path
 
@@ -52,63 +56,93 @@ available tools; see the [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Quick start
 
-### 1. Access the private source
+### 1. Download the private preview
 
-After accepting the maintainer's repository invitation:
+Use a Linux amd64 Docker engine, Bash and Python 3. After accepting the
+maintainer's repository invitation, download all release assets while connected:
 
 ```sh
 gh auth login
-gh repo clone mitkox/opencyber
-cd opencyber
+gh release download v0.5.0-private-beta.1 \
+  --repo mitkox-dev/opencyber --dir opencyber-beta
+cd opencyber-beta
 ```
 
-For development now, follow the [source install](docs/INSTALL.md#path-c-source-install-for-development).
-For the intended container runtime, follow the [beta guide](docs/BETA_TESTING.md)
-once the maintainer supplies `BETA_SOURCE_COMMIT` and the qualified
-`BETA_PLATFORM_DIGEST` for your architecture. Private GHCR access needs a
-separate package permission and Docker login. There is no public release tag
-or anonymous image installation to use yet.
+The 38 assets total about 13.3 GB. For an offline host, transfer the **whole
+folder**, including all 14 numbered image/source parts and the checksums,
+helper, source snapshot, notices and metadata. Allow additional storage for the
+assembled image archive and Docker's expanded image. GitHub CLI is needed only
+on the connected side; no GHCR token, Docker login or registry pull is required.
 
-### 2. Install the assigned candidate
+### 2. Verify and import locally
 
-From the source commit selected in the beta guide, after authenticating Docker:
+From the downloaded folder, on the Linux amd64 Docker host:
 
 ```sh
-OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
-  bash install.sh --version 0.5.0 --digest "$BETA_PLATFORM_DIGEST"
+bash beta-import.sh --verify-only
+bash beta-import.sh
 ```
 
-`install.sh` starts a hardened container, creates a labelled workspace volume,
-verifies the image version label and runs the MCP self-test. Keep the source
-checkout for cleanup. See [Install](docs/INSTALL.md) for options and a manual
-container alternative.
+The helper checks the parts and assembled archive, imports
+`opencyber:0.5.0-private-beta.1-amd64`, and verifies the image layers,
+configuration, platform and labels against source commit
+`c1201976caf49c45068bb507032aee75e4509e20`. It runs offline doctor and strict MCP
+checks in disposable containers and leaves no persistent container or volume.
+It makes no network requests. See the [beta guide](docs/BETA_TESTING.md) for
+source assembly, storage and retry details.
 
-### 3. Check the running container
+### 3. Start an offline workspace
+
+Extract the supplied first-party source into a new directory, then use its
+launcher with unused container and volume names:
 
 ```sh
-docker exec opencyber opencyber-doctor
-docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber opencyber-mcp --self-test
+mkdir source-c120197
+tar -xzf opencyber-source-c120197.tar.gz -C source-c120197
+if docker container inspect opencyber-beta >/dev/null 2>&1 || \
+   docker volume inspect opencyber-beta >/dev/null 2>&1; then
+  echo "opencyber-beta already exists; choose unused container and volume names" >&2
+else
+  bash source-c120197/opencyber/scripts/opencyber-run.sh \
+    --profile blue-team --offline \
+    --image opencyber:0.5.0-private-beta.1-amd64 \
+    --name opencyber-beta --volume opencyber-beta
+fi
 ```
 
-`opencyber-doctor` exits non-zero when degraded, which makes it both a
-healthcheck and a release gate. Use `--json` for machine output and `--quiet`
-for probes.
+The blue-team profile removes networking, capabilities and device passthrough.
+The named volume keeps evidence across container removal. The source snapshot
+and image remain frozen at `c120197`; newer repository documentation does not
+change those release bytes. For development, use the separate
+[source install](docs/INSTALL.md#path-c-source-install-for-development).
 
-### 4. Connect an MCP client
+### 4. Check the running container
+
+```sh
+docker exec opencyber-beta opencyber-doctor --json
+docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber-beta opencyber-mcp --self-test
+```
+
+Both checks should exit 0. Doctor reports required tools and assets; the MCP
+self-test checks the advertised catalog. These checks do not qualify every
+tool, device or live integration.
+
+### 5. Connect an MCP client
 
 The server speaks MCP over stdio and publishes no ports:
 
 ```sh
-docker exec -i opencyber opencyber-mcp
+docker exec -i opencyber-beta opencyber-mcp
 ```
 
 Claude Code, Codex, OpenCode, Gemini CLI, Cursor, and VS Code can launch that
 command directly. Exact snippets and the full client matrix are in
-[MCP integration](docs/MCP_INTEGRATION.md).
+[MCP integration](docs/MCP_INTEGRATION.md). Use the container name
+`opencyber-beta` and do not add `-t`.
 
 ## What a tool result looks like
 
-Every one of the 255 tools returns the same contract block, so a client can
+Every one of the 256 tools returns the same contract block, so a client can
 branch on outcome, coverage, and provenance without special-casing tools:
 
 ```json
@@ -137,14 +171,15 @@ are in [tool result contracts](docs/CONTRACTS.md), [errors](docs/ERRORS.md), and
 
 ## What is in the image
 
-- **Software toolchain.** 173 executable integrations across network,
+- **Software toolchain.** 174 executable integrations across network,
   enumeration, web, credentials, exploitation, binary analysis, forensics,
-  cloud/container/IaC, and utilities, including the optional integrations above.
+  cloud/container/IaC, and utilities. Optional adapters remain catalogued even
+  when their binaries are excluded for the reasons above.
   See the generated [tool reference](docs/TOOLS.md).
 - **Physical-layer toolchain.** 63 hardware-category executables and native
   inventory, readiness, playbook, serial, and firmware tools. Host device
   passthrough is separate; see [Hardware](docs/HARDWARE.md).
-- **Offline assets.** Nuclei templates, Seclists, rockyou, exploitdb and wordlists are baked in and recorded in an asset
+- **Offline assets.** Nuclei templates, pinned SecLists dictionaries, exploitdb and a generated keyboard-pattern dictionary are baked in and recorded in an asset
   manifest. See [Airgap](docs/AIRGAP.md).
 - **Engagements.** Every artifact lands under
   `/workspace/engagements/<engagement_id>/`; there is no shared "current
@@ -160,14 +195,14 @@ are in [tool result contracts](docs/CONTRACTS.md), [errors](docs/ERRORS.md), and
 
 ## Tool modes
 
-Full mode advertises all 255 tools. Tool schemas cost context; if that is too
+Full mode advertises all 256 tools. Tool schemas cost context; if that is too
 much, compact mode advertises the 82 native tools and dispatches executable
 tools through `oc_execute`. `oc_catalog` reports both the advertised payload
 size and the catalog digest, so you can see the context cost and whether the
 running server matches the release you pinned:
 
 ```sh
-docker run -d --name opencyber -e OPENCYBER_MCP_MODE=compact ...
+docker run -d --name opencyber-beta -e OPENCYBER_MCP_MODE=compact ...
 ```
 
 Narrow the advertised executable set by category:
@@ -194,7 +229,7 @@ Arbitrary shell behavior is available only when the caller deliberately selects
 
 - The container is the trust boundary and runs as root because several of the
   included tools need privileged network access inside it. Harden from the host
-  with the installer or [documented flags](docs/INSTALL.md#path-b-manual-container);
+  with the [documented launcher profiles](docs/INSTALL.md#path-b-manual-container);
   do not use `--privileged`.
 - Scope enforcement is opt-in (`OPENCYBER_ENFORCE_SCOPE=1`) and applies to
   executable-backed calls, native HTTP tools (`oc_http_request`,
@@ -228,7 +263,7 @@ harness to untrusted clients or targets.
 | [Security model](docs/SECURITY_MODEL.md) | Trust boundary, controls, limitations |
 | [Operations](docs/OPERATIONS.md) | Deployment, hardening, backup, upgrades |
 | [CLI reference](docs/CLI_REFERENCE.md) | Console commands and exit codes |
-| [Tool reference](docs/TOOLS.md) | Generated list of all 255 tools |
+| [Tool reference](docs/TOOLS.md) | Generated list of all 256 tools |
 | [Hardware](docs/HARDWARE.md) | Device passthrough and physical-layer work |
 | [Airgap](docs/AIRGAP.md) | Offline build, export, import, CVE index |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Diagnosis and common failures |

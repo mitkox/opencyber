@@ -1,6 +1,8 @@
 # Hardware and physical-layer testing
 
-This is the experimental hardware guide for the 0.5.0 private pre-production beta.
+OpenCyber 0.5.0 supports hardware and physical-layer integrations in the private
+pre-production beta: USB, SDR, Wi-Fi, Bluetooth/BLE, NFC/RFID, JTAG/SWD/SPI, UART,
+CAN, logic analyzers, GNSS and IR. This guide covers host setup and device access.
 Begin with [beta testing](BETA_TESTING.md) for software-only checks. OpenCyber
 runs in a container. A tool being installed says nothing about
 whether the host has passed the matching device through, so treat these as two
@@ -32,22 +34,25 @@ container cannot open. `accessible` means the node exists; it does not test
 opening the device, permissions, firmware compatibility or a successful
 operation. The inventory's `access` block summarizes node visibility.
 
-Real-device qualification is deferred for the first 0.5.0 prerelease; hardware
-interfaces are experimental. Readiness enumeration does not prove a device works.
-[The optional operator checklist](HARDWARE_QUALIFICATION.md) records qualification
-against exact image digests when equipped lab hosts are available.
+Hardware support covers the documented integrations, tooling and passthrough
+profiles. Compatibility depends on the device, firmware, host drivers and
+architecture. Readiness enumeration does not prove a device works.
+[The optional operator checklist](HARDWARE_QUALIFICATION.md) records tested
+operations against exact image digests; an untested combination remains
+unqualified. Production acceptance is separate.
 
 ## Host prerequisites
 
 Run the container as root (the image already does), but grant only the
 capabilities the selected domain needs. `scripts/opencyber-run.sh` builds the
 `docker run` line and, unless you pass `--dry-run`, starts the container in
-detached mode. First complete authenticated beta setup and replace
-`BETA_PLATFORM_DIGEST` with the qualified platform digest supplied by the
-maintainer. An available image does not qualify its hardware interfaces:
+detached mode. First complete [beta archive import](BETA_TESTING.md) on Linux
+amd64 and run the launcher from the extracted frozen source. The preview's
+hardware integrations are available for beta use; device qualification remains
+separate. These examples require the operator's authorization for the devices:
 
 ```sh
-BETA_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates@BETA_PLATFORM_DIGEST
+BETA_IMAGE=opencyber:0.5.0-private-beta.1-amd64
 ./scripts/opencyber-run.sh --profile sdr --image "$BETA_IMAGE"
 ./scripts/opencyber-run.sh --profile wifi --image "$BETA_IMAGE"
 ./scripts/opencyber-run.sh --profile serial --device /dev/ttyUSB0 --image "$BETA_IMAGE"
@@ -72,7 +77,7 @@ Every profile starts from the same hardened base:
 -v opencyber-workspace:/workspace
 ```
 
-With `--no-read-only`, the read-only flag and the four tmpfs mounts are
+With `--no-read-only`, the read-only flag and the seven tmpfs mounts are
 omitted; the capability drop and `no-new-privileges` remain.
 
 Profiles then add only the exposure they need:

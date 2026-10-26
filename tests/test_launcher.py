@@ -60,6 +60,9 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("--cap-drop=ALL", command)
         self.assertIn("--read-only", command)
         self.assertIn("--tmpfs /root/.cache", command)
+        self.assertIn("--tmpfs /root/.local/share", command)
+        self.assertIn("--tmpfs /root/.nxc", command)
+        self.assertIn("--tmpfs /root/.msf4", command)
         self.assertIn("OPENCYBER_OFFLINE=1", command)
         self.assertNotIn("--privileged", command)
 

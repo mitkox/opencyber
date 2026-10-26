@@ -3,15 +3,14 @@
 # OpenCyber Harness image.
 #
 # The image is the execution substrate for an agent runtime: a stdio MCP server
-# with 173 executable adapters (including optional integrations, SDR, Wi-Fi, Bluetooth, NFC, JTAG,
+# with 174 executable adapters (including optional integrations, SDR, Wi-Fi, Bluetooth, NFC, JTAG,
 # serial, CAN, logic-analyzer, GPS, and IR tooling) and a native layer for
 # hardware inventory, serial sessions, firmware triage, HTTP, browser, API,
 # audit, and workspace work. Three properties matter more than image size:
 #
 # 1. Offline readiness. A fresh container must be able to run a real scan with
-#    no egress. Nuclei templates, SecLists, rockyou, and exploitdb are baked in;
-#    an asset manifest records them. Nmap and its dependent integrations
-#    remain optional operator-supplied components pending redistribution review.
+#    no egress. Nuclei templates, SecLists dictionaries, and exploitdb are baked in;
+#    an asset manifest records them. Nmap and its dependent integrations are installed.
 # 2. Verifiability. The build fails if any required catalog executable, template store,
 #    wordlist, hardware binary, or agent tool is missing. `opencyber-doctor` is
 #    the same gate at run time and is also the healthcheck.
@@ -27,8 +26,9 @@
 #     --security-opt no-new-privileges \
 #     --read-only --tmpfs /tmp --tmpfs /run \
 #     --tmpfs /root/.config --tmpfs /root/.cache \
+#     --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
 #     -v opencyber-workspace:/workspace \
-#     ghcr.io/mitkox/opencyber:0.5.0
+#     ghcr.io/mitkox-dev/opencyber:0.5.0
 #
 # The /root/.config and /root/.cache tmpfs mounts are required under a read-only
 # rootfs: Chromium's crashpad handler aborts with
@@ -107,6 +107,22 @@ RUN apt-get update \
     && tar --exclude=.git --exclude=hashpump/hashpump --exclude='*.o' -czf /out/sources/hashpump.tar.gz -C /src hashpump \
     && cd /out && sha256sum hashpump > /out/sources/binaries.sha256
 
+FROM --platform=$BUILDPLATFORM debian:bookworm@sha256:854dd8ab51d62866dbd8f5431d15ce77b12983a2a4a1e1fe43a2395dc7ef9f61 AS seclists-assets
+ARG SECLISTS_VERSION=2026.1
+RUN apt-get update && apt-get install -y --no-install-recommends python3 \
+    && rm -rf /var/lib/apt/lists/*
+COPY scripts/build-offline-wordlists.py /build/scripts/build-offline-wordlists.py
+COPY LICENSE /build/LICENSE
+ADD --checksum=sha256:226c49d04974ec6c39dadbf38ba78e67fec8824d729e66907f6050329da98932 \
+    https://codeload.github.com/danielmiessler/SecLists/tar.gz/refs/tags/${SECLISTS_VERSION} /tmp/seclists.tar.gz
+RUN mkdir -p /out/seclists \
+    && tar -xzf /tmp/seclists.tar.gz --directory /out/seclists --strip-components=1 \
+    && find /out/seclists -type f -ipath '*rockyou*' -delete \
+    && rm /tmp/seclists.tar.gz \
+    && printf '%s\n' "$SECLISTS_VERSION" > /out/seclists/.opencyber-version
+RUN python3 /build/scripts/build-offline-wordlists.py --source /out/seclists \
+    --output /out/package --version "${SECLISTS_VERSION}+opencyber1"
+
 FROM kalilinux/kali-rolling:latest@sha256:4be87f78671419c13dcf4f207ead1cfc0de178ea281b3f69c0f49b69ba4e79b1 AS runtime
 
 ARG DEBIAN_FRONTEND=noninteractive
@@ -125,13 +141,17 @@ ARG YQ_VERSION=v4.54.1
 
 COPY compliance/apt-public-exclusions.pref /etc/apt/preferences.d/opencyber-public-exclusions
 
-RUN apt-get update \
+RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline-wordlists.deb,target=/tmp/opencyber-offline-wordlists.deb,readonly \
+    apt-get update \
+    && apt-get dist-upgrade -y --no-install-recommends \
     && apt-get install -y --no-install-recommends \
+        /tmp/opencyber-offline-wordlists.deb \
         aircrack-ng \
         amass \
         apktool \
         arjun \
         arp-scan \
+        autorecon \
         autopsy \
         avrdude \
         bettercap \
@@ -198,13 +218,18 @@ RUN apt-get update \
         masscan \
         mdk4 \
         medusa \
+        metasploit-framework \
         mfcuk \
         mfoc \
         minicom \
         mitmproxy \
         nbtscan \
+        ncat \
+        ndiff \
         netdiscover \
+        netexec \
         nikto \
+        nmap \
         nuclei \
         nodejs \
         node-playwright \
@@ -242,13 +267,13 @@ RUN apt-get update \
         responder \
         ripgrep \
         ropper \
+        rustscan \
         ruby \
         rtl-433 \
         rtl-sdr \
         samba-common-bin \
         scalpel \
         screen \
-        seclists \
         sherlock \
         sigrok-cli \
         sigrok-firmware-fx2lafw \
@@ -281,13 +306,34 @@ RUN apt-get update \
         wifite \
         wireshark \
         wireless-tools \
-        wordlists \
+        wpscan \
         xsser \
         xxd \
         zaproxy \
         chromium \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Kali adds file capabilities to Nmap. They can exceed a hardened container's
+# bounding set and make exec fail with EPERM, even for --version. The launcher
+# supplies the task's capabilities; the executable must not add its own.
+RUN setcap -r /usr/lib/nmap/nmap
+
+# The local data package contains only the scrubbed tree and satisfies the
+# distribution tools' seclists/wordlists dependencies. Retain its MIT grant.
+RUN mkdir -p /usr/share/opencyber/licenses/seclists \
+    && cp /usr/share/seclists/LICENSE /usr/share/opencyber/licenses/seclists/LICENSE
+
+# Stage the public local-detection database while connected. Offline scans do
+# not download metadata or require a WPScan API/enterprise credential.
+RUN wpscan --update --no-banner \
+    && mkdir -p /usr/share/opencyber/wpscan-cache/wpscan \
+        /usr/share/opencyber/licenses/wpscan-data \
+    && cp -a /root/.cache/wpscan/db /usr/share/opencyber/wpscan-cache/wpscan/ \
+    && cp /root/.cache/wpscan/db/LICENSE /usr/share/opencyber/licenses/wpscan-data/LICENSE
+
+COPY scripts/opencyber-wpscan.sh /usr/local/bin/wpscan
+RUN chmod 0755 /usr/local/bin/wpscan
 
 # Prowler 5.45's published pyproject uses a uv override for PyMongo 4.18.2:
 # Huawei SDK's wheel still pins 4.15.1 and only consumes its bson types. pip
@@ -404,11 +450,13 @@ RUN test "$(nuclei -tl -silent 2>/dev/null | wc -l)" -gt 1000
 
 # Wordlists that every credential and content-discovery playbook assumes exist.
 RUN set -eux; \
+    mkdir -p /usr/share/wordlists; \
     cd /usr/share/wordlists; \
-    gunzip -kf rockyou.txt.gz; \
-    chmod 0644 rockyou.txt; \
+    cp /usr/share/seclists/Passwords/Keyboard-Walks/walk-the-line.txt opencyber-keyboard-patterns.txt; \
+    cp /usr/share/seclists/Discovery/Web-Content/common.txt common.txt; \
+    chmod 0644 opencyber-keyboard-patterns.txt; \
     ln -sfn /usr/share/seclists seclists; \
-    test -s rockyou.txt; \
+    test -s opencyber-keyboard-patterns.txt; \
     test -r seclists/Discovery/Web-Content/common.txt
 
 # Optional NVD-derived CVE index for fully offline oc_cve_lookup.
@@ -447,8 +495,8 @@ RUN set -eux; \
 
 LABEL org.opencontainers.image.title="OpenCyber Harness" \
       org.opencontainers.image.description="Security MCP toolkit for authorized red and blue team work" \
-      org.opencontainers.image.source="https://github.com/mitkox/opencyber" \
-      org.opencontainers.image.url="https://github.com/mitkox/opencyber" \
+      org.opencontainers.image.source="https://github.com/mitkox-dev/opencyber" \
+      org.opencontainers.image.url="https://github.com/mitkox-dev/opencyber" \
       org.opencontainers.image.version="${OPENCYBER_VERSION}" \
       com.opencyber.harness.version="${OPENCYBER_VERSION}" \
       org.opencontainers.image.licenses="Apache-2.0 AND LicenseRef-OpenCyber-Third-Party" \
@@ -472,6 +520,7 @@ ARG TARGETARCH
 COPY --from=go-tools /out/sources /source-inputs/go
 COPY --from=rust-tools /out/sources /source-inputs/rust
 COPY --from=hashpump-tools /out/sources /source-inputs/hashpump
+COPY --from=seclists-assets /out/package/source /source-inputs/local/opencyber-offline-wordlists
 COPY Dockerfile /source-inputs/Dockerfile
 COPY scripts/capture-corresponding-source.py scripts/verify-corresponding-source.py /source-inputs/
 COPY . /source-inputs/context/

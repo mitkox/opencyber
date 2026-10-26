@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 readonly DEFAULT_VERSION="0.5.0"
-readonly DEFAULT_IMAGE="ghcr.io/mitkox/opencyber"
+readonly DEFAULT_IMAGE="ghcr.io/mitkox-dev/opencyber"
 readonly DEFAULT_CONTAINER="opencyber"
 readonly DEFAULT_VOLUME="opencyber-workspace"
 readonly MANAGED_LABEL="com.opencyber.harness.managed"
@@ -41,6 +41,8 @@ Options:
 The default container is hardened: capabilities dropped except NET_RAW/NET_ADMIN/
 NET_BIND_SERVICE, no-new-privileges, and a read-only root filesystem with tmpfs
 for /tmp, /run, /root/.config, and /root/.cache.
+AutoRecon, NetExec and Metasploit also receive disposable state mounts at
+/root/.local/share, /root/.nxc and /root/.msf4.
 
 Environment overrides:
   OPENCYBER_VERSION, OPENCYBER_DIGEST, OPENCYBER_IMAGE, OPENCYBER_CONTAINER_NAME,
@@ -176,7 +178,7 @@ fi
 if [[ "$verify_attestation" == true ]]; then
   require_command gh
   log "verifying the build attestation for ${image}"
-  gh attestation verify "oci://${image}" --repo mitkox/opencyber
+  gh attestation verify "oci://${image}" --repo mitkox-dev/opencyber
 fi
 
 if [[ "$offline" == true ]]; then
@@ -223,6 +225,9 @@ if [[ "$read_only" == true ]]; then
     --tmpfs /run
     --tmpfs /root/.config
     --tmpfs /root/.cache
+    --tmpfs /root/.local/share
+    --tmpfs /root/.nxc
+    --tmpfs /root/.msf4
   )
 fi
 

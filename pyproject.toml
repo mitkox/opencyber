@@ -35,12 +35,12 @@ dependencies = [
 ]
 
 [project.urls]
-Homepage = "https://github.com/mitkox/opencyber"
-Repository = "https://github.com/mitkox/opencyber"
-Issues = "https://github.com/mitkox/opencyber/issues"
-Changelog = "https://github.com/mitkox/opencyber/blob/main/CHANGELOG.md"
-Documentation = "https://github.com/mitkox/opencyber/blob/main/docs/README.md"
-Security = "https://github.com/mitkox/opencyber/security/policy"
+Homepage = "https://github.com/mitkox-dev/opencyber"
+Repository = "https://github.com/mitkox-dev/opencyber"
+Issues = "https://github.com/mitkox-dev/opencyber/issues"
+Changelog = "https://github.com/mitkox-dev/opencyber/blob/main/CHANGELOG.md"
+Documentation = "https://github.com/mitkox-dev/opencyber/blob/main/docs/README.md"
+Security = "https://github.com/mitkox-dev/opencyber/security/policy"
 
 [project.scripts]
 opencyber-mcp = "opencyber.server:main"

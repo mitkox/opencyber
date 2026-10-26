@@ -26,16 +26,16 @@ class CatalogTests(unittest.TestCase):
 
     def test_unbundled_integrations_are_optional_and_dependency_aware(self):
         optional = {spec.name: spec for spec in CATALOG if not spec.required}
-        expected = {"oc_nmap", "oc_rustscan", "oc_autorecon", "oc_metasploit", "oc_msfvenom", "oc_netexec",
-                    "oc_scout_suite", "oc_terrascan"}
+        expected = {"oc_scout_suite", "oc_terrascan"}
         self.assertEqual(set(optional), expected)
-        rustscan = optional["oc_rustscan"]
+        rustscan = next(spec for spec in CATALOG if spec.name == "oc_rustscan")
         with patch("opencyber.catalog.shutil.which", side_effect=lambda name: None if name == "nmap" else f"/bin/{name}"):
             self.assertFalse(rustscan.availability()["available"])
             self.assertEqual(rustscan.availability()["missing_dependencies"], ["nmap"])
-        self.assertFalse(rustscan.as_dict()["required"])
+        self.assertTrue(rustscan.as_dict()["required"])
+        self.assertIn("oc_wpscan", {spec.name for spec in CATALOG if spec.required})
 
-    def test_optional_dependency_failure_is_actionable_before_execution(self):
+    def test_bundled_dependency_failure_is_actionable_before_execution(self):
         from opencyber.executor import execute_tool
 
         with patch("opencyber.executor.resolve_engagement_path", return_value=Path("/tmp")), \
@@ -47,18 +47,17 @@ class CatalogTests(unittest.TestCase):
             result = asyncio.run(execute_tool("rustscan", [], "fixture"))
         self.assertFalse(result["success"])
         self.assertFalse(result["ok"])
-        self.assertTrue(result["optional"])
+        self.assertFalse(result["optional"])
         self.assertEqual(result["missing_dependencies"], ["nmap"])
         self.assertEqual(result["error"]["code"], "integration_unavailable")
         self.assertEqual(result["error"]["category"], "unavailable")
-        self.assertIn("operator-managed image", result["error"]["message"])
-        self.assertIn("operator-managed image", result["error_message"])
+        self.assertIn("nmap", result["error"]["message"])
         launch.assert_not_called()
 
 
     def test_restricted_executables_are_not_shipped(self):
         executables = {spec.executable for spec in CATALOG}
-        self.assertTrue({"burpsuite", "waybackurls", "wpscan", "maltego"}.isdisjoint(executables))
+        self.assertTrue({"burpsuite", "waybackurls", "maltego"}.isdisjoint(executables))
         self.assertTrue({"whatweb", "urlfinder", "subzy"}.issubset(executables))
 
     def test_reference_functional_inventory_is_accounted_for(self):

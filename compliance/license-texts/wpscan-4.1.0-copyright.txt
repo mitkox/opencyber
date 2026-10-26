@@ -1,0 +1,256 @@
+Format: https://www.debian.org/doc/packaging-manuals/copyright-format/1.0/
+Upstream-Name: wpscan
+Source: https://wpscan.com/wordpress-security-scanner
+Comment: package is in non-free because the commercialization is
+ restricted by License
+
+Files: *
+Copyright: 2011-2020 WPScan Team
+License: Dual-License
+ The WPScan software (henceforth referred to simply as "WPScan") is
+ dual-licensed - Copyright 2011-2019 WPScan Team.
+ .
+ Cases that include commercialization of WPScan require a commercial,
+ non-free license. Otherwise, WPScan can be used without charge under the
+ terms set out below.
+ .
+ 1. Definitions
+ 1.1 “License” means this document.
+ 1.2 “Contributor” means each individual or legal entity that creates,
+ contributes to the creation of, or owns WPScan.
+ 1.3 “WPScan Team” means WPScan’s core developers.
+ .
+ 2. Commercialization
+ A commercial use is one intended for commercial advantage or monetary
+ compensation.
+ Example cases of commercialization are:
+ - Using WPScan to provide commercial managed/Software-as-a-Service
+   services.
+ - Distributing WPScan as a commercial product or as part of one.
+ - Using WPScan as a value added service/product.
+ Example cases which do not require a commercial license, and thus fall
+ under the terms set out below, include (but are not limited to):
+ - Penetration testers (or penetration testing organizations) using WPScan
+   as part of their assessment toolkit.
+ - Penetration Testing Linux Distributions including but not limited to
+   Kali Linux, SamuraiWTF, BackBox Linux.
+ - Using WPScan to test your own systems.
+ - Any non-commercial use of WPScan.
+ If you need to purchase a commercial license or are unsure whether you
+ need to purchase a commercial license contact us - wpscanteam@gmail.com.
+ .
+ We may grant commercial licenses at no monetary cost at our own
+ discretion if the commercial usage is deemed by the WPScan Team to
+ significantly benefit WPScan.
+ .
+ Free-use Terms and Conditions;
+ 3. Redistribution
+ Redistribution is permitted under the following conditions:
+ - Unmodified License is provided with WPScan.
+ - Unmodified Copyright notices are provided with WPScan.
+ - Does not conflict with the commercialization clause.
+ .
+ 4. Copying
+ Copying is permitted so long as it does not conflict with the
+ Redistribution clause.
+ .
+ 5. Modification
+ Modification is permitted so long as it does not conflict with the
+ Redistribution clause.
+ .
+ 6. Contributions
+ Any Contributions assume the Contributor grants the WPScan Team the
+ unlimited, non-exclusive right to reuse, modify and relicense the
+ Contributor's content.
+ .
+ 7. Support
+ WPScan is provided under an AS-IS basis and without any support, updates
+ or maintenance. Support, updates and maintenance may be given according to
+ the sole discretion of the WPScan Team.
+ .
+ 8. Disclaimer of Warranty
+ WPScan is provided under this License on an “as is” basis, without
+ warranty of any kind, either expressed, implied, or statutory, including,
+ without limitation, warranties that the WPScan is free of defects,
+ merchantable, fit for a particular purpose or non-infringing.
+ .
+ 9. Limitation of Liability
+ To the extent permitted under Law, WPScan is provided under an AS-IS
+ basis. The WPScan Team shall never, and without any limit, be liable for
+ any damage, cost, expense or any other payment incurred as a result of
+ WPScan's actions, failure, bugs and/or any other interaction between
+ WPScan and end-equipment, computers, other software or any 3rd party,
+ end-equipment, computer or services.
+ .
+ 10. Disclaimer
+ Running WPScan against websites without prior mutual consent may be
+ illegal in your country. The WPScan Team accept no liability and are not
+ responsible for any misuse or damage caused by WPScan.
+ .
+ 11. Trademark
+ The "wpscan" term is a registered trademark. This License does not grant
+ the use of the "wpscan" trademark or the use of the WPScan logo.
+
+Files: spec/fixtures/dynamic_finders/plugin_version/404-to-301/translation_file/languages/404-to-301.pot
+Copyright: 2018 Joel James
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/b2binpay-payments-for-woocommerce/translation_file/languages/b2binpay-payments-for-woocommerce.pot
+Copyright: 2018 B2BinPay
+License: MIT
+
+Files: spec/fixtures/dynamic_finders/plugin_version/backupwordpress/translation_file/languages/backupwordpress.pot
+Copyright: 2018 XIBO Ltd
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/blossom-recipe-maker/translation_file/languages/blossom-recipe-maker.pot
+Copyright: 2018 blossomthemes
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/clean-and-simple-contact-form-by-meg-nicholas/translation_file/languages/clean-and-simple-contact-form-by-meg-nicholas.pot
+Copyright: 2018 Clean and Simple Contact Form
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/nodeinfo/translation_file/languages/nodeinfo.pot
+Copyright: 2018 Matthias Pfefferle
+License: MIT
+
+Files: spec/fixtures/dynamic_finders/plugin_version/hurrytimer/translation_file/languages/hurrytimer.pot
+Copyright: 2018 Nabil Lemsieh
+License: GPL-3
+
+Files: spec/fixtures/dynamic_finders/plugin_version/official-facebook-pixel/translation_file/languages/official-facebook-pixel-ja_JP.po
+Copyright: 2018 Facebook Pixel
+License: GPL-2
+
+Files: spec/fixtures/dynamic_finders/plugin_version/rest-xmlrpc-data-checker/translation_file/languages/rest-xmlrpc-data-checker.pot
+Copyright: 2018 Enrico Sorcinelli
+License: GPl-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/trackingmore-woocommerce-tracking/translation_file/languages/trackingmore-zh_TW.po
+Copyright: 2018 TrackingMore - WooCommerce Tracking
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/um-story-lite/translation_file/languages/um-story-lite.pot
+Copyright: SuitePlugins
+License: GPL-2
+
+Files: spec/fixtures/dynamic_finders/plugin_version/woo-idpay-gateway/translation_file/languages/woo-idpay-gateway.pot
+Copyright: IDPay
+License: GPl-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wordpress-ecommerce/translation_file/languages/mp.pot
+ spec/fixtures/dynamic_finders/plugin_version/wp-smushit/translation_file/languages/wp-smushit.pot
+Copyright: 2009-2015 Incsub
+           2018 WPMU DEV
+License: GPL-2
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wp-html5-outliner/translation_file/languages/wp-html5-outliner.pot
+Copyright: 2018 Ryan S. Born
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wp-mail-logging/translation_file/languages/wp-mail-logging.pot
+Copyright: 2018 Christian Z&ouml;ller
+License: GPL-3
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wp-media-stories/translation_file/languages/wp-media-stories.pot
+Copyright: 2018 WP Media Stories
+License: GPL-3
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wp-responsive-thumbnail-slider/translation_file/languages/wp-responsive-thumbnail-slider.pot
+Copyright: 2018 WordPress Responsive Thumbnail Carousel Slider
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wp-travel-mapquest/translation_file/i18n/languages/wp-travel-mapquest.pot
+Copyright: 2018 WEN Solutions
+License: GPL-3
+
+Files: spec/fixtures/dynamic_finders/plugin_version/wpdrift-io-worker/translation_file/languages/wpdrift-worker.pot
+Copyright: 2018 WPdrift
+License: GPL-3
+
+Files: spec/fixtures/dynamic_finders/plugin_version/yith-woocommerce-wishlist/translation_file/languages/yith-woocommerce-wishlist.pot
+Copyright: 2018 YITH WooCommerce Wishlist
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/cookiepro/translation_file/languages/wpcookiepro.pot
+Copyright: 2018 OneTrust
+License: GPL-2+
+
+Files: spec/fixtures/dynamic_finders/plugin_version/custom-importer-exporter/translation_file/languages/custom-importer-exporter.pot
+Copyright: 2018 Custom Importer & Exporter
+License: GPL-2+
+
+Files: debian/*
+Copyright: 2012 dookie <dookie@kali.org>
+           2018-2020 Sophie Brun <sophie@kali.org>
+License: GPL-2+
+
+License: GPL-2
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License version 2 as
+ published by the Free Software Foundation.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: GPL-2+
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 2 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 2 can be found in "/usr/share/common-licenses/GPL-2".
+
+License: MIT
+ Permission is hereby granted, free of charge, to any person obtaining a copy
+ of this software and associated documentation files (the "Software"), to deal
+ in the Software without restriction, including without limitation the rights
+ to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ copies of the Software, and to permit persons to whom the Software is
+ furnished to do so, subject to the following conditions:
+ .
+ The above copyright notice and this permission notice shall be included in all
+ copies or substantial portions of the Software.
+ .
+ THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+ SOFTWARE.
+
+License: GPL-3
+ This package is free software; you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation; either version 3 of the License, or
+ (at your option) any later version.
+ .
+ This package is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ GNU General Public License for more details.
+ .
+ You should have received a copy of the GNU General Public License
+ along with this program. If not, see <http://www.gnu.org/licenses/>
+ .
+ On Debian systems, the complete text of the GNU General
+ Public License version 3 can be found in "/usr/share/common-licenses/GPL-3".

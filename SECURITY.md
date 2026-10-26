@@ -11,11 +11,13 @@ container and the host around it need to be treated as a security boundary.
 | `0.5.x` prereleases | Yes, best effort |
 | Other versions | No |
 
-0.5.0 is currently a private pre-production beta preparing for its first public
-release. Security fixes land on the supported `0.5.x` line; upgrade to the latest
-qualified candidate supplied by the maintainer when a fix is available.
-Support does not establish production qualification. Hardware interfaces remain
-experimental without real-device qualification.
+0.5.0 has a published Linux amd64 private preview, `v0.5.0-private-beta.1`.
+Follow [the beta guide](docs/BETA_TESTING.md) for verified archive import.
+Security fixes land on the supported `0.5.x` line; use a new maintainer-provided
+release when a fix is available. Published preview bytes are never replaced.
+Public release and full qualification remain pending.
+Hardware integrations are supported for beta use. Support does not establish
+real-device or production qualification; device claims require recorded evidence.
 
 When reporting, include the exact image digest where possible. A tag can move;
 a digest identifies the build you tested.

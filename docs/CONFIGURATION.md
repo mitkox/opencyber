@@ -99,7 +99,7 @@ import.
 `OPENCYBER_MCP_MODE`
 
 - Default: `full`.
-- `compact` suppresses individual registration of the 173 executable-backed tools. The 82 native tools remain, and `oc_catalog` / `oc_execute` still reach the executable catalog.
+- `compact` suppresses individual registration of the 174 executable-backed tools. The 82 native tools remain, and `oc_catalog` / `oc_execute` still reach the executable catalog.
 - Any value other than `compact` (after trimming and lowercasing) takes the full/category path. There is no validation error for an unknown mode.
 - Ignored interaction: compact mode is evaluated before categories, so `OPENCYBER_TOOL_CATEGORIES` has no effect in compact mode.
 - See [MCP_INTEGRATION.md](MCP_INTEGRATION.md) for client-facing token trade-offs.
@@ -278,22 +278,19 @@ These are consumed by `install.sh` and `scripts/opencyber-run.sh`; they are not 
 | --- | --- | --- | --- |
 | `OPENCYBER_VERSION` | `install.sh` | `0.5.0` | Release to install. Must match `X.Y.Z` and the image's `com.opencyber.harness.version` label. |
 | `OPENCYBER_DIGEST` | `install.sh` | empty | Pin the image by digest (`sha256:` plus 64 lowercase hex characters). Equivalent to `--digest`; the command-line option wins when both are supplied. |
-| `OPENCYBER_IMAGE` | `install.sh`, `scripts/opencyber-run.sh` | `ghcr.io/mitkox/opencyber` (installer); `opencyber:0.5.0` (launcher) | Image repository or reference. |
+| `OPENCYBER_IMAGE` | `install.sh`, `scripts/opencyber-run.sh` | `ghcr.io/mitkox-dev/opencyber` (installer); `opencyber:0.5.0` (launcher) | Image repository or reference. |
 | `OPENCYBER_CONTAINER_NAME` | `install.sh`, `scripts/opencyber-run.sh` | `opencyber` | Container name. |
 | `OPENCYBER_VOLUME_NAME` | `install.sh`, `scripts/opencyber-run.sh` | `opencyber-workspace` | Docker volume mounted as the workspace. |
 | `OPENCYBER_WORKSPACE_PATH` | `scripts/opencyber-run.sh` only | `/workspace` | Container-side mount target for the workspace volume. It does not set `OPENCYBER_WORKSPACE` inside the container. |
 
 `OPENCYBER_WORKSPACE_PATH` deserves care: changing it to `/data` mounts the volume at `/data`, but the server still writes to `/workspace` because the image sets `OPENCYBER_WORKSPACE=/workspace`. Either leave it at `/workspace` or use a manual `docker run` that also passes `-e OPENCYBER_WORKSPACE=/data`.
 
-For the private beta, override the installer's canonical repository default.
-Complete authenticated access in [BETA_TESTING.md](BETA_TESTING.md) and replace
-`BETA_PLATFORM_DIGEST` with the maintainer-provided qualified platform digest.
-No public 0.5.0 tag is available:
-
-```sh
-OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
-bash install.sh --version 0.5.0 --digest BETA_PLATFORM_DIGEST
-```
+For the current private preview, follow [BETA_TESTING.md](BETA_TESTING.md)
+to import `opencyber:0.5.0-private-beta.1-amd64` and launch it with explicit
+`--image`, `--name opencyber-beta` and `--volume opencyber-beta` arguments.
+`install.sh` does not import the published split archives and does not manage
+that launcher-created container. Its defaults above describe the installer,
+not a currently published public image.
 
 ## Build arguments
 
@@ -316,16 +313,18 @@ The candidate-build workflow does not pass `OPENCYBER_CVE_YEARS`, so release ima
 Hardened, scope-enforced, with fatal executor audit and named internet features
 disabled. This retains outbound routing; add `--network none` for a
 software-only exercise that needs no target connections. The image below
-requires the selected qualified candidate digest and private GHCR access:
+is the imported private preview. This manual example uses a separate
+container named `opencyber`; the beta guide uses `opencyber-beta`:
 
 ```sh
-BETA_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates@BETA_PLATFORM_DIGEST
+BETA_IMAGE=opencyber:0.5.0-private-beta.1-amd64
 docker run -d --name opencyber \
   --cap-drop=ALL \
   --cap-add=NET_RAW --cap-add=NET_ADMIN --cap-add=NET_BIND_SERVICE \
   --security-opt no-new-privileges \
   --read-only --tmpfs /tmp --tmpfs /run \
   --tmpfs /root/.config --tmpfs /root/.cache \
+  --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
   -v opencyber-workspace:/workspace \
   -e OPENCYBER_OFFLINE=1 \
   -e OPENCYBER_ENFORCE_SCOPE=1 \

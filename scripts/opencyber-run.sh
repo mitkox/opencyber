@@ -187,6 +187,9 @@ if [[ "$read_only" == true ]]; then
     --tmpfs /run
     --tmpfs /root/.config
     --tmpfs /root/.cache
+    --tmpfs /root/.local/share
+    --tmpfs /root/.nxc
+    --tmpfs /root/.msf4
   )
 fi
 

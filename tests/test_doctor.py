@@ -21,15 +21,18 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class DoctorTests(unittest.TestCase):
     def test_optional_integrations_do_not_degrade_ready_image(self) -> None:
-        with mock.patch("opencyber.catalog.shutil.which", side_effect=lambda name: None if name == "nmap" else f"/usr/bin/{name}"):
+        with mock.patch("opencyber.catalog.shutil.which", side_effect=lambda name: None if name in {"scout", "terrascan"} else f"/usr/bin/{name}"):
             base = diagnostics.self_test()
         base["analysis_runtime"] = {"angr": True, "volatility3": True}
         assets = {"missing_required": [], "ready": True, "summary": {"ok": 1, "total": 1}}
         hardware = {"summary": {}, "ready_domains": [], "tooling_only_domains": [], "unavailable_domains": [],
                     "inventory": {"summary": {}, "access": {}, "known_devices": []}, "host_flags": []}
         rockyou = mock.Mock()
-        rockyou.is_file.return_value = True
+        rockyou.is_file.return_value = False
         rockyou.stat.return_value.st_size = 10
+        baseline = mock.Mock()
+        baseline.is_file.return_value = True
+        baseline.stat.return_value.st_size = 4_678_976
         seclists = mock.Mock()
         seclists.is_dir.return_value = True
         with mock.patch.object(diagnostics, "self_test", return_value=base), \
@@ -39,18 +42,21 @@ class DoctorTests(unittest.TestCase):
              mock.patch.object(diagnostics, "hardware_readiness", return_value=hardware), \
              mock.patch.object(diagnostics, "_tool_version", return_value="fixture"), \
              mock.patch.object(diagnostics, "ROCKYOU", rockyou), \
+             mock.patch.object(diagnostics, "BASELINE_WORDLIST", baseline), \
              mock.patch.object(diagnostics, "SECLISTS", seclists):
             report = diagnostics.doctor_report()
         self.assertEqual(report["status"], "ok")
         self.assertEqual(report["problems"], [])
-        self.assertIn("oc_nmap", report["mcp"]["missing_optional_tools"])
+        self.assertFalse(report["wordlists"]["rockyou"])
+        self.assertTrue(report["wordlists"]["baseline"])
+        self.assertIn("oc_scout_suite", report["mcp"]["missing_optional_tools"])
 
     def test_missing_optional_integrations_are_distinguished(self) -> None:
-        with mock.patch("opencyber.catalog.shutil.which", side_effect=lambda name: None if name == "nmap" else f"/usr/bin/{name}"):
+        with mock.patch("opencyber.catalog.shutil.which", side_effect=lambda name: None if name in {"scout", "terrascan"} else f"/usr/bin/{name}"):
             result = diagnostics.self_test()
         self.assertEqual(result["missing_required_tools"], [])
-        self.assertIn("oc_nmap", result["missing_optional_tools"])
-        self.assertIn("oc_rustscan", result["missing_optional_tools"])
+        self.assertIn("oc_scout_suite", result["missing_optional_tools"])
+        self.assertIn("oc_terrascan", result["missing_optional_tools"])
         self.assertEqual(result["blue_team_tools"], len(FIXED_TOOL_CATEGORIES["blue_team"]))
 
     def test_missing_required_integration_is_not_optional(self) -> None:

@@ -10,12 +10,12 @@ Collect these before changing anything:
 
 ```sh
 docker ps -a --filter name=opencyber
-docker inspect --format '{{json .State.Health}}' opencyber
-docker exec opencyber opencyber-doctor --json
-docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber opencyber-mcp --self-test
-docker exec opencyber opencyber-assets --verify --json
-docker exec opencyber opencyber-hardware --inventory --json
-docker logs --tail 200 opencyber
+docker inspect --format '{{json .State.Health}}' opencyber-beta
+docker exec opencyber-beta opencyber-doctor --json
+docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber-beta opencyber-mcp --self-test
+docker exec opencyber-beta opencyber-assets --verify --json
+docker exec opencyber-beta opencyber-hardware --inventory --json
+docker logs --tail 200 opencyber-beta
 ```
 
 Redact credentials, cookies, and target data before sharing this output.
@@ -24,25 +24,28 @@ Hardware inventory is useful only for a device-related report. MCP server
 stderr belongs to the client's server log; `docker logs` does not capture a
 separate `docker exec` session's stderr.
 
-There is no published 0.5.0 release or canonical image tag yet. Image
-distribution remains blocked until the license and software qualification
-gates pass. Once the maintainer supplies a qualified candidate, use its exact
-platform digest and authenticate to the private package:
+The current delivery is the private [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1).
+Repository **Read** access includes its assets; this delivery needs no GHCR
+permission. Follow [Beta testing](BETA_TESTING.md) to download all 38 assets,
+transfer the complete directory and run `bash beta-import.sh`. The helper
+verifies the checksums and image identity before loading
+`opencyber:0.5.0-private-beta.1-amd64`. The examples here use the beta guide's
+container name, `opencyber-beta`; substitute your own name if different.
 
-```sh
-docker login ghcr.io --username YOUR_GITHUB_USERNAME
-BETA_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates@BETA_PLATFORM_DIGEST
-docker pull "$BETA_IMAGE"
-```
+The preview is unqualified. Vendor and license reviews remain open; private
+access does not resolve those obligations. Keep the supplied `KNOWN_ISSUES.md`
+with the bundle.
 
-Replace the digest placeholder with the full maintainer-provided `sha256:`
-value. At the password prompt, enter a classic personal access token with
-`read:packages`, not your GitHub password. Repository read access and package
-read access are separate. A `denied` or `unauthorized` response can indicate
-missing package permission or expired authentication; ask the maintainer to
-check access without sending your token. For `manifest unknown`, confirm the
-exact reference and platform with the maintainer. Do not substitute a local
-development build or moving tag and describe it as a qualified candidate.
+## Download and import failures
+
+| Symptom | Action |
+| --- | --- |
+| Release returns 404 | Accept the private repository invitation and authenticate `gh` with the invited GitHub account. Ask the maintainer to check repository Read access. Never send your token. |
+| Missing asset or checksum mismatch | Download the complete release into a fresh directory and transfer every file. Run `bash beta-import.sh --verify-only` before retrying the import. Do not edit checksums or combine files from different releases. |
+| Insufficient disk space | Check free space on both the transfer filesystem and Docker's storage filesystem; the bundle, assembled archives and loaded layers coexist during import. |
+| Existing assembled archive or image tag | Follow the helper's refusal. Use a fresh bundle directory and inspect the existing image before removing anything. Do not overwrite an image used by another engagement. |
+| Existing container or workspace name | Choose fresh container and volume names in the beta launch command. Preserve existing workspace volumes and evidence. |
+| Helper passes but no container appears | The helper imports and tests the image; it does not create the persistent beta container. Continue with the launch step in the beta guide. |
 
 ## Doctor reports degraded
 
@@ -50,9 +53,9 @@ development build or moving tag and describe it as a qualified candidate.
 
 | Problem text | Meaning | Action |
 | --- | --- | --- |
-| `N catalog executables missing` | A required executable integration is not on `PATH`. | Confirm you are running the image, not a source install. Check the selected candidate digest and `missing_required_tools`; unavailable optional adapters are listed separately. |
+| `N catalog executables missing` | A required executable integration is not on `PATH`. | Confirm you are running the image, not a source install. Check the release and image identity and `missing_required_tools`; unavailable optional adapters are listed separately. |
 | `no nuclei templates installed` | The template store is absent or empty. | See [Nuclei template store](#nuclei-template-store). |
-| `rockyou.txt missing` | `/usr/share/wordlists/rockyou.txt` is absent or empty. | Restore the image; the file is baked in and decompressed at build time. |
+| `baseline dictionary missing` | `/usr/share/wordlists/opencyber-keyboard-patterns.txt` is absent or empty. | Restore the supplied image and verify its asset manifest. RockYou is an optional operator-supplied corpus. |
 | `seclists missing` | `/usr/share/seclists` is absent. | Restore the image. A bind mount over the path can hide it. |
 | `required offline assets missing: ...` | An asset is below its minimum count or size. | Run `opencyber-assets --json` and inspect `missing_required`. Restore or rebuild the image. |
 | `offline asset manifest does not match the image` | Counts, sizes, or hashes differ from the build manifest. | See [Asset manifest mismatch](#asset-manifest-mismatch). |
@@ -69,36 +72,33 @@ Hardware `tooling_ready` domains are not doctor problems. A software-only contai
 1. Confirm the command runs inside the container, not on the host:
 
    ```sh
-   docker exec opencyber sh -c 'command -v curl; command -v nuclei; command -v chromium'
+   docker exec opencyber-beta sh -c 'command -v curl; command -v nuclei; command -v chromium'
    ```
 
 2. Confirm `PATH` includes the image's virtual environments. Do not override `PATH` with `docker run -e` or a shell wrapper; the image sets `/opt/opencyber-venv/bin`, the analysis venv, and the tool venvs.
 3. Run `opencyber-mcp --self-test` and read `missing_required_tools` and `missing_optional_tools` separately.
 4. From MCP, run `oc_catalog(missing_only=true)` to see which tools the catalog considers unavailable.
-5. A source install (`pip install -e .`) provides the Python package and five console scripts. It does not install the external toolchain, Chromium or offline assets. Use the maintainer-selected qualified candidate for beta runtime tests.
+5. A source install (`pip install -e .`) provides the Python package and five console scripts. It does not install the external toolchain, Chromium or offline assets. Use the published container preview for beta runtime tests.
 6. A registered optional adapter can be intentionally omitted from the distributed image. Read its availability reason and remediation in `oc_catalog`. If a qualified candidate is missing a **required** executable, record the image digest and report it; do not patch the container and call it verified.
 
 `--no-read-only` does not install software. It only makes the rootfs writable, which is a diagnostic escape hatch.
 
 ## Architecture mismatch
 
-The prerelease publication gate targets native `linux/amd64` and `linux/arm64`.
-Confirm that the candidate record lists your platform; local or emulated
-execution does not establish native acceptance.
+The published preview contains **Linux amd64 only**. Use native amd64 for
+beta testing; arm64 and emulated operation are unqualified. A future qualified
+release requires separate native amd64 and arm64 acceptance.
 
 ```sh
 docker info --format '{{.Architecture}}'
-docker buildx imagetools inspect "$BETA_IMAGE"
+docker image inspect opencyber:0.5.0-private-beta.1-amd64 \
+  --format '{{.Os}}/{{.Architecture}}'
 ```
 
-| Symptom | Cause | Action |
-| --- | --- | --- |
-| `unsupported Docker architecture '<arch>'; use linux/amd64 or linux/arm64.` from `install.sh` | The Docker daemon reports another architecture. | Use a supported host or a correctly configured builder. |
-| `exec format error` when running a tool or the container | The pulled image platform does not match the host. | Pull with the correct `--platform`, or let Docker select the manifest for the host. |
-| A tool is missing only on one architecture | The tool was not built for that platform, or the image variant is wrong. | Run `opencyber-doctor` on the exact platform and report the digest. |
-| Emulation is extremely slow | The foreign-architecture image runs under QEMU. | Run natively for real scans; emulation is only for inspection. |
-
-`install.sh` refuses to proceed on an architecture it does not recognize. Multi-arch manifest tags are created by the publish workflow from two platform builds, so pulling by digest of a platform image is not the same as pulling the multi-platform manifest digest.
+An `exec format error` usually means an image/host architecture mismatch. Do
+not relabel the archive as arm64 or describe QEMU execution as native
+qualification. `install.sh` is a separate future qualified-image path; the
+current archive preview uses `beta-import.sh` and the launcher.
 
 ## Read-only rootfs and Chromium crashpad
 
@@ -134,9 +134,9 @@ The image installs templates at `/root/.local/nuclei-templates` and symlinks `/u
 Checks:
 
 ```sh
-docker exec opencyber sh -c 'ls -ld /root/.local/nuclei-templates /usr/share/nuclei-templates'
-docker exec opencyber sh -c 'nuclei -tl -silent 2>/dev/null | wc -l'
-docker exec opencyber opencyber-doctor --json | jq '.nuclei_templates'
+docker exec opencyber-beta sh -c 'ls -ld /root/.local/nuclei-templates /usr/share/nuclei-templates'
+docker exec opencyber-beta sh -c 'nuclei -tl -silent 2>/dev/null | wc -l'
+docker exec opencyber-beta opencyber-doctor --json | jq '.nuclei_templates'
 ```
 
 | Symptom | Cause | Action |
@@ -154,8 +154,8 @@ The build runs `nuclei -tl` once before recording the manifest so the first-run 
 `opencyber-assets --verify` compares measured required assets with the manifest at `OPENCYBER_ASSET_MANIFEST` (default `/usr/share/opencyber/asset-manifest.json`).
 
 ```sh
-docker exec opencyber opencyber-assets --verify --json
-docker exec opencyber opencyber-assets --verify --deep --json   # content hashes, slow
+docker exec opencyber-beta opencyber-assets --verify --json
+docker exec opencyber-beta opencyber-assets --verify --deep --json   # content hashes, slow
 ```
 
 | Result | Meaning | Action |
@@ -203,15 +203,15 @@ If a Python-native tool fails on a source install, check that `playwright`, `req
 
 ## Devices, serial, and monitor mode
 
-Hardware interfaces are experimental in 0.5.0. Readiness and visibility do not
+Hardware integrations are supported for beta use in 0.5.0. Readiness and visibility do not
 qualify a physical device. Include the device model/firmware, architecture,
 image digest, launcher flags and observed operation in a hardware report.
 
 Start with the two readiness views:
 
 ```sh
-docker exec opencyber opencyber-hardware
-docker exec opencyber opencyber-hardware --inventory --json
+docker exec opencyber-beta opencyber-hardware
+docker exec opencyber-beta opencyber-hardware --inventory --json
 ```
 
 `accessible` is the field that matters for USB devices. sysfs can list a device that the container cannot open.
@@ -327,7 +327,7 @@ Workspace writes under `poc/` are refused by design: authorization, approvals, c
 The server speaks MCP over stdio and publishes no port. A client launches it with `docker exec -i`.
 
 ```sh
-docker exec -i opencyber opencyber-mcp
+docker exec -i opencyber-beta opencyber-mcp
 ```
 
 | Symptom | Cause | Fix |
@@ -335,7 +335,7 @@ docker exec -i opencyber opencyber-mcp
 | Client connects then immediately disconnects | Server process exited at startup. | Run the command manually and read the traceback. A common cause is an unknown `OPENCYBER_TOOL_CATEGORIES` value, which raises at import. |
 | Garbled protocol or hangs | A TTY or shell banner is attached to stdout. | Use `docker exec -i` without `-t`; do not wrap the command in a login shell that prints output. |
 | `command not found` | The client is not running the command inside the container, or `PATH` was overridden. | Use the full `docker exec -i <container> opencyber-mcp` form. |
-| Client sees fewer tools than expected | Compact mode or a category filter is set, or the client is using Code Mode. | Check `OPENCYBER_MCP_MODE` and `OPENCYBER_TOOL_CATEGORIES`; compact mode advertises 82 native tools, including `oc_catalog` and `oc_execute`. Default full mode advertises 255. |
+| Client sees fewer tools than expected | Compact mode or a category filter is set, or the client is using Code Mode. | Check `OPENCYBER_MCP_MODE` and `OPENCYBER_TOOL_CATEGORIES`; compact mode advertises 82 native tools, including `oc_catalog` and `oc_execute`. Default full mode advertises 256. |
 | Tools fail with `unknown engagement_id` | The client is passing an ID from another workspace or a malformed ID. | Call `oc_engagement_list`; IDs must match `eng_YYYYMMDD_<32 hex>`. |
 | Browser or serial session ID stops working | Sessions are process-scoped. A new `docker exec` starts a new server process. | Reopen the browser or serial session; persisted logs remain under the engagement. |
 | Multiple clients interfere | Each `docker exec` is a separate server process sharing the workspace volume. Process-scoped state is not shared. | Use one server process per client session; do not expect browser/serial IDs to cross processes. |
@@ -389,18 +389,18 @@ Collect, redact, and retain:
 ```sh
 docker version
 docker info --format '{{.Architecture}} {{.ServerVersion}}'
-docker inspect --format '{{.Config.Image}} {{.Image}} {{json .State.Health}}' opencyber
+docker inspect --format '{{.Config.Image}} {{.Image}} {{json .State.Health}}' opencyber-beta
 docker logs --tail 500 opencyber
-docker exec opencyber opencyber-doctor --json
-docker exec opencyber opencyber-mcp --self-test
-docker exec opencyber opencyber-assets --verify --deep --json
-docker exec opencyber opencyber-hardware --inventory --json
+docker exec opencyber-beta opencyber-doctor --json
+docker exec opencyber-beta opencyber-mcp --self-test
+docker exec opencyber-beta opencyber-assets --verify --deep --json
+docker exec opencyber-beta opencyber-hardware --inventory --json
 ```
 
 Also record the image reference and digest:
 
 ```sh
-docker inspect --format '{{.Config.Image}} {{.Image}}' opencyber
+docker inspect --format '{{.Config.Image}} {{.Image}}' opencyber-beta
 docker image inspect "$BETA_IMAGE" --format '{{json .RepoDigests}}'
 ```
 

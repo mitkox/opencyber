@@ -16,7 +16,7 @@ name: Publish qualified prerelease
         required: true
         type: string
       qualification_sha256:
-        description: Optional SHA-256 of real-device evidence; omit for experimental hardware
+        description: Optional SHA-256 of real-device evidence; omit when no real-device qualification is supplied
         required: false
         type: string
 concurrency:
@@ -26,8 +26,8 @@ permissions:
   contents: read
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: mitkox/opencyber
-  STAGING_NAME: mitkox/opencyber-beta-candidates
+  IMAGE_NAME: mitkox-dev/opencyber
+  STAGING_NAME: mitkox-dev/opencyber-beta-candidates
 jobs:
   prepare:
     runs-on: ubuntu-24.04
@@ -40,7 +40,7 @@ jobs:
         declared="$(python3 scripts/check-version-consistency.py --print)"
         requested="${REQUESTED_VERSION:-${GITHUB_REF_NAME#v}}"
         [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-        [[ "$GITHUB_REPOSITORY" == mitkox/opencyber && "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == "v$declared" ]]
+        [[ "$GITHUB_REPOSITORY" == mitkox-dev/opencyber && "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == "v$declared" ]]
         [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == tag ]]
         [[ "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" == "$GITHUB_SHA" ]]
         python3 scripts/check-version-consistency.py
@@ -75,7 +75,7 @@ jobs:
           python3 - <<'PYTHON'
         import json, os
         from pathlib import Path
-        status = {"schema_version": 1, "status": "not_qualified", "commit": os.environ["GITHUB_SHA"], "candidate_run_id": int(os.environ["CANDIDATE_RUN_ID"]), "reason": "Real-device evidence deferred for the first public prerelease; all hardware interfaces are experimental."}
+        status = {"schema_version": 1, "status": "not_qualified", "commit": os.environ["GITHUB_SHA"], "candidate_run_id": int(os.environ["CANDIDATE_RUN_ID"]), "reason": "Real-device qualification evidence was not supplied; hardware integrations are supported for beta use, with device qualification recorded separately."}
         Path(os.environ["RUNNER_TEMP"], "inputs", "qualification-status.json").write_text(json.dumps(status, indent=2, sort_keys=True) + "\n")
         PYTHON
         fi
@@ -124,7 +124,7 @@ jobs:
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest amd64 SBOM
       with:
-        subject-name: ghcr.io/mitkox/opencyber
+        subject-name: ghcr.io/mitkox-dev/opencyber
         subject-digest: ${{ steps.promotion.outputs.amd64_digest }}
         push-to-registry: true
         create-storage-record: false
@@ -132,14 +132,14 @@ jobs:
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest amd64 provenance
       with:
-        subject-name: ghcr.io/mitkox/opencyber
+        subject-name: ghcr.io/mitkox-dev/opencyber
         subject-digest: ${{ steps.promotion.outputs.amd64_digest }}
         push-to-registry: true
         create-storage-record: false
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest arm64 SBOM
       with:
-        subject-name: ghcr.io/mitkox/opencyber
+        subject-name: ghcr.io/mitkox-dev/opencyber
         subject-digest: ${{ steps.promotion.outputs.arm64_digest }}
         push-to-registry: true
         create-storage-record: false
@@ -147,14 +147,14 @@ jobs:
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest arm64 provenance
       with:
-        subject-name: ghcr.io/mitkox/opencyber
+        subject-name: ghcr.io/mitkox-dev/opencyber
         subject-digest: ${{ steps.promotion.outputs.arm64_digest }}
         push-to-registry: true
         create-storage-record: false
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest manifest provenance
       with:
-        subject-name: ghcr.io/mitkox/opencyber
+        subject-name: ghcr.io/mitkox-dev/opencyber
         subject-digest: ${{ steps.promotion.outputs.digest }}
         push-to-registry: true
         create-storage-record: false
@@ -247,7 +247,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y skopeo
         python3 scripts/promote-images.py finalize "${REGISTRY}/${IMAGE_NAME}:${VERSION}" "$DIGEST"
-        gh release edit "$GITHUB_REF_NAME" --prerelease --latest=false --title "OpenCyber $VERSION — pre-production" --notes 'Pre-production release. Both native architectures passed software acceptance. Hardware interfaces are experimental; see qualification-status.json for any real-device evidence. See image-digests.json, SHA256SUMS and the release guide. This is not production qualification.'
+        gh release edit "$GITHUB_REF_NAME" --prerelease --latest=false --title "OpenCyber $VERSION — pre-production" --notes 'Pre-production release. Both native architectures passed software acceptance. Hardware integrations are supported for beta use; see qualification-status.json for device qualification evidence. See image-digests.json, SHA256SUMS and the release guide. This is not production qualification.'
       env:
         GH_TOKEN: ${{ github.token }}
         GH_REPO: ${{ github.repository }}

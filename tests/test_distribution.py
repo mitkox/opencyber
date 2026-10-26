@@ -33,6 +33,7 @@ class DistributionComplianceTests(unittest.TestCase):
         self.assertIn("NUCLEI_TEMPLATES_SHA256", DOCKERFILE)
         self.assertIn("/out/yq /usr/local/bin/yq", DOCKERFILE)
         self.assertEqual(DOCKERFILE.count("sha256sum -c -"), 1)
+        self.assertIn("ADD --checksum=sha256:", DOCKERFILE)
 
     def test_restricted_packages_are_not_installed(self) -> None:
         runtime = DOCKERFILE.split(" AS runtime", 1)[1]
@@ -43,7 +44,8 @@ class DistributionComplianceTests(unittest.TestCase):
             for line in install_block.splitlines()
             if line.strip()
         }
-        self.assertTrue({"burpsuite", "maltego", "wpscan", "nmap", "autorecon", "metasploit-framework", "netexec", "rustscan"}.isdisjoint(packages))
+        self.assertTrue({"burpsuite", "maltego", "terrascan", "scoutsuite"}.isdisjoint(packages))
+        self.assertTrue({"wpscan", "nmap", "autorecon", "metasploit-framework", "netexec", "rustscan"}.issubset(packages))
         self.assertIn("whatweb", packages)
         self.assertIn("ripgrep", packages)
         self.assertNotIn("github.com/tomnomnom/waybackurls", DOCKERFILE)
@@ -65,7 +67,7 @@ class DistributionComplianceTests(unittest.TestCase):
 
     def test_offline_harness_assets_are_baked_into_the_image(self) -> None:
         self.assertIn("nuclei-templates", DOCKERFILE)
-        self.assertIn("rockyou.txt", DOCKERFILE)
+        self.assertIn("opencyber-keyboard-patterns.txt", DOCKERFILE)
         self.assertIn("ln -sfn /usr/share/seclists seclists", DOCKERFILE)
         self.assertIn("scripts/build-go-tools.sh", DOCKERFILE)
         # The nuclei store must be a real directory; a symlink silently disables
@@ -145,7 +147,7 @@ class DistributionComplianceTests(unittest.TestCase):
         self.assertIn("sbom-path:", PUBLISH_WORKFLOW)
         self.assertIn("push-to-registry: true", PUBLISH_WORKFLOW)
         self.assertIn("LicenseRef-OpenCyber-Third-Party", DOCKERFILE)
-        self.assertIn("IMAGE_NAME: mitkox/opencyber", PUBLISH_WORKFLOW)
+        self.assertIn("IMAGE_NAME: mitkox-dev/opencyber", PUBLISH_WORKFLOW)
 
     def test_release_workflow_verifies_version_compliance_and_signatures(self) -> None:
         self.assertIn("scripts/check-version-consistency.py --print", PUBLISH_WORKFLOW)

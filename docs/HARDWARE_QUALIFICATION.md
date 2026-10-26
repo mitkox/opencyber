@@ -1,9 +1,9 @@
 # Optional real-device qualification
 
 Real-device evidence is optional for the 0.5.0 private pre-production beta and
-the planned first public prerelease. All hardware interfaces are experimental
-and unqualified unless a candidate or release explicitly attaches validated
-device evidence. The following complete checklist applies when adding
+the planned first public prerelease. Hardware integrations are supported for
+beta use; qualification identifies the device, firmware, host architecture and
+operations actually tested against a candidate. The following checklist applies when adding
 optional qualification; software publication does not require this bundle.
 Beta testers can begin with [BETA_TESTING.md](BETA_TESTING.md) without owning any of these devices.
 
@@ -11,7 +11,8 @@ An optional submitted qualification bundle must cover every hardware domain
 and firmware triage against a board-derived sample. Installed tools, device
 enumeration, fake sysfs trees, PTYs, loopback fixtures and unit tests do not
 satisfy device qualification. An incomplete submitted bundle is refused;
-omitting the bundle retains an explicit unqualified/experimental status.
+omitting the bundle retains an explicit `not_qualified` evidence status. That
+status describes the absence of device qualification, not integration support.
 
 An operator supplies the equipped lab and runs the procedures below against
 the exact private candidate images selected through [RELEASE.md](RELEASE.md).

@@ -24,7 +24,7 @@ body:
     id: source_commit
     attributes:
       label: Source commit
-      description: Run `git rev-parse HEAD` in your source checkout, or use the frozen commit supplied with the candidate image.
+      description: Run `git rev-parse HEAD` in your source checkout, or use the frozen revision in the release manifest (c120197 for private-beta.1).
       placeholder: Full commit ID
     validations:
       required: true
@@ -32,9 +32,9 @@ body:
   - type: input
     id: digest
     attributes:
-      label: Image digest
-      description: Provide the exact private candidate reference and platform digest from the maintainer. Leave blank for a source-only checkout.
-      placeholder: "ghcr.io/mitkox/opencyber-beta-candidates@sha256:..."
+      label: Release and image identity
+      description: For the preview, provide the release tag and image reference/ID from release-manifest.json and docker inspect. For a registry candidate, provide its platform digest. Leave blank for source-only use.
+      placeholder: "v0.5.0-private-beta.1; opencyber:0.5.0-private-beta.1-amd64; sha256:..."
     validations:
       required: false
 
@@ -43,6 +43,7 @@ body:
     attributes:
       label: Install path
       options:
+        - Published private-preview archive (beta-import.sh)
         - Qualified private beta candidate image
         - Future public release image
         - Local image build from Dockerfile

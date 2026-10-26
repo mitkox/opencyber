@@ -3,7 +3,7 @@
 This records source review and validation toward the first open-source prerelease.
 0.5.0 is currently a private pre-production beta; no public release is claimed.
 It is separate from native image qualification, optional operator hardware evidence and public digest acceptance. Software,
-source integrity and public acceptance remain required; hardware is experimental.
+source integrity and public acceptance remain required; hardware integrations are supported for beta use, with device qualification recorded separately.
 
 ## Review coverage
 
@@ -63,7 +63,7 @@ Severity describes the reachable consequence in the trusted-client model.
 
 The implementation uses MCP Python SDK 2.3 and `MCPServer`. Tests cover actual
 stdio initialization, structured refusal/results, camelCase wire annotations,
-catalog identity and all 255 registered tools. Client launch commands remain
+catalog identity and all 256 registered tools. Client launch commands remain
 stdio-based. The operator/client is trusted; environment scrubbing does not
 isolate signing authority from container root.
 
@@ -96,8 +96,12 @@ ScoutSuite remain optional adapters because their bundled dependency graphs
 could not meet the gate without a broader fork. The beta guide's actual MCP
 triage, timeline, audit and evidence exercise passed in an isolated container.
 
-Enriched license metadata remains a distribution gate, including private beta
-images. The original 3,925 unresolved inventory entries represented missing or
+Enriched license metadata remains a gate for qualified candidates and public
+publication. The separately published `v0.5.0-private-beta.1` is an unqualified
+private preview, not evidence that this gate passed. Its frozen inventory has
+2,086 unresolved license records and two vendor reviews; see
+[BETA_TESTING.md](BETA_TESTING.md) for its actual delivery and limitations.
+The following counts describe the earlier development review: The original 3,925 unresolved inventory entries represented missing or
 unrecognized license metadata, not 3,925 proven violations. Version-specific
 metadata enrichment and component updates reduced the local amd64 inventory to
 2,147 unresolved entries, including 849 with no license metadata. Those counts
@@ -106,6 +110,6 @@ Missing identities,
 ambiguous labels and custom license terms require attributable evidence; they
 are not automatically proven license violations or a reason to waive the gate.
 
-Real-device qualification is deferred by release policy. All hardware interfaces
-remain experimental; this does not block the 0.5.0 prerelease. Native image and
+Real-device qualification is optional by release policy. Hardware integrations
+are supported for beta use; no passing real-device qualification is claimed here. Native image and
 public acceptance must still pass. No production qualification is claimed.

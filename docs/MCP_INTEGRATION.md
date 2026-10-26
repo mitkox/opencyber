@@ -1,19 +1,23 @@
 # MCP integration
 
+The connection examples use the current beta guide's container name,
+`opencyber-beta`. Complete [beta setup](BETA_TESTING.md) first; substitute your
+container name if you chose a different one. The MCP server ID stays `opencyber`.
+
 Connect a local MCP client to the 0.5.0 private pre-production beta over stdio. For installation, a synthetic first exercise and a bug-report checklist, begin with [BETA_TESTING.md](BETA_TESTING.md).
 
 > Connect OpenCyber Harness only to systems you own or are explicitly authorized to assess. The client supplies capability; it does not grant permission.
 
 ## First connection
 
-1. Complete the authenticated private-beta setup in [BETA_TESTING.md](BETA_TESTING.md), then start and verify the maintainer-selected image using [INSTALL.md](INSTALL.md). Repository access and package access are separate; client configuration does not authenticate image pulls.
-2. Add one client entry below, keeping the container name `opencyber`.
+1. Import the published private-preview bundle and start it using [BETA_TESTING.md](BETA_TESTING.md). Repository Read supplies the release assets; no GHCR login is needed for this path.
+2. Add one client entry below, keeping the preview container name `opencyber-beta`. Substitute your own container name if you chose another.
 3. Reload the client's MCP servers, then ask it to call `oc_catalog` and
    `oc_doctor`. The catalog must report a matching release contract; an absent
    optional binary is reported separately from a missing required binary.
 4. Run the synthetic exercise in the beta guide before using target data.
 
-A raw `docker exec -i opencyber opencyber-mcp` command waits for MCP messages.
+A raw `docker exec -i opencyber-beta opencyber-mcp` command waits for MCP messages.
 A quiet terminal is expected; it is not a human-facing interactive shell. Do
 not add `-t`, paste prompts into it, or expose a container port.
 
@@ -30,7 +34,7 @@ For Python callers invoking the server in-process, use `await mcp.call_tool(name
 The server speaks MCP over stdio. It publishes no ports and starts no listener. The container runs `sleep infinity`; each client session starts its own server process with:
 
 ```sh
-docker exec -i opencyber opencyber-mcp
+docker exec -i opencyber-beta opencyber-mcp
 ```
 
 The `-i` flag is required. It keeps stdin open for the JSON-RPC stream. Without it, the server sees end-of-file and exits.
@@ -40,7 +44,7 @@ There is no HTTP, SSE, or Streamable HTTP transport in 0.5.0. Do not map a port;
 Before wiring a client, confirm the server starts and every required catalog executable resolves; optional integrations are listed separately:
 
 ```sh
-docker exec opencyber opencyber-mcp --self-test
+docker exec opencyber-beta opencyber-mcp --self-test
 ```
 
 ## Client configuration
@@ -58,7 +62,7 @@ Any runtime that can launch a local stdio command can use the same command and a
     "servers": {
       "opencyber": {
         "type": "local",
-        "command": ["docker", "exec", "-i", "opencyber", "opencyber-mcp"]
+        "command": ["docker", "exec", "-i", "opencyber-beta", "opencyber-mcp"]
       }
     }
   }
@@ -68,7 +72,7 @@ Any runtime that can launch a local stdio command can use the same command and a
 Or add it from the CLI:
 
 ```sh
-opencode mcp add opencyber -- docker exec -i opencyber opencyber-mcp
+opencode mcp add opencyber -- docker exec -i opencyber-beta opencyber-mcp
 opencode mcp list
 ```
 
@@ -79,20 +83,20 @@ The CVE-chain PoC tools follow the same naming: `tools.opencyber.oc_chain_plan(.
 ### Claude Code
 
 ```sh
-claude mcp add opencyber -- docker exec -i opencyber opencyber-mcp
+claude mcp add opencyber -- docker exec -i opencyber-beta opencyber-mcp
 claude mcp list
 ```
 
 Add `--scope user` before the name if you want the server available across projects:
 
 ```sh
-claude mcp add --scope user opencyber -- docker exec -i opencyber opencyber-mcp
+claude mcp add --scope user opencyber -- docker exec -i opencyber-beta opencyber-mcp
 ```
 
 ### Codex
 
 ```sh
-codex mcp add opencyber -- docker exec -i opencyber opencyber-mcp
+codex mcp add opencyber -- docker exec -i opencyber-beta opencyber-mcp
 codex mcp list
 ```
 
@@ -101,13 +105,13 @@ Equivalent `~/.codex/config.toml` entry:
 ```toml
 [mcp_servers.opencyber]
 command = "docker"
-args = ["exec", "-i", "opencyber", "opencyber-mcp"]
+args = ["exec", "-i", "opencyber-beta", "opencyber-mcp"]
 ```
 
 ### Gemini CLI
 
 ```sh
-gemini mcp add opencyber docker exec -i opencyber opencyber-mcp
+gemini mcp add opencyber docker exec -i opencyber-beta opencyber-mcp
 gemini mcp list
 ```
 
@@ -118,7 +122,7 @@ Equivalent `~/.gemini/settings.json` entry:
   "mcpServers": {
     "opencyber": {
       "command": "docker",
-      "args": ["exec", "-i", "opencyber", "opencyber-mcp"]
+      "args": ["exec", "-i", "opencyber-beta", "opencyber-mcp"]
     }
   }
 }
@@ -133,7 +137,7 @@ Equivalent `~/.gemini/settings.json` entry:
   "mcpServers": {
     "opencyber": {
       "command": "docker",
-      "args": ["exec", "-i", "opencyber", "opencyber-mcp"]
+      "args": ["exec", "-i", "opencyber-beta", "opencyber-mcp"]
     }
   }
 }
@@ -149,7 +153,7 @@ Equivalent `~/.gemini/settings.json` entry:
     "opencyber": {
       "type": "stdio",
       "command": "docker",
-      "args": ["exec", "-i", "opencyber", "opencyber-mcp"]
+      "args": ["exec", "-i", "opencyber-beta", "opencyber-mcp"]
     }
   }
 }
@@ -163,8 +167,8 @@ The server advertises tools at process start. Changing a mode requires a new ser
 
 | Mode | How to set it | Advertised tools | Approximate schema cost | Discovery model |
 | --- | --- | --- | ---: | --- |
-| Full (default) | No variable, or `OPENCYBER_MCP_MODE=full` | 255: 173 executable-backed plus 82 native | Roughly 50k tokens | Direct named tools; `oc_catalog` and `oc_execute` also available |
-| Compact | `OPENCYBER_MCP_MODE=compact` | 82 native | Roughly 15k tokens | `oc_catalog` then `oc_execute` for the 173 executable-backed tools |
+| Full (default) | No variable, or `OPENCYBER_MCP_MODE=full` | 256: 174 executable-backed plus 82 native | Roughly 50k tokens | Direct named tools; `oc_catalog` and `oc_execute` also available |
+| Compact | `OPENCYBER_MCP_MODE=compact` | 82 native | Roughly 15k tokens | `oc_catalog` then `oc_execute` for the 174 executable-backed tools |
 | Category filter | `OPENCYBER_TOOL_CATEGORIES=network,web` | 82 native plus the selected executable categories | Varies | Direct named tools and `oc_catalog` |
 
 The token figures are rough. Actual cost depends on the client's serialization and the selected categories.
@@ -173,18 +177,18 @@ Set the variable when creating the container using the hardened flags from
 [INSTALL.md](INSTALL.md), or set it on one new server process:
 
 ```sh
-docker exec -i -e OPENCYBER_MCP_MODE=compact opencyber opencyber-mcp
+docker exec -i -e OPENCYBER_MCP_MODE=compact opencyber-beta opencyber-mcp
 ```
 
 For the OpenCode command-array format, use the same per-session setting:
 
 ```json
-"command": ["docker", "exec", "-e", "OPENCYBER_MCP_MODE=compact", "-i", "opencyber", "opencyber-mcp"]
+"command": ["docker", "exec", "-e", "OPENCYBER_MCP_MODE=compact", "-i", "opencyber-beta", "opencyber-mcp"]
 ```
 
 ### Compact mode
 
-Compact mode registers only the 82 native tools. `oc_execute` dispatches any of the 173 executable-backed catalog tools by exact name:
+Compact mode registers only the 82 native tools. `oc_execute` dispatches any of the 174 executable-backed catalog tools by exact name:
 
 ```text
 oc_catalog(query="nuclei")
@@ -226,10 +230,10 @@ Use `oc_catalog` instead of guessing names:
 From a shell, dump the executable-backed catalog:
 
 ```sh
-docker exec opencyber opencyber-mcp --catalog-json
+docker exec opencyber-beta opencyber-mcp --catalog-json
 ```
 
-This prints the 173 catalog entries and exits without starting the stdio server.
+This prints the 174 catalog entries and exits without starting the stdio server.
 
 ## Result envelope and contract pinning
 

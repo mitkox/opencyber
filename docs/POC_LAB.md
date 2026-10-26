@@ -7,30 +7,28 @@ prove a real CVE, assess a production target or qualify hardware.
 
 Start with [BETA_TESTING.md](BETA_TESTING.md) for the basic installation and
 MCP exercise. This lab needs a Linux Docker host, Python 3, the source checkout
-and a selected 0.5.0 image. Use the maintainer-provided source commit and
-qualified private candidate digest after the distribution gates pass; no
-0.5.0 release or image tag is published yet. A local build is development
-evidence only.
+and a selected 0.5.0 image. The published Linux amd64 preview uses source
+`c1201976caf49c45068bb507032aee75e4509e20` and local image
+`opencyber:0.5.0-private-beta.1-amd64`. Import it and extract its source using
+the beta guide first. The preview is unqualified; the lab's synthetic checks
+do not establish production or real-target acceptance.
 
 ## One-command check
 
-From the selected source checkout, use a local build or a qualified candidate
-supplied by the maintainer:
+From the extracted `source-c120197/opencyber` directory, use the imported
+preview directly. Do not rebuild it for this check:
 
 ```sh
-# Local build; omit this when testing an already selected immutable image.
-docker build --provenance=false -t opencyber:0.5.0 .
-
 mkdir -p ../opencyber-beta-evidence
-bash scripts/poc-lab-image.sh opencyber:0.5.0 \
+bash scripts/poc-lab-image.sh opencyber:0.5.0-private-beta.1-amd64 \
   ../opencyber-beta-evidence/poc-lab.json
 ```
 
-Replace the image argument with the maintainer-selected
-`ghcr.io/mitkox/opencyber-beta-candidates@sha256:…` reference when testing a
-qualified private candidate. Authenticate as described in the beta guide;
-repository and package access are separate. Keep evidence outside the source
-checkout so collecting it does not change the commit being tested.
+A local rebuild is a different development artifact. For a future qualified
+registry candidate, substitute the maintainer-supplied platform digest and
+follow [Install](INSTALL.md#path-a-installer-managed-candidate). Keep evidence
+outside the source checkout so collecting it does not change the commit being
+tested.
 
 The helper creates its own disposable container with no external network,
 dropped capabilities, a read-only root filesystem and temporary workspace.
@@ -65,6 +63,7 @@ docker run -d --name opencyber-poc-lab --no-healthcheck --network none \
   --cap-drop=ALL --security-opt no-new-privileges --read-only \
   --tmpfs /tmp --tmpfs /run --tmpfs /workspace \
   --tmpfs /root/.config --tmpfs /root/.cache \
+  --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
   -e OPENCYBER_STRICT_CATALOG=1 \
   -e OPENCYBER_APPROVAL_KEY_FILE=/run/secrets/opencyber-poc.key \
   opencyber:0.5.0
@@ -79,7 +78,7 @@ docker exec opencyber-poc-lab opencyber-mcp --self-test
 ```
 
 The fixture response is `FixtureApp 1.4.2`. The self-test must report version
-`0.5.0`, 255 tools in full mode and a matching catalog. If the fixture is still
+`0.5.0`, 256 tools in full mode and a matching catalog. If the fixture is still
 starting, repeat its bounded `curl` check before connecting the client.
 
 Configure the client to launch:

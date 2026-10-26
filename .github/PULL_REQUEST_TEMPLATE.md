@@ -45,8 +45,9 @@ make check
       (`PYTHONPATH=src python3 scripts/generate-tool-docs.py --check`).
 - [ ] No secrets, credentials, customer data, or engagement artifacts are
       included in the diff or this description.
-- [ ] No restricted component is added (`burpsuite`, `maltego`, `wpscan`,
-      `waybackurls`), and any new third-party component has a license review.
+- [ ] New third-party components have captured license evidence, required
+      notices and matching source; conditional vendor distribution is approved
+      before sharing binaries. License family alone does not exclude a tool.
 - [ ] Container smoke tests were run if the runtime, Dockerfile, launcher,
       installer, or hardware support changed.
 - [ ] Commits are signed off with `git commit -s`.

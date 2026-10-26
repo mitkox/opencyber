@@ -13,6 +13,9 @@ Security vulnerabilities must never be reported in a public issue; follow
 ## Before you start
 
 To test the beta without changing code, follow [the beta guide](docs/BETA_TESTING.md).
+The published `v0.5.0-private-beta.1` archive preview is unqualified and frozen
+at source commit `c120197`; current `main` documentation can advance separately.
+Repository Read access includes the private release assets.
 Coding agents and their operators should also read [AGENTS.md](AGENTS.md).
 
 - Open an issue before starting anything larger than a focused fix. For a bug,
@@ -36,6 +39,9 @@ python -m venv .venv
 python -m pip install --upgrade pip
 pip install -e '.[test,dev]'
 ```
+
+On Debian/Ubuntu, install `build-essential` and `dpkg-dev` for the native
+wordlist rebuild regression, and ShellCheck for `make shellcheck`.
 
 The canonical test runner is the standard library's `unittest`:
 
@@ -100,8 +106,8 @@ for script in scripts/*.sh; do bash -n "$script"; done
   and do not assume Kali tooling is installed on the test host.
 - Some tests pin documentation and distribution facts. In particular,
   `tests/test_distribution.py` checks README tool counts, Dockerfile pinning and
-  restricted packages, while `tests/test_catalog.py` checks the catalog and
-  restricted executables. Update the test and the document together when the
+  excluded packages, while `tests/test_catalog.py` checks the catalog and
+  executable requirements. Update the test and the document together when the
   underlying fact really changes.
 - CI runs the suite on Python 3.11, 3.12, and 3.13, checks shell syntax, and
   verifies that `opencyber-doctor` fails closed on a bare host.
@@ -215,11 +221,36 @@ license check before they can be merged:
 4. Pin downloads by version and checksum. Do not use mutable selectors such as
    `/releases/latest/` or `go install ...@latest`.
 
-The following components are deliberately excluded because their terms do not
-permit clean redistribution in this image: `burpsuite`, `maltego`, `wpscan`, and
-`waybackurls`. Do not add them to the catalog, the Dockerfile, a helper script,
-or a vendored directory. `tests/test_catalog.py` and `tests/test_distribution.py`
-enforce this list.
+Select maintained tools by their security condition and applicable distribution
+terms. Custom, reciprocal and commercial license families are not automatic
+exclusions. When SBOM metadata is incomplete, record an attributed decision for
+the exact versioned package URL in `compliance/license-policy.json`, with the
+captured license file, its SHA-256 and source URL, the redistribution basis and
+notice/source obligations. Unknown metadata without that evidence and missing
+required source remain blockers for qualified or public releases. The existing
+private preview records unresolved license metadata and Oracle/PDB vendor
+reviews in its `KNOWN_ISSUES.md`; these are pending obligations, not an approved
+redistribution basis. See [vendor terms](docs/BETA_VENDOR_TERMS.md).
+
+The configured image includes Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon,
+Metasploit, NetExec and WPScan. Nmap scripts and Metasploit modules are required
+offline assets. Preserve Nmap's applicable terms and source and WPScan's custom
+license and commercialization restrictions as explained in
+[THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).
+
+`burpsuite`, `maltego` and `waybackurls` remain excluded because no applicable
+redistribution grant has been established for the intended binaries and
+recipients. Reintroducing one requires that evidence and corresponding policy,
+notice and test changes. ScoutSuite is excluded because its sqlitedict dependency
+has an unresolved critical advisory; Terrascan is excluded because upstream is
+archived and no longer maintained. Their optional adapters are documented
+separately from the required image toolchain.
+
+Describe OpenCyber's research and authorized-testing purpose without implying
+that it grants rights to third-party software or target systems. All original
+licenses, copyright notices, source obligations and use restrictions remain in
+effect. Keep a configured Dockerfile, a built image, passing checks and completed
+qualification distinct in documentation and handoffs.
 
 ## Commits and Developer Certificate of Origin
 
@@ -249,11 +280,12 @@ the pull request resolves it.
 ## Pull request process
 
 1. During private beta, accept the maintainer's repository invitation and
-   authenticate with `gh auth login`. Clone with `gh repo clone mitkox/opencyber`.
-   Personal-repository invitations include write access; the maintainer invites
-   trusted collaborators. For code contributions, follow the branch or private
-   fork route permitted by the repository settings; do not copy private source
-   into a public fork. Branch from `main` and submit a pull request.
+   authenticate with `gh auth login`. Clone with `gh repo clone mitkox-dev/opencyber`.
+   External beta testers receive **Read** access and can report issues without
+   pushing changes. Ask the maintainer for contributor access before submitting
+   code. Private forking is disabled for the beta; never copy private source into
+   a public repository. Authorized contributors branch from `main` and submit a
+   pull request. See [beta access](docs/BETA_ACCESS.md) for invitation management.
 2. Make the change, add tests, and run `make check`.
 3. Fill in the pull request template, including the security-impact section.
 4. Open the pull request and wait for CI. The suite must pass on all supported
@@ -262,6 +294,11 @@ the pull request resolves it.
    history, unless a maintainer asks for a clean history.
 6. A maintainer merges the change. Do not merge your own pull request unless
    you have been explicitly asked to.
+
+The organization currently uses GitHub Free. GitHub rejected enforcement for
+this private repository, so branch protection is deferred by the maintainer.
+The review and current-head CI requirements above remain the manual merge
+policy; do not describe them as enforced branch rules.
 
 Small documentation fixes may be merged with a lighter review, but they still
 need a sign-off and must not introduce claims that the code does not support.
@@ -300,12 +337,16 @@ scripts, the Dockerfile, and the publish workflow carry aliases that must agree.
 5. Follow [the release procedure](docs/RELEASE.md). Native candidate builds run
    separately from future public publication. Freeze the artifact selection,
    record hardware as unqualified unless complete optional device evidence is
-   supplied, and share beta images only after software, license and source gates
-   pass. Public publication requires a later maintainer decision. The eventual
+   supplied, and promote qualified beta images only after software, license and
+   source gates pass. The separately published private preview is explicitly
+   unqualified, with its pending reviews recorded in the release bundle.
+   Public publication requires a later maintainer decision. The eventual
    0.5.0 GitHub release remains a prerelease; no moving image alias advances.
    Never rebuild during promotion or overwrite existing release bytes.
 
-Do not publish an image whose doctor report is degraded or whose qualification evidence is incomplete.
+Do not describe an image as qualified when its doctor report is degraded or
+its qualification evidence is incomplete. The existing preview is not evidence
+of completed release qualification and does not authorize public publication.
 
 ## Getting help
 

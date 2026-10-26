@@ -12,6 +12,7 @@ import argparse
 from concurrent.futures import ThreadPoolExecutor
 import hashlib
 import json
+import os
 from pathlib import Path
 import re
 import shutil
@@ -23,6 +24,12 @@ from urllib.request import urlopen
 
 SCHEMA = "opencyber.corresponding-source/v1"
 DPKG_FORMAT = "${db:Status-Status}\t${source:Package}\t${source:Version}\t${binary:Package}\t${Version}\n"
+DIRECT_SOURCE_TREES = {
+    "docker-bench-security": Path("/opt/docker-bench-security"),
+    "nuclei-templates": Path("/root/.local/nuclei-templates"),
+    "seclists": Path("/usr/share/seclists"),
+    "wpscan-metadata": Path("/usr/share/opencyber/wpscan-cache"),
+}
 
 
 def digest(path: Path) -> str:
@@ -31,6 +38,26 @@ def digest(path: Path) -> str:
         while chunk := handle.read(1024 * 1024):
             value.update(chunk)
     return value.hexdigest()
+
+
+def tree_digest(root: Path) -> str:
+    if root.is_symlink() or not root.is_dir():
+        raise ValueError(f"direct source tree missing or unsafe: {root}")
+    records = {}
+    for path in sorted(root.rglob("*")):
+        relative = path.relative_to(root)
+        if ".git" in relative.parts:
+            continue
+        if path.is_symlink():
+            record = ("symlink", os.readlink(path))
+        elif path.is_file():
+            record = ("file-sha256", digest(path))
+        elif path.is_dir():
+            record = ("directory", "")
+        else:
+            raise ValueError(f"unsupported direct source input: {path}")
+        records[relative.as_posix()] = record
+    return hashlib.sha256(json.dumps(records, sort_keys=True, separators=(",", ":")).encode()).hexdigest()
 
 
 def run(arguments: list[str], **kwargs: object) -> str:
@@ -66,7 +93,7 @@ def enable_source_repositories() -> None:
     subprocess.run(["apt-get", "update"], check=True)
 
 
-def capture_debian(output: Path) -> list[dict]:
+def capture_debian(output: Path, local_sources: Path | None = None) -> list[dict]:
     raw = run(["dpkg-query", "-W", "-f=" + DPKG_FORMAT])
     inventory = "".join(line.split("\t", 1)[1] + "\n" for line in raw.splitlines()
                         if line.startswith("installed\t"))
@@ -84,8 +111,17 @@ def capture_debian(output: Path) -> list[dict]:
         # Encode epochs/slashes to ensure a single component beneath the root.
         folder = output / "debian" / quote(name + "@" + version, safe="")
         folder.mkdir(parents=True)
-        subprocess.run(["apt-get", "-y", "--download-only", "--only-source", "source", f"{name}={version}"],
-                       cwd=folder, check=True)
+        local = local_sources / quote(name, safe="") if local_sources is not None else None
+        if local is not None and (local.exists() or local.is_symlink()):
+            if local.is_symlink() or not local.is_dir():
+                raise ValueError(f"unsafe local source directory: {name}")
+            for path in local.iterdir():
+                if path.is_symlink() or not path.is_file():
+                    raise ValueError(f"unsafe local source input: {name}/{path.name}")
+                shutil.copy2(path, folder / path.name)
+        else:
+            subprocess.run(["apt-get", "-y", "--download-only", "--only-source", "source", f"{name}={version}"],
+                           cwd=folder, check=True)
         dsc = list(folder.glob("*.dsc"))
         if len(dsc) != 1:
             raise ValueError(f"exact source descriptor missing for {name}={version}")
@@ -163,7 +199,8 @@ def ecosystem_inventory() -> dict:
     return {"python": [{"name": name, "version": version} for name, version in sorted(python_inventory())],
             "ruby": sorted([{"name": item["name"], "version": item["version"]} for item in ruby_inventory()],
                            key=lambda item: (item["name"], item["version"])),
-            "first_party_sha256": first_party}
+            "first_party_sha256": first_party,
+            "direct_assets_sha256": {name: tree_digest(path) for name, path in DIRECT_SOURCE_TREES.items()}}
 
 
 def capture_python(output: Path) -> list[dict]:
@@ -233,9 +270,7 @@ def capture_builds(output: Path, inputs: Path) -> list[dict]:
         if not (context / required).is_file():
             raise ValueError(f"required first-party Docker build input missing: {required}")
     archive_tree(context, destination / "build-context.tar.gz")
-    for name, source in (("opencyber", Path("/opt/opencyber")),
-                         ("docker-bench-security", Path("/opt/docker-bench-security")),
-                         ("nuclei-templates", Path("/root/.local/nuclei-templates"))):
+    for name, source in (("opencyber", Path("/opt/opencyber")), *DIRECT_SOURCE_TREES.items()):
         target = destination / (name + ".tar.gz")
         if not source.is_dir():
             raise ValueError(f"direct source tree missing: {name}")
@@ -278,7 +313,7 @@ def main() -> None:
     args.output.mkdir(parents=True)
     (args.output / "runtime-ecosystems.json").write_text(json.dumps(ecosystem_inventory(), sort_keys=True) + "\n")
     packages = capture_builds(args.output, args.inputs)
-    packages.extend(capture_debian(args.output))
+    packages.extend(capture_debian(args.output, args.inputs / "local"))
     packages.extend(capture_python(args.output))
     packages.extend(capture_ruby(args.output))
     artifacts = [{"path": str(path.relative_to(args.output)), "bytes": path.stat().st_size, "sha256": digest(path)}

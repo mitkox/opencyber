@@ -45,6 +45,7 @@ POC_CHAIN_TOOL_COUNT = len(FIXED_TOOL_CATEGORIES["poc_chain"])
 
 NUCLEI_TEMPLATES_DIRNAME = Path(".local") / "nuclei-templates"
 ROCKYOU = Path("/usr/share/wordlists/rockyou.txt")
+BASELINE_WORDLIST = Path("/usr/share/wordlists/opencyber-keyboard-patterns.txt")
 SECLISTS = Path("/usr/share/seclists")
 
 
@@ -152,6 +153,7 @@ def doctor_report(advertised_tools: Any = None) -> dict[str, Any]:
         "jq": _tool_version("jq", "--version"),
     }
     wordlists = {
+        "baseline": BASELINE_WORDLIST.is_file() and BASELINE_WORDLIST.stat().st_size > 0,
         "rockyou": ROCKYOU.is_file() and ROCKYOU.stat().st_size > 0,
         "seclists": SECLISTS.is_dir(),
     }
@@ -225,7 +227,7 @@ def doctor_report(advertised_tools: Any = None) -> dict[str, Any]:
         check("nuclei-templates", "fail", "no nuclei templates installed", remediation="Use the published image or install templates.")
     else:
         check("nuclei-templates", "pass", f"{templates['count']} nuclei templates ({templates['version'] or 'unknown'})")
-    missing_wordlists = [name for name, present in wordlists.items() if not present]
+    missing_wordlists = [name for name in ("baseline", "seclists") if not wordlists[name]]
     if missing_wordlists:
         check("wordlists", "fail", "wordlists missing: " + ", ".join(missing_wordlists), remediation="Use the published image or install the wordlists.")
     else:
@@ -355,7 +357,8 @@ def format_report(report: dict[str, Any]) -> str:
         f"  missing executables    {len(mcp['missing_external_tools'])}",
         f"  optional unavailable   {len(mcp['missing_optional_tools'])}",
         f"  nuclei templates       {templates['count']} ({templates['version'] or 'unknown'})",
-        f"  rockyou.txt            {'ok' if wordlists['rockyou'] else 'MISSING'}",
+        f"  baseline dictionary    {'ok' if wordlists['baseline'] else 'MISSING'}",
+        f"  rockyou (optional)     {'present' if wordlists['rockyou'] else 'not supplied'}",
         f"  seclists               {'ok' if wordlists['seclists'] else 'MISSING'}",
         f"  offline assets         {'ok' if assets['ready'] else 'MISSING'}"
         f" ({assets['summary']['ok']}/{assets['summary']['total']})",

@@ -307,7 +307,10 @@ async def execute_tool(
             f"integration unavailable: {executable}; {reason} "
             f"Missing: {', '.join(missing_dependencies) if resolved else executable}. "
             "Install the integration and its dependencies in an operator-managed image."
-            if reason else f"executable is not installed: {executable}"
+            if reason else (
+                f"integration unavailable: {executable}; missing dependencies: {', '.join(missing_dependencies)}"
+                if resolved and missing_dependencies else f"executable is not installed: {executable}"
+            )
         )
         error = OcError(
             "integration_unavailable",

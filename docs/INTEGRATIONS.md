@@ -1,5 +1,9 @@
 # Agent integrations
 
+The connection examples use the current beta guide's container name,
+`opencyber-beta`. Complete [beta setup](BETA_TESTING.md) first; substitute your
+container name if you chose a different one. The MCP server ID stays `opencyber`.
+
 How to expose OpenCyber to an agent runtime and enable the CVE-chain PoC
 workflow for the 0.5.0 private pre-production beta. Start with
 [BETA_TESTING.md](BETA_TESTING.md) for a software-only exercise. The MCP surface
@@ -14,7 +18,7 @@ they launch the stdio server and how they surface tools.
 The server speaks MCP over stdio only and publishes no ports:
 
 ```sh
-docker exec -i opencyber opencyber-mcp
+docker exec -i opencyber-beta opencyber-mcp
 ```
 
 `-i` is required. OpenCyber uses MCP Python SDK `mcp>=2.3,<3` and `MCPServer`; the stdio launch command and `oc_*` names remain compatible with existing client configurations. Every client below launches that command. The generic client
@@ -31,7 +35,7 @@ matrix and tool-mode trade-offs are in [MCP_INTEGRATION.md](MCP_INTEGRATION.md).
     "servers": {
       "opencyber": {
         "type": "local",
-        "command": ["docker", "exec", "-i", "opencyber", "opencyber-mcp"],
+        "command": ["docker", "exec", "-i", "opencyber-beta", "opencyber-mcp"],
         "codemode": true
       }
     }
@@ -135,9 +139,9 @@ with no additional enforcement.
 The generic launch command works unchanged. For example:
 
 ```sh
-claude mcp add opencyber -- docker exec -i opencyber opencyber-mcp
-codex mcp add opencyber -- docker exec -i opencyber opencyber-mcp
-gemini mcp add opencyber docker exec -i opencyber opencyber-mcp
+claude mcp add opencyber -- docker exec -i opencyber-beta opencyber-mcp
+codex mcp add opencyber -- docker exec -i opencyber-beta opencyber-mcp
+gemini mcp add opencyber docker exec -i opencyber-beta opencyber-mcp
 ```
 
 Copy the `cve-chain-poc` skill into the runtime's skill directory if it has one,

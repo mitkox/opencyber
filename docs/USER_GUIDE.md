@@ -249,8 +249,8 @@ Chromium runs with `--no-sandbox` inside the container. A malicious page is insi
 
 ## Hardware and the physical layer
 
-Hardware interfaces are experimental in 0.5.0; real-device qualification is
-deferred. A successful inventory, a PTY test or an installed tool does not
+Hardware integrations are supported for beta use in 0.5.0. Device-specific
+qualification is recorded separately. A successful inventory, a PTY test or an installed tool does not
 qualify a physical device. Test only your own fixtures and report the actual
 device, firmware, architecture and image digest used.
 
@@ -263,15 +263,17 @@ oc_hardware_plan(domain="sdr", target="", objective="")
 ```
 
 `oc_hardware_readiness` reports per-domain status and the exact host `docker run`
-flags needed for missing devices. Choose the launcher instead of the installer
-for this setup. Pass the exact candidate
-digest assigned in the [beta guide](BETA_TESTING.md), because the launcher's
-default image name refers to a local build:
+flags needed for missing devices. Import the archive using the
+[beta guide](BETA_TESTING.md), then run the launcher from the extracted
+`source-c120197/opencyber` directory with explicit fresh container and volume
+names. Device access requires the operator's authorization.
 
 ```sh
-BETA_IMAGE="ghcr.io/mitkox/opencyber-beta-candidates@$BETA_PLATFORM_DIGEST"
-./scripts/opencyber-run.sh --image "$BETA_IMAGE" --profile sdr --dry-run
-./scripts/opencyber-run.sh --image "$BETA_IMAGE" --profile serial --device /dev/ttyUSB1
+BETA_IMAGE=opencyber:0.5.0-private-beta.1-amd64
+bash scripts/opencyber-run.sh --image "$BETA_IMAGE" --profile sdr --dry-run \
+  --name opencyber-sdr --volume opencyber-sdr
+bash scripts/opencyber-run.sh --image "$BETA_IMAGE" --profile serial \
+  --device /dev/ttyUSB1 --name opencyber-serial --volume opencyber-serial
 ```
 
 Use `--dry-run` to inspect a profile before running it, then choose the one
@@ -321,10 +323,10 @@ oc_offline_status()
 From a shell:
 
 ```sh
-docker exec opencyber opencyber-assets
-docker exec opencyber opencyber-assets --json
-docker exec opencyber opencyber-assets --verify
-docker exec opencyber opencyber-assets --offline
+docker exec opencyber-beta opencyber-assets
+docker exec opencyber-beta opencyber-assets --json
+docker exec opencyber-beta opencyber-assets --verify
+docker exec opencyber-beta opencyber-assets --offline
 ```
 
 Move the image itself across a gap with `scripts/opencyber-airgap.sh export|verify|import`. See [AIRGAP.md](AIRGAP.md).

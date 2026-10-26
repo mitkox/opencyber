@@ -18,7 +18,7 @@ useful pages by task:
 | If you want to... | Read |
 | --- | --- |
 | Join the invited beta and try a first exercise | [docs/BETA_TESTING.md](docs/BETA_TESTING.md) |
-| Install an assigned candidate or build from source | [docs/INSTALL.md](docs/INSTALL.md) |
+| Import the published preview or develop from source | [docs/INSTALL.md](docs/INSTALL.md) |
 | Learn the engagement and tool workflow | [docs/USER_GUIDE.md](docs/USER_GUIDE.md) |
 | Connect an MCP client | [docs/MCP_INTEGRATION.md](docs/MCP_INTEGRATION.md) |
 | Set environment variables and modes | [docs/CONFIGURATION.md](docs/CONFIGURATION.md) |
@@ -36,24 +36,26 @@ Run the self-checks before opening a request. The doctor is the same gate the
 image build and container healthcheck use:
 
 ```sh
-docker exec opencyber opencyber-doctor --json
-docker exec opencyber opencyber-assets --verify --json
-docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber opencyber-mcp --self-test
-docker exec opencyber opencyber-hardware --json
+docker exec opencyber-beta opencyber-doctor --json
+docker exec opencyber-beta opencyber-assets --verify --json
+docker exec -e OPENCYBER_STRICT_CATALOG=1 opencyber-beta opencyber-mcp --self-test
+docker exec opencyber-beta opencyber-hardware --json
 ```
 
 Record the image reference and local image identity without dumping the full
 container configuration:
 
 ```sh
-docker inspect --format '{{.Config.Image}} {{.Image}}' opencyber
+docker inspect --format '{{.Config.Image}} {{.Image}}' opencyber-beta
 ```
 
-Compare the reference with the platform digest assigned by the maintainer.
-If cloning works but the image pull is denied, check Docker login and package
-read permission separately. Images are not yet cleared for private distribution;
-a repository invitation alone does not make an image available. Public release
-tags and promotion attestations are not present yet.
+For the published preview, compare the reference and revision with
+`release-manifest.json` from `v0.5.0-private-beta.1`. Accept repository Read
+access with the account used by `gh auth login`; the complete release assets
+are then available through that repository. Use `beta-import.sh` for the split
+archive. This preview does not use GHCR pulls or public promotion attestations.
+For a future registry candidate, package permission and Docker authentication
+remain separate from source access.
 
 `opencyber-doctor` exits non-zero when the harness is degraded. On a host
 without Kali tooling or with no devices passed through, a degraded or
@@ -61,7 +63,7 @@ tooling-only hardware report can be expected; it is not automatically a bug.
 The doctor JSON lists the specific missing items.
 
 The MCP server started with `docker exec` writes stderr to the MCP client's
-server log. `docker logs opencyber` shows the container's main process and does
+server log. `docker logs opencyber-beta` shows the container's main process and does
 not collect that separate session. Share only a reviewed, redacted excerpt.
 
 ## What to include in a support request
@@ -70,7 +72,7 @@ not collect that separate session. Share only a reviewed, redacted excerpt.
   commit for a source checkout).
 - Image digest if you use a shared image. A tag can move; a digest identifies
   the build.
-- Install path: private candidate image, local image build, `install.sh`, or
+- Install path: published private-preview archive, qualified candidate, local image build, `install.sh`, or
   source checkout with `pip install -e`.
 - Architecture (`uname -m`) and host details: OS, Docker/Engine version, and
   whether the host is rootless.
@@ -103,8 +105,8 @@ issue. Reduce the report to the smallest input that reproduces the problem.
 ## Supported versions
 
 The `0.5.x` pre-production line is supported on a best-effort basis. 0.5.0 is
-currently a private beta preparation; it is intended to become the first
-public open source prerelease. Report the exact source commit and image digest.
+currently available as the private amd64 preview; public promotion remains
+pending. Report the release tag, exact source commit and image identity.
 Support does not establish production suitability or qualification of a real
 device or an untested platform.
 

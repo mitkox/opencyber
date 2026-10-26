@@ -1,32 +1,187 @@
 {
   "schema_version": 1,
-  "reviewed_license_components": [],
+  "reviewed_license_components": [
+    {
+      "purl": "pkg:deb/kali/ncat@7.991%2Bdfsg-1kali1?arch=amd64&distro=kali-2026.3&upstream=nmap",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "license_expression": "LicenseRef-Nmap-Packaged-Terms",
+      "redistribution_basis": "Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "required_notices": [
+        "Retain full packaged NPSL, copyright and bundled component notices.",
+        "Identify the Nmap Security Scanner and https://nmap.org/ in the documentation.",
+        "Keep Windows Npcap binaries outside this Linux distribution."
+      ],
+      "source_obligations": "Deliver exact-version Nmap source, Kali patches/build scripts and the full applicable source/license material with the image; retain source availability for recipients.",
+      "license_evidence": {
+        "path": "license-texts/nmap-7.991-copyright.txt",
+        "sha256": "b163d544b7643fd8debb9779bbc2214a26deff6058b380adff2eae8b93769d67",
+        "source_url": "https://gitlab.com/kalilinux/packages/nmap/-/blob/kali/master/debian/copyright"
+      }
+    },
+    {
+      "purl": "pkg:pypi/ndiff@7.991",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "license_expression": "LicenseRef-Nmap-Packaged-Terms",
+      "redistribution_basis": "Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "required_notices": [
+        "Retain full packaged NPSL, copyright and bundled component notices.",
+        "Identify the Nmap Security Scanner and https://nmap.org/ in the documentation.",
+        "Keep Windows Npcap binaries outside this Linux distribution."
+      ],
+      "source_obligations": "Deliver exact-version Nmap source, Kali patches/build scripts and the full applicable source/license material with the image; retain source availability for recipients.",
+      "license_evidence": {
+        "path": "license-texts/nmap-7.991-copyright.txt",
+        "sha256": "b163d544b7643fd8debb9779bbc2214a26deff6058b380adff2eae8b93769d67",
+        "source_url": "https://gitlab.com/kalilinux/packages/nmap/-/blob/kali/master/debian/copyright"
+      }
+    },
+    {
+      "purl": "pkg:deb/kali/ndiff@7.991%2Bdfsg-1kali1?arch=all&distro=kali-2026.3&upstream=nmap",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "license_expression": "LicenseRef-Nmap-Packaged-Terms",
+      "redistribution_basis": "Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "required_notices": [
+        "Retain full packaged NPSL, copyright and bundled component notices.",
+        "Identify the Nmap Security Scanner and https://nmap.org/ in the documentation.",
+        "Keep Windows Npcap binaries outside this Linux distribution."
+      ],
+      "source_obligations": "Deliver exact-version Nmap source, Kali patches/build scripts and the full applicable source/license material with the image; retain source availability for recipients.",
+      "license_evidence": {
+        "path": "license-texts/nmap-7.991-copyright.txt",
+        "sha256": "b163d544b7643fd8debb9779bbc2214a26deff6058b380adff2eae8b93769d67",
+        "source_url": "https://gitlab.com/kalilinux/packages/nmap/-/blob/kali/master/debian/copyright"
+      }
+    },
+    {
+      "purl": "pkg:deb/kali/nmap@7.991%2Bdfsg-1kali1?arch=amd64&distro=kali-2026.3",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "license_expression": "LicenseRef-Nmap-Packaged-Terms",
+      "redistribution_basis": "Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "required_notices": [
+        "Retain full packaged NPSL, copyright and bundled component notices.",
+        "Identify the Nmap Security Scanner and https://nmap.org/ in the documentation.",
+        "Keep Windows Npcap binaries outside this Linux distribution."
+      ],
+      "source_obligations": "Deliver exact-version Nmap source, Kali patches/build scripts and the full applicable source/license material with the image; retain source availability for recipients.",
+      "license_evidence": {
+        "path": "license-texts/nmap-7.991-copyright.txt",
+        "sha256": "b163d544b7643fd8debb9779bbc2214a26deff6058b380adff2eae8b93769d67",
+        "source_url": "https://gitlab.com/kalilinux/packages/nmap/-/blob/kali/master/debian/copyright"
+      }
+    },
+    {
+      "purl": "pkg:deb/kali/nmap-common@7.991%2Bdfsg-1kali1?arch=all&distro=kali-2026.3&upstream=nmap",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "license_expression": "LicenseRef-Nmap-Packaged-Terms",
+      "redistribution_basis": "Inspected complete packaged NPSL and other component terms. This free image aggregates separately licensed tools and OpenCyber uses a generic argv executor returning raw stdout/stderr, without an Nmap-specific parser. Retain the complete terms and corresponding source; this is not an OEM/proprietary-integration grant. Upstream also permits prior NPSL releases under NPSL 0.95.",
+      "required_notices": [
+        "Retain full packaged NPSL, copyright and bundled component notices.",
+        "Identify the Nmap Security Scanner and https://nmap.org/ in the documentation.",
+        "Keep Windows Npcap binaries outside this Linux distribution."
+      ],
+      "source_obligations": "Deliver exact-version Nmap source, Kali patches/build scripts and the full applicable source/license material with the image; retain source availability for recipients.",
+      "license_evidence": {
+        "path": "license-texts/nmap-7.991-copyright.txt",
+        "sha256": "b163d544b7643fd8debb9779bbc2214a26deff6058b380adff2eae8b93769d67",
+        "source_url": "https://gitlab.com/kalilinux/packages/nmap/-/blob/kali/master/debian/copyright"
+      }
+    },
+    {
+      "purl": "pkg:gem/wpscan@4.1.0",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. The packaged WPScan Public Source License explicitly permits penetration-testing distributions, with unmodified license/copyright and its commercialization restrictions retained. This decision covers the free noncommercial private beta toolkit; it does not grant paid product, SaaS, enterprise database or API rights.",
+      "license_expression": "LicenseRef-WPScan-Public-Source",
+      "redistribution_basis": "The packaged WPScan Public Source License explicitly permits penetration-testing distributions, with unmodified license/copyright and its commercialization restrictions retained. This decision covers the free noncommercial private beta toolkit; it does not grant paid product, SaaS, enterprise database or API rights.",
+      "required_notices": [
+        "Retain complete packaged WPScan license and copyright notices.",
+        "Pass through the commercialization and trademark restrictions."
+      ],
+      "source_obligations": "Retain the exact Kali source package, distribution patches and build inputs; deliver the corresponding-source bundle with the image.",
+      "license_evidence": {
+        "path": "license-texts/wpscan-4.1.0-copyright.txt",
+        "sha256": "6961f5dc69f2e46d141774b2273ee131bb651f0ec49784ebdc07eb3b23ca259d",
+        "source_url": "https://gitlab.com/kalilinux/packages/wpscan/-/blob/kali/master/debian/copyright"
+      }
+    },
+    {
+      "purl": "pkg:deb/kali/wpscan@4.1.0-0kali1?arch=all&distro=kali-2026.3",
+      "owner": "OpenCyber maintainer",
+      "reviewed_at": "2026-10-26",
+      "basis": "Automated evidence review of the actual installed package copyright bytes. The packaged WPScan Public Source License explicitly permits penetration-testing distributions, with unmodified license/copyright and its commercialization restrictions retained. This decision covers the free noncommercial private beta toolkit; it does not grant paid product, SaaS, enterprise database or API rights.",
+      "license_expression": "LicenseRef-WPScan-Public-Source",
+      "redistribution_basis": "The packaged WPScan Public Source License explicitly permits penetration-testing distributions, with unmodified license/copyright and its commercialization restrictions retained. This decision covers the free noncommercial private beta toolkit; it does not grant paid product, SaaS, enterprise database or API rights.",
+      "required_notices": [
+        "Retain complete packaged WPScan license and copyright notices.",
+        "Pass through the commercialization and trademark restrictions."
+      ],
+      "source_obligations": "Retain the exact Kali source package, distribution patches and build inputs; deliver the corresponding-source bundle with the image.",
+      "license_evidence": {
+        "path": "license-texts/wpscan-4.1.0-copyright.txt",
+        "sha256": "6961f5dc69f2e46d141774b2273ee131bb651f0ec49784ebdc07eb3b23ca259d",
+        "source_url": "https://gitlab.com/kalilinux/packages/wpscan/-/blob/kali/master/debian/copyright"
+      }
+    }
+  ],
   "blocked_components": [
     {
       "name": "burpsuite",
-      "reason": "Current Community Edition terms do not provide a clear public-container redistribution grant."
+      "reason": "Redistribution permission is not established for the exact bundled binary: current Community EULA restricts third-party availability, while Kali carries an older conditional end-user transfer clause. Preserve the exact applicable grant and its acceptance/indemnity conditions or obtain written PortSwigger permission before bundling."
     },
     {
       "name": "waybackurls",
-      "reason": "No upstream license or affirmative redistribution grant was found."
+      "reason": "No upstream license or affirmative redistribution grant was found; public source availability and a research notice do not grant distribution rights."
     },
     {
       "name": "maltego",
-      "reason": "Redistribution rights are unresolved and installed package metadata does not match current product messaging."
-    },
-    {
-      "name": "wpscan",
-      "reason": "Public-source terms impose restrictions that are not appropriate for this container distribution."
+      "reason": "Free/noncommercial use is not a redistribution grant. Current vendor terms restrict copying and third-party distribution; obtain written permission covering the bundled binary and beta recipients."
     }
   ],
   "review_required_components": [
-    {"name": "nmap", "reason": "Packaged 7.99+dfsg-1kali1 declares NPSL-0.94; public redistribution basis is unresolved."},
-    {"name": "nmap-common", "reason": "Contains Nmap assets under the same unresolved packaged NPSL-0.94 basis."},
-    {"name": "ncat", "reason": "Nmap source-package component; redistribution review remains unresolved."},
-    {"name": "ndiff", "reason": "Nmap source-package component; redistribution review remains unresolved."},
-    {"name": "nping", "reason": "Nmap source-package component; redistribution review remains unresolved."}
+    {
+      "name": "oracle-instantclient-basic",
+      "reason": "Retained for Oracle modules. Distributor approval of Oracle's distribution obligations and signed recipient terms remain pending; complete docs/BETA_VENDOR_TERMS.md before binary delivery. A successful build or SPDX identity does not accept those obligations."
+    },
+    {
+      "name": "pyxdia",
+      "reason": "Retained for optional PDB analysis. Its MIT wrapper includes Microsoft's msdia140.dll; establish the exact binary's redistribution entitlement and protective recipient terms under docs/BETA_VENDOR_TERMS.md before binary delivery. Wrapper metadata alone does not license the DLL."
+    }
   ],
   "notice_required_components": [
+    {
+      "name": "nmap",
+      "reason": "Preserve the exact packaged NPSL/GPL-derived terms and copyright notices and provide complete corresponding source/build scripts. Upstream permits earlier NPSL releases under 0.95. Generic argv execution and archive aggregation have a distribution path; Nmap-specific execution/result parsing requires a separate derivative-work assessment. Do not relicense Nmap as Apache-2.0 or restrict recipients' covered redistribution rights."
+    },
+    {
+      "name": "nmap-common",
+      "reason": "Retain the packaged NPSL license/copyright notices for Nmap scripts and data and include the exact corresponding source."
+    },
+    {
+      "name": "ncat",
+      "reason": "Retain the exact Nmap source-package license/copyright notices and corresponding-source information."
+    },
+    {
+      "name": "ndiff",
+      "reason": "Retain the exact Nmap source-package license/copyright notices and corresponding-source information."
+    },
+    {
+      "name": "nping",
+      "reason": "Retain the exact Nmap source-package license/copyright notices and corresponding-source information."
+    },
+    {
+      "name": "wpscan",
+      "reason": "The WPScan Public Source License permits penetration-testing distributions and assessment toolkits, subject to its commercialization clause. For this free noncommercial private beta retain the unmodified license and copyright notices. Commercial product, managed/SaaS or value-added distribution requires the appropriate commercial grant. WPScan API/enterprise database entitlements and data redistribution rights are separate; do not represent the component as Apache-2.0."
+    },
     {
       "name": "volatility3",
       "reason": "Retain the complete Volatility Software License 1.0 text."

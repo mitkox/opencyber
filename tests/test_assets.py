@@ -22,10 +22,12 @@ class AssetTests(unittest.TestCase):
         with patch.object(assets, "MANIFEST_PATH", manifest), patch.object(assets, "assets_status", return_value=status):
             self.assertFalse(verify_manifest(deep=True)["valid"])
 
-    def test_unbundled_integrations_do_not_require_offline_assets(self):
+    def test_bundled_integrations_require_their_offline_assets(self):
         specs = {spec.name: spec for spec in assets.ASSET_SPECS}
-        self.assertFalse(specs["nmap-scripts"].required)
-        self.assertFalse(specs["metasploit-modules"].required)
+        self.assertTrue(specs["nmap-scripts"].required)
+        self.assertTrue(specs["metasploit-modules"].required)
+        self.assertTrue(specs["baseline-password-dictionary"].required)
+        self.assertFalse(specs["rockyou"].required)
 
     def setUp(self):
         self.temporary = tempfile.TemporaryDirectory()

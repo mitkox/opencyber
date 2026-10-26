@@ -51,7 +51,7 @@ def verify_registry(package: str, reference: str, visibility: str) -> None:
     owner, name = package.split("/", 1)
     if reference.split(":", 1)[0].split("@", 1)[0] != f"ghcr.io/{package}":
         raise ValueError("registry probe must address the selected package")
-    metadata = json.loads(command("gh", "api", f"users/{quote(owner)}/packages/container/{quote(name, safe='')}"))
+    metadata = json.loads(command("gh", "api", f"orgs/{quote(owner)}/packages/container/{quote(name, safe='')}"))
     if metadata.get("visibility") != visibility:
         raise ValueError(f"package visibility must be verified {visibility}; received {metadata.get('visibility')!r}")
     with tempfile.TemporaryDirectory() as directory:
@@ -201,7 +201,7 @@ def main() -> None:
     elif args.action == "validate":
         print(json.dumps(validate_records(args.directory, args.commit), sort_keys=True))
     elif args.action == "select":
-        selected = selection_for(os.environ.get("GITHUB_REPOSITORY", "mitkox/opencyber"), args.run_id, args.commit)
+        selected = selection_for(os.environ.get("GITHUB_REPOSITORY", "mitkox-dev/opencyber"), args.run_id, args.commit)
         with args.output.open("x", encoding="utf-8") as output:
             output.write(json.dumps(selected, indent=2, sort_keys=True) + "\n")
         print(file_sha256(args.output))

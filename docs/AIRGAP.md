@@ -1,17 +1,84 @@
 # Offline and airgapped beta use
 
-This guide targets the 0.5.0 private pre-production beta. Use the maintainer's
-selected source commit and exact platform image digest after the license and
-software qualification gates pass. No 0.5.0 release or image tag has been
-published. Complete authenticated access through [BETA_TESTING.md](BETA_TESTING.md)
-before transferring a candidate. A locally built image is a development
-artifact. Hardware interfaces remain experimental and unqualified.
+The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+supplies the full toolkit for native **Linux amd64**. Its frozen source is
+`c1201976caf49c45068bb507032aee75e4509e20`, and its local image tag is
+`opencyber:0.5.0-private-beta.1-amd64`. It is an **unqualified private preview**:
+vendor reviews and license metadata remain unresolved, and native arm64,
+physical hardware, live Oracle/PDB workflows and production are unqualified.
+Private access does not waive component terms. See [RELEASE.md](RELEASE.md)
+for the recorded evidence and the separate qualified-candidate gates.
 
-The image includes nuclei templates, SecLists, rockyou, exploitdb, wordlists
-and host udev rules. Optional operator-supplied integrations and their assets
-are separate from the distributed image; use the catalog's availability and
-omission reasons instead of assuming Nmap scripts or Metasploit modules are
-present. Hardware playbooks are not loose files: they are deterministic data and functions in
+## Download and import the published preview
+
+After accepting the maintainer's repository Read invitation, download all
+**38 release assets, about 13.3 GB**, while connected. No GHCR access is needed:
+
+```sh
+gh auth login
+gh release download v0.5.0-private-beta.1 \
+  --repo mitkox-dev/opencyber --dir opencyber-beta
+```
+
+Carry the **whole directory** to the offline host, including all 14 numbered
+image/source parts (split at 1 GiB), both checksum lists, `beta-import.sh`,
+`release-manifest.json`, first-party source, captured corresponding source,
+notices, SBOMs and the actual license-gate report. Use a normal Linux filesystem
+with space for the parts, assembled image archive and Docker's expanded image.
+Assembling the captured source needs additional space.
+
+On a native Linux amd64 Docker host with Bash and Python 3:
+
+```sh
+cd opencyber-beta
+bash beta-import.sh --verify-only
+bash beta-import.sh
+# Optional: also assemble the captured third-party source archive.
+bash beta-import.sh --assemble-source
+```
+
+The helper verifies the checksummed files and complete assembled image, checks
+the archive and loaded image against the supplied runtime layers/configuration,
+architecture, revision and version, then runs doctor and the strict MCP
+self-test in disposable containers with networking disabled. It installs
+nothing and performs no pulls. Existing archives or image tags are reused only
+when they match; a mismatch stops without replacement. It creates no persistent
+container or workspace volume. Keep the numbered parts and inspect any
+pre-existing `.partial` file before retrying. These checks establish local
+bundle integrity and runtime identity, not vendor approval or signed public
+provenance.
+
+The first-party source archive is already complete. Extract it into a new
+directory, then use unused container and volume names:
+
+```sh
+mkdir source-c120197
+tar -xzf opencyber-source-c120197.tar.gz -C source-c120197
+if docker container inspect opencyber-beta >/dev/null 2>&1 || \
+   docker volume inspect opencyber-beta >/dev/null 2>&1; then
+  echo "opencyber-beta already exists; choose unused container and volume names" >&2
+else
+  bash source-c120197/opencyber/scripts/opencyber-run.sh \
+    --profile blue-team --offline \
+    --image opencyber:0.5.0-private-beta.1-amd64 \
+    --name opencyber-beta --volume opencyber-beta
+fi
+```
+
+The blue-team profile disables networking and device passthrough. Connect an
+MCP client with `docker exec -i opencyber-beta opencyber-mcp` (no PTY), and
+follow [BETA_TESTING.md](BETA_TESTING.md) for a synthetic first exercise.
+The generic `scripts/opencyber-airgap.sh import` command below does **not**
+assemble this release's split parts; use the supplied `beta-import.sh` for this
+drop. Repository Read also exposes its private release assets; see
+[BETA_ACCESS.md](BETA_ACCESS.md) before inviting testers.
+
+## Included assets and offline-mode limits
+
+The image includes nuclei templates, SecLists dictionaries, exploitdb, a generated baseline dictionary
+and host udev rules. Nmap NSE scripts and fingerprints, Metasploit modules and payloads, and the
+restored local assessment tools are included in the image. Use the catalog's
+availability and omission reasons for the two excluded adapters. Hardware playbooks are not loose files: they are deterministic data and functions in
 `src/opencyber/hardware.py`, returned by `oc_hardware_plan` and
 `opencyber-hardware --plan`. The host guide is [HARDWARE.md](HARDWARE.md); a
 copy is installed at `/usr/share/opencyber/docs/` in the image.
@@ -26,11 +93,15 @@ outside the named blocklist run normally.
 A hard airgap needs host or network controls; see
 [Hard isolation](#hard-isolation).
 
-## Build once on a connected host
+## Build a local development image on a connected host
+
+The following build and custom-export instructions are separate from importing
+the frozen published preview. Do not rebuild or replace its published assets,
+tag or source snapshot. A local build is a development artifact.
 
 ```sh
 gh auth login
-gh repo clone mitkox/opencyber
+gh repo clone mitkox-dev/opencyber
 cd opencyber
 git switch --detach BETA_SOURCE_COMMIT
 docker build --provenance=false -t opencyber:0.5.0 .
@@ -55,10 +126,11 @@ also requires vulnerability, license, provenance and both native-platform
 checks. Prefer the exact qualified candidate digest supplied by the maintainer
 for private beta testing.
 
-The source tree is not required on the airgapped side. Carry the image, the
-candidate compliance records, and the checksums described below.
+For a custom export, carry the image, matching source/compliance records and
+checksums described below. Carry the launcher source too if using it to start
+the container on the airgapped side.
 
-## Export and import
+## Export and import a custom local bundle
 
 If you want SBOM files in the transfer bundle, generate them first. The export
 script copies a local `sbom/` directory when it exists but does not create one:
@@ -106,7 +178,7 @@ For a future public release, [RELEASE.md](RELEASE.md) requires signed provenance
 and SBOM attestations on the qualified platform images and multi-platform
 manifest, plus public-access acceptance.
 
-## Run with offline mode asserted
+## Run a custom image with offline mode asserted
 
 For an evidence-only beta session, the blue-team profile provides a complete
 no-network command:
@@ -190,9 +262,9 @@ be used for spot checks rather than every healthcheck.
 The build writes `/usr/share/opencyber/asset-manifest.json`. At runtime,
 `opencyber-doctor` compares measured counts and sizes against it and reports a
 mismatch instead of silently accepting a truncated template store or wordlist.
-Required assets include the nuclei template store, SecLists, rockyou,
-exploitdb and the shared wordlist directory. Optional entries include
-operator-supplied Metasploit modules and Nmap scripts, the webshell collection,
+Required assets include the nuclei template store, SecLists, the generated baseline dictionary,
+exploitdb, the shared wordlist directory, bundled Metasploit modules, Nmap
+scripts and WPScan local-detection metadata. Optional entries include the webshell collection,
 Wireshark data, the host udev rules, playbook documents and the CVE database.
 
 To inspect on the airgapped host:
@@ -272,7 +344,48 @@ read-only mount and verify its hash before use. `searchsploit` and nuclei
 templates provide local vulnerability references without this database;
 operator-supplied integrations have their own asset requirements.
 
+## Password dictionary provenance
+
+The default dictionary is `/usr/share/wordlists/opencyber-keyboard-patterns.txt`,
+copied from SecLists' generated `Keyboard-Walks/walk-the-line.txt`. It contains
+keyboard patterns, not measured breach-password coverage. Other included
+SecLists lists remain available for target-specific selection.
+
+SecLists is pinned to upstream 2026.1 with a verified archive SHA-256 and its
+actual MIT license. The imported RockYou corpus and its named subsets are
+removed in the asset build stage before any files enter final image layers.
+Kali's old RockYou data notice did not establish the GPL grant previously
+claimed here. A separately supplied corpus needs its own applicable rights;
+the optional `rockyou` status reports actual presence without gating readiness.
+
+## WPScan without public internet access
+
+The image stages the public WPScan local-detection database and its original
+license under `/usr/share/opencyber/wpscan-cache`. With `OPENCYBER_OFFLINE=1`,
+the packaged wrapper reads that immutable snapshot and appends `--no-update`;
+HTTP scratch files stay in `/tmp`. The build captures the database bytes and
+hashes so they can be audited and replaced with a new image when stale.
+
+This supports local WordPress detection and enumeration. Vulnerability
+intelligence from the WPScan API or enterprise database is a separate service
+and entitlement; no token or enterprise dataset is bundled. An internet API
+cannot be made offline merely by installing its client. Cloud assessment and
+public OSINT clients likewise retain their service dependencies.
+
+Before sharing a candidate, run `scripts/airgap-tools-image.sh IMAGE JSON_OUTPUT`
+on the connected build host. It starts a disposable container with no network,
+checks the installed catalog and restored CLIs, and tests Nmap and WPScan only
+against owned loopback fixtures. Transfer the checksummed image and matching
+source/license evidence after the release gates pass.
+
 ## Updating an airgapped install
+
+For a subsequent published preview, download its entire new release bundle,
+follow its supplied import instructions and use new container/volume names.
+Keep the existing preview's parts, tag and snapshot unchanged. Do not combine
+parts or source evidence from different releases.
+
+For a custom local build/export:
 
 1. Build and doctor-gate a new image on a connected host.
 2. Optionally run `scripts/generate-sbom.sh IMAGE sbom` so the bundle includes

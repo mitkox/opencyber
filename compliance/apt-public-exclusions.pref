@@ -1,4 +1,5 @@
-# Public-image redistribution exclusions also apply to transitive dependencies.
-Package: nmap nmap-common ncat ndiff nping python3-libnmap autorecon metasploit-framework netexec rustscan burpsuite maltego wpscan waybackurls
+# Only components without a verified redistribution grant or a maintained,
+# vulnerability-qualified implementation are excluded. Custom licenses are allowed.
+Package: burpsuite maltego waybackurls terrascan scoutsuite python3-sqlitedict wordlists seclists
 Pin: version *
 Pin-Priority: -1

@@ -1,5 +1,9 @@
 # CLI reference
 
+The connection examples use the current beta guide's container name,
+`opencyber-beta`. Complete [beta setup](BETA_TESTING.md) first; substitute your
+container name if you chose a different one. The MCP server ID stays `opencyber`.
+
 Flags, output behavior, and exit codes for the 0.5.0 private pre-production beta. New testers should begin with [BETA_TESTING.md](BETA_TESTING.md); this page is the lookup reference.
 
 ## Conventions
@@ -22,13 +26,13 @@ The MCP server and its self-test entry points. With no arguments it serves MCP o
 | Flag | Effect |
 | --- | --- |
 | `--self-test` | Print a JSON readiness object and exit. Checks required catalog executables and reports optional integrations, reports tool counts, workspace, browser runtime, and analysis runtime. |
-| `--catalog-json` | Print the complete 173-entry executable catalog as a JSON array, regardless of `OPENCYBER_MCP_MODE` or `OPENCYBER_TOOL_CATEGORIES`. |
+| `--catalog-json` | Print the complete 174-entry executable catalog as a JSON array, regardless of `OPENCYBER_MCP_MODE` or `OPENCYBER_TOOL_CATEGORIES`. |
 | `-h`, `--help` | Print usage and exit 0. |
 
 ```sh
-docker exec -i opencyber opencyber-mcp
-docker exec opencyber opencyber-mcp --self-test
-docker exec opencyber opencyber-mcp --catalog-json | jq 'length'
+docker exec -i opencyber-beta opencyber-mcp
+docker exec opencyber-beta opencyber-mcp --self-test
+docker exec opencyber-beta opencyber-mcp --catalog-json | jq 'length'
 ```
 
 | Situation | Exit |
@@ -55,9 +59,9 @@ Full harness readiness: catalog, nuclei templates, wordlists, offline assets, as
 | `-h`, `--help` | Print usage and exit 0. |
 
 ```sh
-docker exec opencyber opencyber-doctor
-docker exec opencyber opencyber-doctor --json
-docker exec opencyber opencyber-doctor --quiet
+docker exec opencyber-beta opencyber-doctor
+docker exec opencyber-beta opencyber-doctor --json
+docker exec opencyber-beta opencyber-doctor --quiet
 ```
 
 | Report state | Exit |
@@ -133,10 +137,10 @@ If flags are combined, precedence is `--plan` > `--inventory` > readiness.
 `--plan` domains: `usb`, `sdr`, `wifi`, `bluetooth`, `nfc`, `jtag`, `serial`, `automotive`, `logic`, `gps`, `ir`, `firmware`.
 
 ```sh
-docker exec opencyber opencyber-hardware
-docker exec opencyber opencyber-hardware --inventory --json
-docker exec opencyber opencyber-hardware --plan sdr
-docker exec opencyber opencyber-hardware --plan serial --json
+docker exec opencyber-beta opencyber-hardware
+docker exec opencyber-beta opencyber-hardware --inventory --json
+docker exec opencyber-beta opencyber-hardware --plan sdr
+docker exec opencyber-beta opencyber-hardware --plan serial --json
 ```
 
 | Situation | Exit |
@@ -146,7 +150,7 @@ docker exec opencyber opencyber-hardware --plan serial --json
 | Usage error | `2` |
 | Uncaught inventory error | `1` |
 
-Human readiness output lists each domain, its status (`ready`, `tooling_ready`, or `unavailable`), device count, missing tools, and the host flags that would expose the missing hardware. `ready` means the tools are installed and a matching device is visible; `tooling_ready` means the tools are present but the host has not passed hardware through. Neither status establishes real-device qualification. Hardware is experimental for this prerelease.
+Human readiness output lists each domain, its status (`ready`, `tooling_ready`, or `unavailable`), device count, missing tools, and the host flags that would expose the missing hardware. `ready` means the tools are installed and a matching device is visible; `tooling_ready` means the tools are present but the host has not passed hardware through. Neither status establishes real-device qualification. Hardware integrations are supported for beta use; qualification records describe tested devices.
 
 ## `opencyber-poc`
 
@@ -157,9 +161,9 @@ container so it sees the same workspace and
 `OPENCYBER_APPROVAL_KEY`:
 
 ```sh
-docker exec -i opencyber opencyber-poc --help
-docker exec -i opencyber opencyber-poc authorize --help
-docker exec -i opencyber opencyber-poc approve --help
+docker exec -i opencyber-beta opencyber-poc --help
+docker exec -i opencyber-beta opencyber-poc authorize --help
+docker exec -i opencyber-beta opencyber-poc approve --help
 ```
 
 | Subcommand | Purpose |
@@ -175,7 +179,7 @@ away. Replace the example engagement, chain and spec IDs with returned IDs;
 these commands are templates, not an authorization for the example targets.
 
 ```sh
-docker exec -i opencyber opencyber-poc authorize \
+docker exec -i opencyber-beta opencyber-poc authorize \
   --engagement eng_20261025_9f8d4c1a6b2743f4a2c11bb8d02a91a7 \
   --authorized-by "Jane Doe <jane@example.test>" \
   --reference "ROE-2026-014" \
@@ -184,7 +188,7 @@ docker exec -i opencyber opencyber-poc authorize \
   --techniques version_assert,http_sequence,http_auth_diff,oob_callback,file_read_canary,tcp_probe \
   --acknowledgement "I confirm written authorization for these targets and techniques"
 
-docker exec -i opencyber opencyber-poc approve \
+docker exec -i opencyber-beta opencyber-poc approve \
   --engagement eng_… --chain chain_… --spec spec_… \
   --issued-by "Jane Doe <jane@example.test>" --expires "$APPROVAL_EXPIRES"
 ```
@@ -325,7 +329,25 @@ Runs a container from the image and checks the policy-sensitive executable set a
 | Wrong argument count | `2` |
 | Forbidden executable present, required executable missing, or required file missing | `1` |
 
-The check fails on `burpsuite`, `maltego`, `wpscan`, `waybackurls`, `nmap`, `rustscan`, `autorecon`, `netexec`, or `metasploit-framework`, and requires `whatweb`, `urlfinder`, `subzy`, `vol`, the OpenCyber notices and source offer, Go and Rust license trees, the two installed playbooks, the udev rules, and the asset manifest.
+The check rejects unapproved Burp Suite, Maltego and waybackurls binaries,
+archived Terrascan, and the vulnerable ScoutSuite/sqlitedict stack. It requires
+Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, Metasploit, NetExec, WPScan,
+WhatWeb, URLFinder, subzy and Volatility, together with the installed notices,
+source offer, Go/Rust license trees, playbooks, udev rules and asset manifest.
+
+### `scripts/airgap-tools-image.sh`
+
+```text
+scripts/airgap-tools-image.sh IMAGE JSON_OUTPUT
+```
+
+Tests the inspected immutable local image in a disposable container with no
+network, no capabilities and a read-only root filesystem. It checks the
+installed catalog, starts the restored tools, and exercises Nmap and WPScan
+against owned loopback fixtures. Output contains bounded per-check evidence;
+an image, command, isolation or detection failure exits nonzero. Keep the JSON
+outside the source tree. WPScan vulnerability API data and hardware devices are
+not qualified by this test.
 
 ### `scripts/publish-image.sh`
 
@@ -338,9 +360,9 @@ Dispatches `build-candidate.yml` for the current Git ref. It validates and stage
 | Situation | Exit |
 | --- | ---: |
 | Workflow dispatched | `0` |
-| Dirty worktree, repository other than `ghcr.io/mitkox/opencyber`, or `gh` absent | `1` |
+| Dirty worktree, repository other than `ghcr.io/mitkox-dev/opencyber`, or `gh` absent | `1` |
 
-Arguments default to `ghcr.io/mitkox/opencyber` and `0.5.0`.
+Arguments default to `ghcr.io/mitkox-dev/opencyber` and `0.5.0`.
 
 ### Candidate and evidence scripts
 
@@ -356,9 +378,10 @@ provides their required order and trusted inputs.
 | `python scripts/promote-images.py RECORDS OUTPUT` | Workflow-only digest promotion using the frozen platform receipt list and GitHub environment. Does not rebuild images. |
 | `python scripts/promote-images.py finalize IMAGE:VERSION DIGEST` | Finalize an explicit `X.Y.Z` reference only; a changed existing digest is refused. Moving aliases are invalid. |
 
-A hardware bundle is optional for 0.5.0. Omission means unqualified,
-experimental hardware; a submitted bundle must still pass its complete
-validation. Native software, source, licensing and vulnerability gates still
+A hardware bundle is optional for 0.5.0. Omission records device qualification
+as `not_qualified`; hardware integrations remain supported for beta use. A
+submitted bundle must still pass its complete validation. Native software,
+source, licensing and vulnerability gates still
 apply to private beta images. Public acceptance remains required before a
 future public release.
 

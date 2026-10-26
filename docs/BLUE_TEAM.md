@@ -1,12 +1,10 @@
 # Offline blue-team investigations
 
-Use this workflow for the 0.5.0 private pre-production beta after the maintainer
-supplies a source commit and qualified image digest for your platform. The
-repository and candidate package remain private; there is no published 0.5.0
-release or image tag. Image distribution remains blocked until the license and
-software qualification gates pass. For access and a first exercise without
-supplied files, use [Beta testing](BETA_TESTING.md). Hardware is unnecessary for
-this workflow.
+Use this workflow with the published Linux amd64 `v0.5.0-private-beta.1`
+preview. Complete [beta setup](BETA_TESTING.md) to download the private release,
+verify/import its split image and extract the frozen `c120197` source snapshot.
+The preview remains unqualified and retains the vendor/license follow-ups in
+its `KNOWN_ISSUES.md`. Hardware is unnecessary for these supplied-artifact cases.
 
 OpenCyber analyzes supplied artifacts inside an engagement. It does not acquire
 host memory, monitor a host, or act as an EDR or SIEM. `oc_process_snapshot`
@@ -15,15 +13,9 @@ reports the running container's own processes and connections.
 ## Start an isolated case
 
 ```sh
-gh auth login
-gh repo clone mitkox/opencyber
-cd opencyber
-git switch --detach BETA_SOURCE_COMMIT
-
-docker login ghcr.io --username YOUR_GITHUB_USERNAME
-BETA_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates@BETA_PLATFORM_DIGEST
-docker pull "$BETA_IMAGE"
-scripts/opencyber-run.sh --profile blue-team \
+# From the extracted source-c120197/opencyber directory, after archive import.
+BETA_IMAGE=opencyber:0.5.0-private-beta.1-amd64
+scripts/opencyber-run.sh --profile blue-team --offline \
   --name opencyber-blue-team --volume opencyber-blue-team-workspace \
   --image "$BETA_IMAGE"
 docker exec opencyber-blue-team opencyber-doctor --json
@@ -34,13 +26,10 @@ Configure the MCP client to launch
 `docker exec -i opencyber-blue-team opencyber-mcp`; use the client-specific
 format in [MCP integration](MCP_INTEGRATION.md). The separate container and
 volume names keep this case apart from an installer-managed beta session.
-Replace `BETA_SOURCE_COMMIT` and `BETA_PLATFORM_DIGEST` with the maintainer
-record's full commit SHA and platform digest (`sha256:` plus 64 hex characters).
-At the Docker password prompt, enter a classic personal access token with
-`read:packages`; never store the token in a client configuration or report.
-Repository read access does not automatically grant package access. If you
-already have the selected source checkout and authenticated registry access,
-skip those setup steps.
+Choose unused container and volume names for a new case. The preview uses
+repository release assets and local image loading, so this workflow needs no
+registry credentials. The separate `opencyber-blue-team` names keep this case
+apart from the initial `opencyber-beta` session.
 
 The blue-team profile forces `--network none`, `--cap-drop=ALL`, a read-only
 root filesystem, and offline mode. Device passthrough and `--no-read-only` are

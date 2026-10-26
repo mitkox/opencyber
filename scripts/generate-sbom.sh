@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 3 ]]; then
   echo "usage: $0 IMAGE [OUTPUT_DIRECTORY] [PLATFORM]" >&2
-  echo "example: $0 registry:ghcr.io/mitkox/opencyber@sha256:... sbom linux/amd64" >&2
+  echo "example: $0 registry:ghcr.io/mitkox-dev/opencyber@sha256:... sbom linux/amd64" >&2
   exit 2
 fi
 
@@ -26,10 +26,18 @@ fi
 cyclonedx="$output_directory/opencyber-$suffix.cdx.json"
 spdx="$output_directory/opencyber-$suffix.spdx.json"
 
+# Freeze local Docker input before scanning and collecting file-specific facts.
+scan_image="$image"
+runtime_image_id=""
+if [[ "$image" == docker:* ]]; then
+  runtime_image_id=$(docker image inspect --format '{{.Id}}' "${image#docker:}")
+  scan_image="docker:$runtime_image_id"
+fi
+
 arguments=(
   scan
-  "$image"
-  --override-default-catalogers package
+  "$scan_image"
+  --override-default-catalogers image
   --select-catalogers=-file
   --enrich "golang,java,python"
   --output "cyclonedx-json=$cyclonedx"
@@ -46,6 +54,20 @@ SYFT_PACKAGE_EXCLUDE_BINARY_OVERLAP_BY_OWNERSHIP=false \
 SYFT_RELATIONSHIPS_PACKAGE_FILE_OWNERSHIP=false \
 SYFT_RELATIONSHIPS_PACKAGE_FILE_OWNERSHIP_OVERLAP=false \
   syft "${arguments[@]}"
+
+if [[ -n "$runtime_image_id" ]]; then
+  script_directory=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd)
+  cyclonedx_absolute=$(realpath "$cyclonedx")
+  enriched=$(mktemp "$output_directory/enriched-cdx.XXXXXX")
+  trap 'rm -f -- "$enriched"' EXIT
+  docker run --rm --network none --cap-drop=ALL --read-only --tmpfs /tmp \
+    --mount "type=bind,source=$script_directory/enrich-sbom-licenses.py,target=/enrich-sbom-licenses.py,readonly" \
+    --mount "type=bind,source=$cyclonedx_absolute,target=/input.cdx.json,readonly" \
+    --entrypoint python3 "$runtime_image_id" /enrich-sbom-licenses.py \
+    --root / --input /input.cdx.json --output - >"$enriched"
+  mv -- "$enriched" "$cyclonedx"
+  trap - EXIT
+fi
 
 cyclonedx_name=$(basename "$cyclonedx")
 spdx_name=$(basename "$spdx")

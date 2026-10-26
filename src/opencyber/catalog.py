@@ -29,17 +29,18 @@ class ToolSpec:
                 "optional_reason": self.optional_reason}
 
 
-# Keep adapters for integrations that cannot meet the public image's release
-# policy. Availability and the reason remain visible to clients.
+# Keep adapters for tools excluded by the maintenance or vulnerability policy.
 OPTIONAL_INTEGRATIONS: dict[str, tuple[str, tuple[str, ...]]] = {
-    "nmap": ("Nmap redistribution review is unresolved; supply a licensed installation.", ()),
-    "rustscan": ("RustScan's default scan pipeline requires operator-supplied Nmap.", ("nmap",)),
-    "autorecon": ("AutoRecon's packaged dependencies require operator-supplied Nmap.", ("nmap",)),
-    "msfconsole": ("The Metasploit package depends on operator-supplied Nmap.", ("nmap",)),
-    "msfvenom": ("The Metasploit package depends on operator-supplied Nmap.", ("nmap",)),
-    "nxc": ("NetExec's packaged python3-libnmap dependency requires operator-supplied Nmap.", ("nmap",)),
-    "terrascan": ("Archived upstream dependencies do not meet the image vulnerability gate.", ()),
-    "scout": ("ScoutSuite requires sqlitedict, which has an unresolved high-severity advisory.", ()),
+    "terrascan": ("Upstream is archived and no longer maintained.", ()),
+    "scout": ("ScoutSuite's sqlitedict dependency has unresolved CVE-2024-35515, rated critical by CISA-ADP.", ()),
+}
+
+TOOL_DEPENDENCIES: dict[str, tuple[str, ...]] = {
+    "rustscan": ("nmap",),
+    "autorecon": ("nmap",),
+    "msfconsole": ("nmap",),
+    "msfvenom": ("nmap",),
+    "nxc": ("nmap",),
 }
 
 
@@ -88,6 +89,7 @@ TOOL_GROUPS: dict[str, tuple[tuple[str, str], ...]] = {
         ("nuclei", "nuclei"),
         ("sqlmap", "sqlmap"),
         ("whatweb", "whatweb"),
+        ("wpscan", "wpscan"),
         ("wfuzz", "wfuzz"),
         ("xsser", "xsser"),
         ("dotdotpwn", "dotdotpwn"),
@@ -485,7 +487,7 @@ def build_catalog() -> tuple[ToolSpec, ...]:
                     description=_description(slug, executable, category),
                     required=optional is None,
                     optional_reason=optional[0] if optional else "",
-                    dependencies=optional[1] if optional else (),
+                    dependencies=optional[1] if optional else TOOL_DEPENDENCIES.get(executable, ()),
                 )
             )
     return tuple(specs)

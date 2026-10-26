@@ -133,6 +133,9 @@ jobs:
       - name: Install the package
         run: python -m pip install --upgrade pip && python -m pip install -e '.[test]'
 
+      - name: Install Debian package build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential dpkg-dev
+
       - name: Run unit tests
         run: python -m unittest discover -s tests -v
 
@@ -153,6 +156,9 @@ jobs:
 
       - name: Install the package
         run: python -m pip install --upgrade pip && python -m pip install -e '.[test,dev]'
+
+      - name: Install Debian package build prerequisites
+        run: sudo apt-get update && sudo apt-get install -y --no-install-recommends build-essential dpkg-dev
 
       - name: Run tests under coverage
         run: |
@@ -203,7 +209,7 @@ jobs:
           python - <<'PY'
           import json
           catalog = json.load(open("/tmp/catalog.json"))
-          assert len(catalog) == 173, len(catalog)
+          assert len(catalog) == 174, len(catalog)
           print("wheel catalog entries:", len(catalog))
           PY
 

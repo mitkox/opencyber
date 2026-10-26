@@ -4,11 +4,11 @@ Operate the 0.5.0 private pre-production beta in an authorized lab: hardened
 startup, hardware exposure, egress control, storage, health, replacement and
 recovery.
 Use [Beta testing](BETA_TESTING.md) for first setup and a synthetic exercise.
-Image commands apply after the maintainer supplies a qualified platform digest.
-No 0.5.0 release or image tag is published, and image distribution remains
-blocked until the license and software gates pass. Local builds are development
-artifacts. Production acceptance remains separate, and hardware interfaces are
-experimental and unqualified.
+The published private preview is `v0.5.0-private-beta.1` for Linux amd64. Import
+it with the supplied helper before using the local image reference below.
+The preview is unqualified; public/candidate gates and vendor/license follow-ups
+remain separate. Hardware integrations are supported for beta use; device
+qualification and production acceptance remain separate.
 
 > Operations decisions here assume you are authorized to test the targets the container can reach. The harness does not enforce authorization by itself.
 
@@ -25,12 +25,13 @@ The image command is `sleep infinity`. The container is a host for `docker exec`
 
 ## Hardened runtime baseline
 
-Complete the authenticated source and registry setup in the beta guide. Set
-`BETA_IMAGE` to the maintainer-provided immutable platform reference, replacing
-`BETA_PLATFORM_DIGEST` with its full `sha256:` value:
+Complete the archive setup in the beta guide. Its file-only default uses the
+`opencyber-beta` container with no network. The manual example below uses the
+name `opencyber` for a networked software-lab container; use unused names and
+the operator's authorized lab network:
 
 ```sh
-BETA_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates@BETA_PLATFORM_DIGEST
+BETA_IMAGE=opencyber:0.5.0-private-beta.1-amd64
 docker run -d --name opencyber \
   --restart unless-stopped \
   --cap-drop=ALL \
@@ -39,6 +40,7 @@ docker run -d --name opencyber \
   --read-only \
   --tmpfs /tmp --tmpfs /run \
   --tmpfs /root/.config --tmpfs /root/.cache \
+  --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
   -v opencyber-workspace:/workspace \
   "$BETA_IMAGE"
 ```
@@ -50,6 +52,7 @@ docker run -d --name opencyber \
 | `--security-opt no-new-privileges` | Blocks privilege gain through setuid or file capabilities. |
 | `--read-only` | Protects the image filesystem from persistent change. |
 | tmpfs `/tmp`, `/run` | Writable scratch space for tools that assume it exists. |
+| tmpfs `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Disposable AutoRecon, NetExec and Metasploit state under the read-only root filesystem. |
 | tmpfs `/root/.config`, `/root/.cache` | Required for Chromium's crashpad handler under a read-only rootfs. Without them browser tools fail with `chrome_crashpad_handler: --database is required`. |
 | `-v ...:/workspace` | Persistent engagement and evidence storage. |
 
@@ -198,6 +201,7 @@ docker run -d --name opencyber-restore \
   --security-opt no-new-privileges \
   --read-only --tmpfs /tmp --tmpfs /run \
   --tmpfs /root/.config --tmpfs /root/.cache \
+  --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
   -v opencyber-workspace-restored:/workspace \
   "$BETA_IMAGE"
 
@@ -269,11 +273,15 @@ Audit timestamps are generated in UTC from the container clock. Keep the host cl
 
 ## Replace or upgrade a beta container
 
-0.5.0 is a private beta preparing the first open-source prerelease. There is no
-earlier public version to migrate from. Reinstall only a maintainer-selected
-image and keep its source commit, platform digest and qualification record
-together. A changed published candidate will require a new version when public
-release begins; see [RELEASE.md](RELEASE.md).
+The preview image and `c120197` source are frozen. A replacement uses a new
+release/tag and its own checksums; never rebuild or overwrite the published
+preview. Back up evidence and stop the old container before intentionally
+reusing a workspace with a replacement. The preview launcher is separate from
+`install.sh`; follow [beta setup](BETA_TESTING.md) for its startup and cleanup.
+
+The following installer procedure is for a future qualified registry candidate.
+Keep that candidate's source, platform digest and evidence together. There is
+no earlier public version to recommend as a rollback target.
 
 1. Back up the workspace and export any evidence you need.
 2. Pull or import the new image and run its gates before replacing anything:
@@ -286,7 +294,7 @@ release begins; see [RELEASE.md](RELEASE.md).
 3. Re-run the installer with the new version or digest:
 
    ```sh
-   OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
+   OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
    bash install.sh --version 0.5.0 --digest BETA_PLATFORM_DIGEST
    ```
 
