@@ -92,6 +92,7 @@ class PolicyTests(unittest.TestCase):
                 asyncio.run(
                     execute_tool("shodan", ["info"], engagement_id=self.engagement_id)
                 )
+
             with patch.dict(
                 "os.environ", {"OPENCYBER_OFFLINE_ALLOW_NETWORK_TOOLS": "1"}
             ):
@@ -99,6 +100,27 @@ class PolicyTests(unittest.TestCase):
                     execute_tool("shodan", ["info"], engagement_id=self.engagement_id)
                 )
                 self.assertEqual(result["executable"], "shodan")
+
+    def test_live_policy_refusals_use_advertised_codes(self):
+        from opencyber.contracts import contract_for
+        from opencyber.server import mcp
+
+        cases = (
+            ("oc_nmap", {"engagement_id": self.engagement_id, "arguments": ["evil.test", "-sT"]},
+             {"OPENCYBER_ENFORCE_SCOPE": "1"}, "scope_denied"),
+            ("oc_shodan", {"engagement_id": self.engagement_id, "arguments": ["info"]},
+             {"OPENCYBER_OFFLINE": "1"}, "offline_blocked"),
+            ("oc_hibp_password_check", {"password": "synthetic-not-a-secret"},
+             {"OPENCYBER_OFFLINE": "1"}, "offline_blocked"),
+            ("oc_cve_lookup", {"cve_id": "CVE-2026-0001"},
+             {"OPENCYBER_OFFLINE": "1", "OPENCYBER_CVE_DB": str(self.root / "missing.sqlite")}, "offline_blocked"),
+        )
+        for name, arguments, environment, expected in cases:
+            with self.subTest(tool=name), patch.dict("os.environ", environment):
+                result = asyncio.run(mcp.call_tool(name, arguments)).structured_content
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["error"]["code"], expected)
+                self.assertIn(expected, contract_for(name).error_codes)
 
     def test_unscoped_execution_is_refused_under_enforcement(self):
         with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "1"}):
@@ -207,7 +229,7 @@ class UrlScopeTests(unittest.TestCase):
         response = type(
             "Response",
             (),
-            {"status_code": 200, "url": "https://example.com/", "headers": {}, "text": "ok"},
+            {"status_code": 200, "url": "https://example.com/", "headers": {}, "text": "ok", "_opencyber_body_truncated": False},
         )()
         with patch("requests.request", return_value=response):
             result = http_request("GET", "https://example.com/", engagement_id=self.engagement_id)
@@ -257,7 +279,7 @@ class UrlScopeTests(unittest.TestCase):
         response = type(
             "Response",
             (),
-            {"status_code": 200, "url": "https://example.org/", "headers": {}, "text": "ok"},
+            {"status_code": 200, "url": "https://example.org/", "headers": {}, "text": "ok", "_opencyber_body_truncated": False},
         )()
         with patch("requests.request", return_value=response):
             result = http_request("GET", "https://example.org/")

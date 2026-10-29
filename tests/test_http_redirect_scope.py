@@ -140,3 +140,18 @@ class HttpRedirectScopeTests(unittest.TestCase):
             with patch.object(requests.Session, "get_adapter", return_value=adapter):
                 http_workbench.repeat_http_request(self.engagement_id, session["session_id"], "GET", "/redirect")
         self.assertEqual(adapter.sent_headers[1]["Authorization"], "Bearer private")
+
+    def test_cross_origin_redirect_does_not_erase_original_host_cookie(self):
+        adapter = FixtureTransport("https://outside.test/target")
+        with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "0"}):
+            session = http_workbench.create_http_session(
+                self.engagement_id, "Persistent origin", "https://allowed.test/",
+                scope_hosts=["allowed.test", "outside.test"],
+            )
+            sid = session["session_id"]
+            http_workbench.update_http_session(self.engagement_id, sid, cookies={"private-session": "synthetic"})
+            with patch.object(requests.Session, "get_adapter", return_value=adapter):
+                http_workbench.repeat_http_request(self.engagement_id, sid, "GET", "/redirect")
+                http_workbench.repeat_http_request(self.engagement_id, sid, "GET", "/target")
+        self.assertNotIn("Cookie", adapter.sent_headers[1])
+        self.assertIn("private-session=synthetic", adapter.sent_headers[2].get("Cookie", ""))

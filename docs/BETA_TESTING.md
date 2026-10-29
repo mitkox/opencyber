@@ -1,5 +1,16 @@
 # Start beta testing 0.5.0
 
+The repository source is preparing `0.5.1`. It includes the HTTP cookie,
+response-limit and refusal-contract fixes described in the changelog. There is
+no updated binary preview yet. The download below remains the frozen 0.5.0
+preview and does not contain those fixes.
+
+Testers run their own local copies. Do not connect an untrusted tester to a
+maintainer's Docker socket, backend, workspace, approval keys or host credentials.
+Use synthetic evidence first, separate workspace volumes, no host-directory
+mounts or devices, and the network-disabled profile below. Keep tokens outside
+the backend; tool results can still reach the tester's chosen model provider.
+
 The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
 is available for **Linux amd64**. The maintainer adds beta testers; accept the
 private repository invitation before downloading. Use an owned lab and

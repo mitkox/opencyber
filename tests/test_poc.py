@@ -1565,6 +1565,27 @@ class RunToolEnvelopeTests(unittest.TestCase):
         self.assertEqual(envelope["error"]["code"], "not_found")
         self.assertEqual(envelope["error"]["category"], "not_found")
 
+    def test_stored_refused_run_uses_an_advertised_evidence_error(self):
+        from opencyber.contracts import contract_for
+        from opencyber.server import mcp
+
+        run_id = "run_20260101_" + "e" * 32
+        run_dir = Path(self.engagement["workspace"]) / "poc" / "runs" / run_id
+        run_dir.mkdir(parents=True)
+        (run_dir / "result.json").write_text(json.dumps({
+            "run_id": run_id, "status": "refused", "reason": "execution_error",
+            "message": "synthetic executor failure", "approval_consumed": True,
+        }), encoding="utf-8")
+        result = asyncio.run(mcp.call_tool("oc_poc_evidence", {
+            "engagement_id": self.engagement_id, "run_id": run_id,
+        })).structured_content
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "execution_failed")
+        self.assertIn(result["error"]["code"], contract_for("oc_poc_evidence").error_codes)
+        self.assertEqual(result["run_id"], run_id)
+        self.assertTrue(result["approval_consumed"])
+        self.assertEqual(result["coverage"]["status"], "partial")
+
 
 class RunRefusalTests(WorkspaceMixin, unittest.IsolatedAsyncioTestCase):
     """Refusal paths that do not need the HTTP fixture."""

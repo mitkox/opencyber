@@ -14,6 +14,18 @@ INSTALLER = ROOT / "install.sh"
 
 
 class InstallerTests(unittest.TestCase):
+    def test_private_development_version_is_accepted(self):
+        self.env["FAKE_DOCKER_IMAGE_VERSION"] = "0.5.1.dev0"
+        result = self.run_installer("--version", "0.5.1.dev0", "--offline")
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_arbitrary_version_suffixes_are_rejected_before_docker(self):
+        for version in ("0.5.1.dev", "0.5.1.dev-1", "0.5.1/dev0", "latest"):
+            with self.subTest(version=version):
+                result = self.run_installer("--version", version)
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("version must look like", result.stderr)
+
     def setUp(self) -> None:
         self.tempdir = tempfile.TemporaryDirectory()
         self.addCleanup(self.tempdir.cleanup)

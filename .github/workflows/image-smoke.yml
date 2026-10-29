@@ -32,6 +32,9 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
+      - name: Exclude local credentials from the Docker context
+        run: python3 scripts/check-docker-context.py
+
       - name: Reclaim runner disk space
         shell: bash
         run: |

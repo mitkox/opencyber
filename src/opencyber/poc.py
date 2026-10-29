@@ -711,6 +711,13 @@ def _run_contract(record: Mapping[str, Any]) -> dict[str, Any]:
         if limit is None:
             limit = limits.facts("poc.max_bytes", effective=record.get("max_bytes"))
     block: dict[str, Any] = {"coverage": coverage, "limitations": limitations}
+    if status == "refused":
+        error = PocError(
+            str(record.get("reason") or "run_failed"),
+            str(record.get("message") or "The PoC run was refused."),
+            **{key: record[key] for key in ("run_id", "approval_consumed", "execution_started") if key in record},
+        )
+        block.update(ok=False, error=error.to_error().to_dict())
     if limit is not None:
         block["limit"] = limit
     return block

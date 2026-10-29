@@ -129,7 +129,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 # Release version. Keep in sync with src/opencyber/__init__.py;
 # scripts/check-version-consistency.py enforces this.
-ARG OPENCYBER_VERSION=0.5.0
+ARG OPENCYBER_VERSION=0.5.1
 # Optional offline CVE index. Empty keeps the image smaller; set to e.g.
 # "2024 2025 2026" to bake NVD-derived records into oc_cve_lookup.
 ARG OPENCYBER_CVE_YEARS=""
@@ -311,6 +311,7 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         xxd \
         zaproxy \
         chromium \
+    && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
@@ -337,7 +338,7 @@ RUN chmod 0755 /usr/local/bin/wpscan
 
 # Prowler 5.45's published pyproject uses a uv override for PyMongo 4.18.2:
 # Huawei SDK's wheel still pins 4.15.1 and only consumes its bson types. pip
-# ignores uv overrides, so apply the same upstream override explicitly below.
+# ignores uv overrides. Use the compatible 4.18.3 security patch explicitly.
 RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
     && /opt/opencyber-analysis/bin/python -m pip install --no-cache-dir --upgrade pip==26.2.2 \
     && /opt/opencyber-analysis/bin/python -m pip install --no-cache-dir \
@@ -352,7 +353,7 @@ RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
     && python3.13 -m venv /opt/opencyber-prowler \
     && /opt/opencyber-prowler/bin/python -m pip install --no-cache-dir --upgrade pip==26.2.2 \
     && /opt/opencyber-prowler/bin/python -m pip install --no-cache-dir prowler==5.45.0 \
-    && /opt/opencyber-prowler/bin/python -m pip install --no-cache-dir --no-deps --upgrade pymongo==4.18.2
+    && /opt/opencyber-prowler/bin/python -m pip install --no-cache-dir --no-deps --upgrade pymongo==4.18.3
 
 RUN gem install --no-document zsteg -v 0.2.14 \
     && gem install --no-document one_gadget -v 2.1.1
@@ -399,7 +400,7 @@ COPY src ./src
 
 RUN python3 -m venv --system-site-packages /opt/opencyber-venv \
     && /opt/opencyber-venv/bin/python -m pip install --no-cache-dir --upgrade pip==26.2.2 \
-    && /opt/opencyber-venv/bin/python -m pip install --no-cache-dir --upgrade "mcp>=2.3,<3" "pycparser==3.0" playwright==1.64.1 \
+    && /opt/opencyber-venv/bin/python -m pip install --no-cache-dir --upgrade "mcp==2.3.0" "pycparser==3.0" playwright==1.64.1 \
     && /opt/opencyber-venv/bin/python -m pip install --no-cache-dir --no-deps --no-build-isolation /opt/opencyber \
     && pyver="$(/opt/opencyber-venv/bin/python -c 'import sys; print(f"{sys.version_info.major}.{sys.version_info.minor}")')" \
     && printf '%s\n' "/opt/opencyber-analysis/lib/python${pyver}/site-packages" \
@@ -523,7 +524,13 @@ COPY --from=hashpump-tools /out/sources /source-inputs/hashpump
 COPY --from=seclists-assets /out/package/source /source-inputs/local/opencyber-offline-wordlists
 COPY Dockerfile /source-inputs/Dockerfile
 COPY scripts/capture-corresponding-source.py scripts/verify-corresponding-source.py /source-inputs/
-COPY . /source-inputs/context/
+COPY src /source-inputs/context/src/
+COPY scripts /source-inputs/context/scripts/
+COPY docs /source-inputs/context/docs/
+COPY compliance /source-inputs/context/compliance/
+COPY packaging /source-inputs/context/packaging/
+COPY integrations /source-inputs/context/integrations/
+COPY .dockerignore .editorconfig .gitignore AGENTS.md CHANGELOG.md CODE_OF_CONDUCT.md CONTRIBUTING.md Dockerfile LICENSE README.md SECURITY.md SOURCE_OFFER.md SUPPORT.md THIRD_PARTY_NOTICES.md pyproject.toml install.sh /source-inputs/context/
 RUN python3 /source-inputs/capture-corresponding-source.py --output /corresponding-source --platform "linux/${TARGETARCH}" \
     && python3 /source-inputs/verify-corresponding-source.py /corresponding-source
 

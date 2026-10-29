@@ -267,7 +267,7 @@ async def execute_tool(
                 "ts": started_at,
             },
         )
-        raise ValueError(offline["reason"])
+        raise OcError("offline_blocked", offline["reason"], details={"executable": executable})
 
     def finish(result: dict[str, Any], event: str = "tool.exec") -> dict[str, Any]:
         elapsed_ms = round((time.monotonic() - started) * 1000, 2)

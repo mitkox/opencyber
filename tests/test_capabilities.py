@@ -4,6 +4,7 @@ import importlib.util
 import json
 from pathlib import Path
 import tempfile
+import socket
 import threading
 import unittest
 from unittest.mock import patch
@@ -38,12 +39,29 @@ class FixtureHandler(BaseHTTPRequestHandler):
             self.send_header("location", "https://example.com/")
             self.end_headers()
             return
+        if parsed.path == "/set-restricted-cookies":
+            self.send_response(200)
+            self.send_header("Set-Cookie", "hostsecret=synthetic; Path=/")
+            self.send_header("Set-Cookie", "pathsecret=synthetic; Path=/private")
+            self.send_header("Set-Cookie", "securesecret=synthetic; Secure; Path=/")
+            self.end_headers()
+            return
+        if parsed.path in {"/set-domain-cookies", "/delete-cookie"}:
+            self.send_response(200)
+            if parsed.path == "/set-domain-cookies":
+                self.send_header("Set-Cookie", "hostsecret=synthetic; Path=/")
+                self.send_header("Set-Cookie", "domainsecret=synthetic; Domain=allowed.test; Path=/")
+            else:
+                self.send_header("Set-Cookie", "hostsecret=; Max-Age=0; Path=/")
+            self.end_headers()
+            return
         self._send(
             200,
             {
                 "path": parsed.path,
                 "query": parse_qs(parsed.query),
                 "header": self.headers.get("x-test", ""),
+                "cookie": self.headers.get("Cookie", ""),
             },
             {"set-cookie": "fixture=1; Path=/"},
         )
@@ -195,6 +213,85 @@ class CapabilityTests(unittest.TestCase):
             repeat_http_request(self.engagement_id, session_id, "GET", "https://example.com/")
         with self.assertRaises(ValueError):
             repeat_http_request(self.engagement_id, session_id, "GET", "/redirect-out")
+
+    def test_persisted_cookies_keep_host_path_and_secure_restrictions(self):
+        base = self.base_url.replace("127.0.0.1", "localhost")
+        with patch.dict("os.environ", {"NO_PROXY": "localhost,127.0.0.1"}):
+            state = create_http_session(
+                self.engagement_id, "Cookie boundaries", base, scope_hosts=["localhost", "127.0.0.1"],
+            )
+            sid = state["session_id"]
+            repeat_http_request(self.engagement_id, sid, "GET", "/set-restricted-cookies")
+            public = json.loads(repeat_http_request(self.engagement_id, sid, "GET", "/public")["response"]["body"])["cookie"]
+            private = json.loads(repeat_http_request(self.engagement_id, sid, "GET", "/private/check")["response"]["body"])["cookie"]
+            other = json.loads(repeat_http_request(self.engagement_id, sid, "GET", self.base_url + "/public")["response"]["body"])["cookie"]
+        self.assertIn("hostsecret=synthetic", public)
+        self.assertNotIn("pathsecret", public)
+        self.assertNotIn("securesecret", public)
+        self.assertIn("pathsecret=synthetic", private)
+        self.assertNotIn("hostsecret", other)
+        self.assertNotIn("_cookie_jar", get_http_session(self.engagement_id, sid))
+
+    def test_manual_cookies_are_base_host_only_and_legacy_cookies_are_cleared(self):
+        base = self.base_url.replace("127.0.0.1", "localhost")
+        with patch.dict("os.environ", {"NO_PROXY": "localhost,127.0.0.1"}):
+            state = create_http_session(
+                self.engagement_id, "Manual cookies", base, scope_hosts=["localhost", "127.0.0.1"],
+            )
+            sid = state["session_id"]
+            update_http_session(self.engagement_id, sid, cookies={"manual": "synthetic"})
+            same = repeat_http_request(self.engagement_id, sid, "GET", "/echo")
+            other = repeat_http_request(self.engagement_id, sid, "GET", self.base_url + "/echo")
+            self.assertIn("manual=synthetic", json.loads(same["response"]["body"])["cookie"])
+            self.assertNotIn("manual", json.loads(other["response"]["body"])["cookie"])
+            path = Path(self.engagement["workspace"]) / ".opencyber" / "http-sessions" / (sid + ".json")
+            legacy = json.loads(path.read_text())
+            legacy.pop("_cookie_jar")
+            legacy["cookies"] = {"legacy": "synthetic"}
+            path.write_text(json.dumps(legacy))
+            result = repeat_http_request(self.engagement_id, sid, "GET", "/echo")
+            self.assertNotIn("legacy", json.loads(result["response"]["body"])["cookie"])
+
+    def test_localhost_cookie_does_not_leak_to_distinct_localhost_local_host(self):
+        original = socket.getaddrinfo
+
+        def owned_dns(host, *args, **kwargs):
+            return original("127.0.0.1" if host == "localhost.local" else host, *args, **kwargs)
+
+        base = self.base_url.replace("127.0.0.1", "localhost")
+        with patch.dict("os.environ", {"NO_PROXY": "localhost,localhost.local"}), patch("socket.getaddrinfo", side_effect=owned_dns):
+            state = create_http_session(
+                self.engagement_id, "Exact host", base, scope_hosts=["localhost", "localhost.local"],
+            )
+            sid = state["session_id"]
+            repeat_http_request(self.engagement_id, sid, "GET", "/set-restricted-cookies")
+            other = repeat_http_request(self.engagement_id, sid, "GET", base.replace("localhost", "localhost.local") + "/echo")
+            self.assertNotIn("hostsecret", json.loads(other["response"]["body"])["cookie"])
+
+    def test_host_only_cookie_is_withheld_from_subdomain_but_domain_cookie_is_sent(self):
+        original = socket.getaddrinfo
+
+        def owned_dns(host, *args, **kwargs):
+            return original("127.0.0.1" if host in {"allowed.test", "sub.allowed.test"} else host, *args, **kwargs)
+
+        base = self.base_url.replace("127.0.0.1", "allowed.test")
+        with patch.dict("os.environ", {"NO_PROXY": "allowed.test,sub.allowed.test"}), patch("socket.getaddrinfo", side_effect=owned_dns):
+            state = create_http_session(self.engagement_id, "Domain boundary", base, scope_hosts=["allowed.test", "sub.allowed.test"])
+            sid = state["session_id"]
+            repeat_http_request(self.engagement_id, sid, "GET", "/set-domain-cookies")
+            result = repeat_http_request(self.engagement_id, sid, "GET", base.replace("allowed.test", "sub.allowed.test") + "/echo")
+            cookies = json.loads(result["response"]["body"])["cookie"]
+            self.assertNotIn("hostsecret", cookies)
+            self.assertIn("domainsecret=synthetic", cookies)
+
+    def test_server_deleted_cookie_does_not_reappear_after_reloading_session(self):
+        state = create_http_session(self.engagement_id, "Deleted cookie", self.base_url)
+        sid = state["session_id"]
+        repeat_http_request(self.engagement_id, sid, "GET", "/set-restricted-cookies")
+        repeat_http_request(self.engagement_id, sid, "GET", "/delete-cookie")
+        result = repeat_http_request(self.engagement_id, sid, "GET", "/echo")
+        self.assertNotIn("hostsecret", json.loads(result["response"]["body"])["cookie"])
+        self.assertNotIn("hostsecret", get_http_session(self.engagement_id, sid)["cookies"])
 
 
 if __name__ == "__main__":

@@ -156,7 +156,7 @@ def _base_error_codes(scope: Scope, requires_engagement: bool, kind: str) -> tup
     if scope is not Scope.NONE:
         codes.add("scope_denied")
     if kind == "executable":
-        codes.update({"integration_unavailable", "child_failed", "timed_out", "limit_exceeded"})
+        codes.update({"integration_unavailable", "child_failed", "timed_out", "limit_exceeded", "offline_blocked"})
     return tuple(sorted(codes))
 
 
@@ -755,6 +755,8 @@ _NATIVE: tuple[ToolContract, ...] = (
         idempotent=False,
         target=True,
         errors=[
+            "not_found",
+            "execution_failed",
             "authorization_required",
             "authorization_invalid",
             "approval_invalid",
@@ -765,7 +767,7 @@ _NATIVE: tuple[ToolContract, ...] = (
         ],
         destructive=True,
     ),
-    _native("oc_poc_evidence", "poc_chain", Shape.INSPECT, [FILESYSTEM], Scope.ENGAGEMENT, engagement=True, target=True, errors=["not_found"]),
+    _native("oc_poc_evidence", "poc_chain", Shape.INSPECT, [FILESYSTEM], Scope.ENGAGEMENT, engagement=True, target=True, errors=["not_found", "execution_failed"]),
     _native(
         "oc_result_get",
         "blue_team",

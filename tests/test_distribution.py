@@ -129,7 +129,8 @@ class DistributionComplianceTests(unittest.TestCase):
 
     def test_mcp_dependency_uses_the_verified_2_x_api(self) -> None:
         self.assertIn('"mcp>=2.3,<3"', PYPROJECT)
-        self.assertIn('"mcp>=2.3,<3"', DOCKERFILE)
+        self.assertIn('"mcp==2.3.0"', DOCKERFILE)
+        self.assertNotIn('"mcp>=2.3,<3"', DOCKERFILE)
 
     def test_python_and_container_playwright_versions_agree(self) -> None:
         import tomllib

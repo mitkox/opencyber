@@ -137,6 +137,19 @@ It is not an egress firewall, a DNS policy, an authorization service, or a sandb
 
 `OPENCYBER_OFFLINE_ALLOW_NETWORK_TOOLS=1` overrides only the five executable refusals; it does not re-enable HIBP or NVD. Native network tools still open sockets in offline mode. A real airgap must remove routing; see [AIRGAP.md](AIRGAP.md).
 
+## HTTP session cookies
+
+HTTP workbench cookies retain their host/domain, path, Secure and expiry
+restrictions across calls. The public flat `cookies` field is a compatibility
+view; the internal cookie jar determines which cookies may be sent. Explicit
+cookie updates create base-host-only cookies and replace the previous jar.
+Cookie values configured on an HTTPS base require HTTPS.
+
+Older session records stored only cookie names and values. Source 0.5.1 clears
+those legacy cookies on first use because their original restrictions are lost;
+re-authenticate or explicitly supply new cookies. Session and request headers
+remain operator-supplied data and must be scoped by the operator.
+
 ## Evidence, audit, and redaction
 
 Every engagement has an append-only audit log at `<engagement>/.opencyber/audit/events.jsonl`. Each record contains `seq`, `prev_hash`, and a SHA-256 `hash` over its canonical contents. `oc_audit_verify` recomputes the chain and reports the first removed, reordered, or edited record.

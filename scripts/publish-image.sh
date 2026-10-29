@@ -2,7 +2,7 @@
 set -euo pipefail
 
 image_repository=${1:-ghcr.io/mitkox-dev/opencyber}
-version=${2:-0.5.0}
+version=${2:-0.5.1}
 
 declared_version="$(python3 scripts/check-version-consistency.py --print)"
 if [[ "$version" != "$declared_version" ]]; then

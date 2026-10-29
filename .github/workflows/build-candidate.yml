@@ -129,6 +129,8 @@ jobs:
         rm -rf "$RUNNER_TEMP/airgap"
     - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25
       name: Scan local candidate before upload
+      env:
+        TRIVY_DETECTION_PRIORITY: comprehensive
       with:
         image-ref: opencyber:candidate
         severity: HIGH,CRITICAL

@@ -239,6 +239,34 @@ def archive_tree(source: Path, target: Path) -> None:
         archive.add(source, arcname=source.name, filter=lambda item: None if ".git" in Path(item.name).parts else item)
 
 
+def archive_build_context(source: Path, target: Path) -> None:
+    """Capture reviewed build inputs, excluding local credentials and reports."""
+    directories = {"compliance", "docs", "integrations", "packaging", "scripts", "src"}
+    files = {".dockerignore", ".editorconfig", ".gitignore", "AGENTS.md", "CHANGELOG.md",
+             "CODE_OF_CONDUCT.md", "CONTRIBUTING.md", "Dockerfile", "LICENSE", "README.md",
+             "SECURITY.md", "SOURCE_OFFER.md", "SUPPORT.md", "THIRD_PARTY_NOTICES.md", "pyproject.toml", "install.sh"}
+    private = {".git", ".ssh", ".aws", ".azure", ".gnupg", ".kube", ".config", ".codex",
+               ".claude", ".agents", ".npmrc", ".netrc", ".pypirc", ".git-credentials",
+               "engagements", "workspace", "workspaces", "release-evidence", "__pycache__"}
+
+    def reviewed(item: tarfile.TarInfo) -> tarfile.TarInfo | None:
+        parts = Path(item.name).parts[1:]
+        if not parts:
+            return item
+        if parts[0] not in directories and not (len(parts) == 1 and parts[0] in files):
+            return None
+        if any(part in private or part == ".env" or part.startswith(".env.") or part.endswith((".pem", ".key")) for part in parts):
+            return None
+        if parts[:2] == ("docs", "verification"):
+            return None
+        if not (item.isfile() or item.isdir()):
+            raise ValueError(f"build context contains a link or special file: {item.name}")
+        return item
+
+    with tarfile.open(target, "w:gz") as archive:
+        archive.add(source, arcname=source.name, filter=reviewed)
+
+
 def capture_builds(output: Path, inputs: Path) -> list[dict]:
     packages = []
     for ecosystem in ("go", "rust", "hashpump"):
@@ -269,7 +297,7 @@ def capture_builds(output: Path, inputs: Path) -> list[dict]:
                      "scripts/build-go-tools.sh", "compliance/patches/go/yq/go.mod"):
         if not (context / required).is_file():
             raise ValueError(f"required first-party Docker build input missing: {required}")
-    archive_tree(context, destination / "build-context.tar.gz")
+    archive_build_context(context, destination / "build-context.tar.gz")
     for name, source in (("opencyber", Path("/opt/opencyber")), *DIRECT_SOURCE_TREES.items()):
         target = destination / (name + ".tar.gz")
         if not source.is_dir():

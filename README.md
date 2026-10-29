@@ -7,6 +7,10 @@ A container-native red and blue team security MCP toolkit for agent runtimes.</p
 > hardware and production acceptance remain open. Public publication and
 > broader distribution require separate approval.
 
+Repository source is preparing `0.5.1` with contract and security fixes. The
+published `v0.5.0-private-beta.1` preview remains unchanged and does not include
+those fixes. A new image has not been cleared for sharing.
+
 **Beta testers: start with the [beta guide](docs/BETA_TESTING.md).**
 External testers receive Read access to `mitkox-dev/opencyber`; maintainers
 manage invitations using the [beta access guide](docs/BETA_ACCESS.md). The beta

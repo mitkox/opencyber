@@ -5,7 +5,7 @@
 #
 set -Eeuo pipefail
 
-readonly DEFAULT_IMAGE="opencyber:0.5.0"
+readonly DEFAULT_IMAGE="opencyber:0.5.1"
 readonly DEFAULT_OUTPUT="opencyber-airgap"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR

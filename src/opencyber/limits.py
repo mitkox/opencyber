@@ -233,6 +233,18 @@ _LIMITS: tuple[Limit, ...] = (
         does_not_raise="The size of the files being exported.",
     ),
     Limit(
+        id="http.response_max_bytes",
+        unit="bytes",
+        description="Decompressed response body bytes retained by one native HTTP request, including redirect responses.",
+        default=262144,
+        minimum=None,
+        maximum=None,
+        source=LimitSource.FIXED,
+        applies_to=("oc_http_request",),
+        recovery="Request a smaller resource or use server-supported Range requests to retrieve specific bytes.",
+        does_not_raise="HTTP headers, other HTTP tools, or the envelope evidence ceiling.",
+    ),
+    Limit(
         id="http.timeout",
         unit="seconds",
         description="Deadline for one native HTTP request.",

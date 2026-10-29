@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timezone
+from http.cookiejar import Cookie
 import json
 from pathlib import Path
 import re
@@ -18,6 +19,7 @@ from .policy import enforce_url_scope
 
 
 HTTP_SESSION_PATTERN = re.compile(r"http_\d{8}_[0-9a-f]{32}")
+COOKIE_ORIGIN_ATTRIBUTE = "opencyber_origin_host"
 
 
 def _now() -> str:
@@ -66,6 +68,54 @@ def _public_state(state: dict[str, Any]) -> dict[str, Any]:
     return {key: value for key, value in state.items() if not key.startswith("_")}
 
 
+def _restore_cookies(state: dict[str, Any]) -> Any:
+    from requests.cookies import RequestsCookieJar
+
+    jar = RequestsCookieJar()
+    # Old flat records have lost their restrictions. Re-authenticate instead
+    # of guessing their original domain, Path, Secure and expiration values.
+    for record in state.get("_cookie_jar", []):
+        cookie = Cookie(**record)
+        if cookie.domain_specified or cookie.has_nonstandard_attr(COOKIE_ORIGIN_ATTRIBUTE):
+            jar.set_cookie(cookie)
+    jar.clear_expired_cookies()
+    return jar
+
+
+def _cookie_records(jar: Any) -> list[dict[str, Any]]:
+    records = []
+    for cookie in jar:
+        record = vars(cookie).copy()
+        record["rest"] = record.pop("_rest")
+        records.append(record)
+    return records
+
+
+def _origin_host(url: str) -> str:
+    return (urlparse(url).hostname or "").encode("idna").decode("ascii").lower()
+
+
+def _cookie_host(url: str) -> str:
+    host = _origin_host(url)
+    if ":" in host:
+        host = f"[{host}]"
+    # Match http.cookiejar's effective host for single-label names and IPv6.
+    return host if "." in host else host + ".local"
+
+
+def _cookies_for_host(jar: Any, url: str) -> Any:
+    from requests.cookies import RequestsCookieJar
+
+    origin_host = _origin_host(url)
+    selected = RequestsCookieJar()
+    for cookie in jar:
+        # Requests merges jars into a fresh, liberal CookiePolicy. Filter
+        # host-only cookies first so subdomains cannot receive them either.
+        if cookie.domain_specified or cookie.get_nonstandard_attr(COOKIE_ORIGIN_ATTRIBUTE) == origin_host:
+            selected.set_cookie(cookie)
+    return selected
+
+
 def create_http_session(
     engagement_id: str,
     name: str,
@@ -96,6 +146,7 @@ def create_http_session(
         "include_subdomains": include_subdomains,
         "default_headers": dict(default_headers or {}),
         "cookies": {},
+        "_cookie_jar": [],
         "rules": [],
         "verify_tls": verify_tls,
         "follow_redirects": follow_redirects,
@@ -156,6 +207,16 @@ def update_http_session(
         state["default_headers"] = dict(default_headers)
     if cookies is not None:
         state["cookies"] = dict(cookies)
+        from requests.cookies import RequestsCookieJar, create_cookie
+
+        jar = RequestsCookieJar()
+        domain = _cookie_host(state["base_url"])
+        for name, value in cookies.items():
+            cookie = create_cookie(name, value, domain=domain, secure=urlparse(state["base_url"]).scheme == "https")
+            cookie.domain_specified = False
+            cookie.set_nonstandard_attr(COOKIE_ORIGIN_ATTRIBUTE, _origin_host(state["base_url"]))
+            jar.set_cookie(cookie)
+        state["_cookie_jar"] = _cookie_records(jar)
     if rules is not None:
         for rule in rules:
             if rule.get("location") not in {"url", "header", "body"}:
@@ -230,12 +291,14 @@ def repeat_http_request(
         raise ValueError(f"request is outside declared HTTP session scope: {absolute_url}")
     started = time.monotonic()
     client = requests.Session()
-    client.cookies.update(state.get("cookies", {}))
+    cookie_jar = _restore_cookies(state)
     current_method = method.upper()
     current_url = absolute_url
     current_body = body
     redirect_chain = []
+    suppress_cookies = False
     while True:
+        client.cookies = requests.cookies.RequestsCookieJar() if suppress_cookies else _cookies_for_host(cookie_jar, current_url)
         response = client.request(
             current_method,
             current_url,
@@ -245,6 +308,14 @@ def repeat_http_request(
             allow_redirects=False,
             timeout=request_timeout,
         )
+        # Extract into the complete jar too, so deletion cookies apply even
+        # when credentials were suppressed on a redirected request.
+        requests.cookies.extract_cookies_to_jar(cookie_jar, response.request, response.raw)
+        for cookie in response.cookies:
+            if not cookie.domain_specified:
+                cookie.set_nonstandard_attr(COOKIE_ORIGIN_ATTRIBUTE, _origin_host(response.url))
+            cookie_jar.set_cookie(cookie)
+        cookie_jar.clear_expired_cookies()
         location = response.headers.get("location")
         if not state["follow_redirects"] or response.status_code not in {301, 302, 303, 307, 308} or not location:
             break
@@ -252,15 +323,13 @@ def repeat_http_request(
         enforce_url_scope(engagement_id, next_url, tool="oc_http_repeater")
         if not _is_in_scope(state, next_url):
             raise ValueError(f"redirect leaves declared HTTP session scope: {next_url}")
-        if client.should_strip_auth(current_url, next_url):
+        suppress_cookies = client.should_strip_auth(current_url, next_url)
+        if suppress_cookies:
             # Manual redirects must preserve requests' credential boundary.
-            # Session cookies supplied as a plain mapping have no host domain,
-            # so they otherwise follow every host in a multi-host scope.
             merged_headers = {
                 name: value for name, value in merged_headers.items()
                 if name.lower() not in {"authorization", "proxy-authorization", "cookie"}
             }
-            client.cookies.clear()
         redirect_chain.append({"status": response.status_code, "url": response.url, "location": next_url})
         if response.status_code == 303 or (response.status_code in {301, 302} and current_method == "POST"):
             current_method = "GET"
@@ -268,7 +337,8 @@ def repeat_http_request(
         current_url = next_url
         if len(redirect_chain) >= 30:
             raise ValueError("HTTP redirect chain exceeded 30 in-scope redirects")
-    state["cookies"].update(client.cookies.get_dict())
+    state["cookies"] = cookie_jar.get_dict()
+    state["_cookie_jar"] = _cookie_records(cookie_jar)
     state["updated_at"] = _now()
     _write_state(engagement_id, state)
     entry: dict[str, Any] = {

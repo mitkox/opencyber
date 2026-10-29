@@ -16,6 +16,8 @@ import os
 from pathlib import Path
 from typing import Any, Callable, Iterable
 
+from .errors import OcError
+
 
 TRUTHY = {"1", "true", "yes", "on"}
 OFFLINE_ENV = "OPENCYBER_OFFLINE"
@@ -190,10 +192,12 @@ def local_cve_db() -> Path:
 def require_online(feature: str) -> None:
     """Fail fast and clearly when an internet-only feature is used airgapped."""
     if offline_enabled():
-        raise ValueError(
+        raise OcError(
+            "offline_blocked",
             f"{feature} requires internet access, but {OFFLINE_ENV}=1 is set. "
             "Use the local exploit database, nuclei templates, or a locally built "
-            f"CVE index ({CVE_DB_ENV}) instead."
+            f"CVE index ({CVE_DB_ENV}) instead.",
+            details={"feature": feature},
         )
 
 

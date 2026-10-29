@@ -28,6 +28,7 @@ from typing import Any, Iterable, Mapping
 import uuid
 
 from .engagements import resolve_engagement_path
+from .errors import OcError
 
 
 SCHEMA_VERSION = 1
@@ -108,6 +109,44 @@ SCRUBBED_ENVIRONMENT_PREFIXES = ("OPENCYBER_APPROVAL_KEY",)
 REDACTED = "<redacted>"
 
 
+# PoC reasons predate the shared error contract. Map them onto registered codes
+# once, in the shared schema, so every refusal carries both the historical payload and the
+# structured error block. Unknown reasons fail closed as invalid_argument.
+_POC_ERROR_CODES: dict[str, str] = {
+    "approval_invalid": "approval_invalid",
+    "artifact_invalid": "invalid_argument",
+    "authorization_expired": "authorization_invalid",
+    "authorization_invalid": "authorization_invalid",
+    "authorization_not_yet_valid": "authorization_invalid",
+    "authorization_required": "authorization_required",
+    "chain_invalid": "conflict",
+    "invalid_capability": "invalid_argument",
+    "invalid_chain_name": "invalid_argument",
+    "invalid_cve": "invalid_argument",
+    "invalid_expiry": "invalid_argument",
+    "invalid_id": "invalid_argument",
+    "invalid_limit": "invalid_argument",
+    "invalid_request": "invalid_argument",
+    "invalid_source": "invalid_argument",
+    "invalid_spec": "invalid_argument",
+    "invalid_step": "invalid_argument",
+    "invalid_steps": "invalid_argument",
+    "invalid_timestamp": "invalid_argument",
+    "lint_failed": "invalid_argument",
+    "execution_error": "execution_failed",
+    "execution_unavailable": "capability_unavailable",
+    "run_failed": "execution_failed",
+    "run_invalid": "conflict",
+    "scope_violation": "scope_denied",
+    "spec_invalid": "invalid_argument",
+    "technique_not_authorized": "authorization_invalid",
+    "unknown_engagement": "engagement_not_found",
+    "unknown_run": "not_found",
+    "unknown_spec": "not_found",
+}
+
+
+
 class PocError(Exception):
     """A structured, user-facing refusal from the PoC chain subsystem."""
 
@@ -116,6 +155,13 @@ class PocError(Exception):
         self.reason = reason
         self.message = message
         self.details = details
+
+    def to_error(self) -> OcError:
+        return OcError(
+            _POC_ERROR_CODES.get(self.reason, "invalid_argument"),
+            self.message,
+            details=dict(self.details),
+        )
 
     def as_dict(self) -> dict[str, Any]:
         return {

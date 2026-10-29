@@ -11,17 +11,56 @@ value wins over the environment. Both are capped by `MAX_TIMEOUT_SECONDS`.
 
 from __future__ import annotations
 
+from contextlib import contextmanager
+from collections.abc import Iterator
 import os
 import math
 from typing import Any, Callable
 from urllib.parse import urljoin
 
 from .policy import enforce_url_scope
+from .errors import OcError
+from .limits import limit_for
 
 
 DEFAULT_TIMEOUT_SECONDS = 30.0
 MAX_TIMEOUT_SECONDS = 300.0
 ENV_VAR = "OPENCYBER_HTTP_TIMEOUT"
+MAX_RESPONSE_BYTES = int(limit_for("http.response_max_bytes").default)
+
+
+def bounded_response(response: Any, **kwargs: Any) -> Any:
+    """Bound decoded bodies before requests automatically drains redirects."""
+    captured = bytearray()
+    try:
+        for chunk in response.iter_content(chunk_size=65536):
+            captured.extend(chunk[:MAX_RESPONSE_BYTES + 1 - len(captured)])
+            if len(captured) > MAX_RESPONSE_BYTES:
+                break
+    finally:
+        response.close()
+    response._opencyber_body_truncated = len(captured) > MAX_RESPONSE_BYTES
+    # requests' redirect machinery reads .content even with stream=True.
+    # Supply only the bounded prefix so it cannot drain an oversized body.
+    response._content = bytes(captured[:MAX_RESPONSE_BYTES])
+    response._content_consumed = True
+    return response
+
+
+@contextmanager
+def request_errors() -> Iterator[None]:
+    """Translate requests failures at the HTTP boundary, including streamed reads."""
+    import requests
+    from urllib3.exceptions import ReadTimeoutError
+
+    try:
+        yield
+    except requests.exceptions.Timeout as exc:
+        raise OcError("timed_out", str(exc)) from exc
+    except requests.exceptions.ConnectionError as exc:
+        # iter_content wraps urllib3's read timeout in ConnectionError.
+        code = "timed_out" if any(isinstance(arg, ReadTimeoutError) for arg in exc.args) else "connection_failed"
+        raise OcError(code, str(exc)) from exc
 
 
 def resolve_timeout(value: float | None = None) -> float:

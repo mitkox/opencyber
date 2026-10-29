@@ -13,7 +13,9 @@ from urllib.parse import quote, quote_plus
 from . import __version__
 from .assets import local_cve_db, require_online
 from .engagements import resolve_engagement_path
-from .http_client import redirect_scope_hooks, resolve_timeout
+from .http_client import bounded_response, redirect_scope_hooks, request_errors, resolve_timeout
+from .envelope import coverage
+from .limits import facts
 from .indicators import extract_indicators as _extract_indicators
 from .policy import enforce_url_scope
 
@@ -76,23 +78,32 @@ def http_request(
     scope = enforce_url_scope(engagement_id, url, tool="oc_http_request")
     import requests
 
-    response = requests.request(
-        method=method.upper(),
-        url=url,
-        headers=headers or {},
-        data=body,
-        allow_redirects=follow_redirects,
-        timeout=resolve_timeout(timeout),
-        hooks=redirect_scope_hooks(engagement_id, tool="oc_http_request", follow_redirects=follow_redirects),
-    )
-    return {
-        "status": response.status_code,
-        "url": response.url,
-        "headers": dict(response.headers),
-        "body": response.text,
-        "scope_enforced": bool(scope["enforced"]),
-        "requested_url": url,
-    }
+    hooks = redirect_scope_hooks(engagement_id, tool="oc_http_request", follow_redirects=follow_redirects)
+    hooks.setdefault("response", []).append(bounded_response)
+    with request_errors():
+        response = requests.request(
+            method=method.upper(),
+            url=url,
+            headers=headers or {},
+            data=body,
+            allow_redirects=follow_redirects,
+            timeout=resolve_timeout(timeout),
+            hooks=hooks,
+            stream=True,
+        )
+        truncated = getattr(response, "_opencyber_body_truncated", False) is True
+        return {
+            "status": response.status_code,
+            "url": response.url,
+            "headers": dict(response.headers),
+            "body": response.text,
+            "scope_enforced": bool(scope["enforced"]),
+            "requested_url": url,
+            "truncated": truncated,
+            "coverage": coverage("partial" if truncated else "complete", exhausted=not truncated),
+            "limitations": ["The response body exceeded http.response_max_bytes; only its prefix is returned."] if truncated else [],
+            **({"limit": facts("http.response_max_bytes")} if truncated else {}),
+        }
 
 
 def graphql_request(

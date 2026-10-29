@@ -1,5 +1,22 @@
 # Changelog
 
+## 0.5.1 - next beta source, unreleased
+
+- Preserve cookie domain, host-only, path, Secure, expiry and other attributes
+  across HTTP workbench calls. Existing sessions with old flat cookie records
+  must re-authenticate; their lost restrictions cannot be reconstructed safely.
+  Explicit cookie updates remain supported and bind cookies to the base host.
+- Restrict corresponding-source capture to build inputs and exclude local
+  credentials and historical private verification records from Docker context.
+- Correct PoC refusal envelopes and policy/HTTP error codes; preserve consumed
+  approvals and run identity in direct calls and stored-run evidence.
+- Cap native HTTP response bodies at 256 KiB after decompression, including
+  redirects, with explicit truncation, partial coverage and a named limit.
+- Pin the image MCP SDK to 2.3.0.
+- The `v0.5.0-private-beta.1` release remains unchanged and does not contain
+  these fixes. New binary sharing remains subject to vulnerability, license,
+  source and native acceptance gates.
+
 ## 0.5.0 — private pre-production beta
 
 OpenCyber Harness 0.5.0 is preparing for its first open-source prerelease under

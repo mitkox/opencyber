@@ -27,6 +27,26 @@ collector = load_script("capture_corresponding_source")
 
 
 class SourceComplianceTests(unittest.TestCase):
+    def test_build_context_archive_excludes_local_secrets_and_private_reports(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root = Path(directory)
+            source = root / "context"
+            allowed = ("Dockerfile", "pyproject.toml", "src/opencyber/__init__.py", "docs/SECURITY_MODEL.md")
+            private = (".ssh/id_ed25519", ".npmrc", ".git-credentials", "notes-private.txt",
+                       "docs/verification/local-private.json", "src/.env", "scripts/.netrc")
+            for name in (*allowed, *private):
+                path = source / name
+                path.parent.mkdir(parents=True, exist_ok=True)
+                path.write_text("synthetic fixture")
+            target = root / "build-context.tar.gz"
+            collector.archive_build_context(source, target)
+            with tarfile.open(target) as archive:
+                names = set(archive.getnames())
+            for name in allowed:
+                self.assertIn("context/" + name, names)
+            for name in private:
+                self.assertNotIn("context/" + name, names)
+
     def test_forward_hardlinks_do_not_preload_unvalidated_tar_headers(self):
         with tempfile.TemporaryDirectory() as directory:
             path = Path(directory) / "forward-link.tar.gz"

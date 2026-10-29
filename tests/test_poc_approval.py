@@ -1096,6 +1096,8 @@ class RunGateContractTests(_WorkspaceTestCase):
         )
         self.assertEqual(result["status"], "refused")
         self.assertEqual(result["reason"], "authorization_required")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "authorization_required")
         self.assertEqual(result["coverage"]["status"], "unknown")
         self.assertTrue(any("did not run" in item for item in result["limitations"]))
 
@@ -1113,7 +1115,47 @@ class RunGateContractTests(_WorkspaceTestCase):
         self.assertEqual(envelope["reason"], "authorization_required")
         self.assertEqual(envelope["coverage"]["status"], "unknown")
         self.assertTrue(envelope["limitations"])
-        self.assertNotIn("error", envelope)
+        self.assertFalse(envelope["ok"])
+        self.assertEqual(envelope["error"]["code"], "authorization_required")
+
+    def test_live_run_unknown_spec_is_a_typed_refusal(self):
+        from opencyber.server import mcp
+
+        result = asyncio.run(mcp.call_tool("oc_poc_run", {
+            "engagement_id": self.engagement_id,
+            "chain_id": new_record_id("chain"),
+            "spec_id": new_record_id("spec"),
+            "approval_id": new_record_id("apr"),
+        })).structured_content
+        self.assertEqual(result["reason"], "unknown_spec")
+        self.assertFalse(result["ok"])
+        self.assertEqual(result["error"]["code"], "not_found")
+        from opencyber.contracts import contract_for
+        self.assertIn(result["error"]["code"], contract_for("oc_poc_run").error_codes)
+        self.assertEqual(result["coverage"]["status"], "unknown")
+        self.assertIsNone(result["run_id"])
+
+    def test_refusals_preserve_consumed_approval_and_run_identity(self):
+        from opencyber import poc
+        from opencyber.poc_schema import PocError
+
+        for reason, code in (
+            ("approval_invalid", "approval_invalid"),
+            ("scope_violation", "scope_denied"),
+            ("execution_error", "execution_failed"),
+            ("execution_unavailable", "capability_unavailable"),
+            ("run_failed", "execution_failed"),
+        ):
+            with self.subTest(reason=reason):
+                run_id = new_record_id("run")
+                result = poc._refused_result(PocError(
+                    reason, "synthetic refusal", run_id=run_id, approval_consumed=True,
+                ))
+                self.assertFalse(result["ok"])
+                self.assertEqual(result["error"]["code"], code)
+                self.assertEqual(result["run_id"], run_id)
+                self.assertTrue(result["approval_consumed"])
+                self.assertEqual(result["coverage"]["status"], "partial")
 
 
 if __name__ == "__main__":

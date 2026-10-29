@@ -44,6 +44,7 @@ python scripts/generate-limit-docs.py
 | `envelope.evidence_max_bytes` | bytes | 4194304 | fixed | fixed | * |
 | `evidence.max_files` | files | 10000 | 1 to unbounded | fixed | oc_evidence_export |
 | `evidence.max_manifest_bytes` | bytes | 8388608 | fixed | fixed | oc_evidence_export, oc_evidence_verify |
+| `http.response_max_bytes` | bytes | 262144 | fixed | fixed | oc_http_request |
 | `http.timeout` | seconds | 30 | 0 to 300 | environment (`OPENCYBER_HTTP_TIMEOUT`) | oc_http_request, oc_graphql_request, oc_openapi_inspect, oc_hibp_password_check, oc_cve_lookup |
 | `poc.max_bytes` | bytes | 1048576 | fixed | fixed | oc_poc_run |
 | `poc.max_requests` | requests | 20 | 1 to 20 | environment (`OPENCYBER_POC_MAX_REQUESTS`) | oc_poc_run |
@@ -66,6 +67,7 @@ python scripts/generate-limit-docs.py
 | `envelope.evidence_max_bytes` | Result size above which no evidence digest is computed. | Request a smaller page or inspect the persisted artifact instead. | The result itself; it is still returned. |
 | `evidence.max_files` | Files selected into one evidence bundle. | Export in several bundles and retain each archive digest. | Files present in the engagement workspace. |
 | `evidence.max_manifest_bytes` | Manifest size for one evidence bundle. | Export fewer paths per bundle. | The size of the files being exported. |
+| `http.response_max_bytes` | Decompressed response body bytes retained by one native HTTP request, including redirect responses. | Request a smaller resource or use server-supported Range requests to retrieve specific bytes. | HTTP headers, other HTTP tools, or the envelope evidence ceiling. |
 | `http.timeout` | Deadline for one native HTTP request. | Pass a per-call timeout, or raise OPENCYBER_HTTP_TIMEOUT up to 300 seconds. | The server's own deadline for executable-backed tools. |
 | `poc.max_bytes` | Response bytes one PoC run may retain. | Narrow the assertions or the request set. | The target's response size. |
 | `poc.max_requests` | Requests one approved PoC run may send. | Lower the spec limit; the environment cannot raise the hard ceiling. | The evidence-to-claim requirement of the engagement. |

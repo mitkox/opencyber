@@ -334,5 +334,8 @@ def enforce_scope(
     """Raise when scope enforcement is enabled and the call is out of scope."""
     decision = enforcement_decision(engagement_id, executable, arguments)
     if decision["enforced"] and not decision["allowed"]:
-        raise ValueError(f"scope enforcement refused {executable}: {decision['reason']}")
+        raise OcError(
+            "scope_denied", f"scope enforcement refused {executable}: {decision['reason']}",
+            details={"executable": executable, "denied": decision["denied"]},
+        )
     return decision

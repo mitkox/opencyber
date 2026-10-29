@@ -2,10 +2,10 @@
 
 # Tool reference
 
-OpenCyber Harness 0.5.0 exposes **256 MCP tools**:
+OpenCyber Harness 0.5.1 exposes **256 MCP tools**:
 174 executable-backed tools and 82 native tools.
 
-Contract digest: `7e13189b44b4f331b1f54e570c0ab26d6eec4c73c21126720291239f1ebfb1e9`. A running server reports the digest it
+Contract digest: `b559a643e058481ee24e00a71e77983ab8d324115f82f064fa6de30dfd96700d`. A running server reports the digest it
 actually advertises with `oc_catalog`, so a stale container or a modified
 registration is detectable. Pass `expected_catalog_digest` to `oc_catalog`
 to pin the contract a client was built against.
@@ -382,7 +382,7 @@ documented helper programs.
 | `oc_workspace_write` | manage | `filesystem`, `mutation` | engagement | Write or append a UTF-8 text file inside the OpenCyber engagement workspace. |
 | `oc_workspace_delete` | manage | `filesystem`, `mutation` | engagement | Delete one file or empty directory inside the OpenCyber engagement workspace. |
 | `oc_finding_report` | manage | `filesystem`, `mutation` | engagement | Write a structured Markdown security finding inside the engagement workspace. Pass evidence_ids to cite retained tool results by their evidence digest; each is resolved and rendered with its digest and retention state. |
-| `oc_http_request` | observe | `mutation`, `network` | url | Send a complete HTTP request and return the full response. When OPENCYBER_ENFORCE_SCOPE is on, engagement_id is required and the requested host must be in the engagement targets. |
+| `oc_http_request` | observe | `mutation`, `network` | url | Send an HTTP request and return its status, headers and up to 256 KiB of decompressed response body. Larger bodies report truncation and partial coverage. When OPENCYBER_ENFORCE_SCOPE is on, engagement_id is required and the requested host must be in the engagement targets. |
 | `oc_graphql_request` | observe | `mutation`, `network` | url | Send a GraphQL query and return the full server response. When OPENCYBER_ENFORCE_SCOPE is on, engagement_id is required and the requested host must be in the engagement targets. |
 | `oc_jwt_decode` | inspect | `secret` | none | Decode JWT header and payload fields without claiming signature verification. |
 | `oc_openapi_inspect` | inspect | `filesystem`, `network` | url | Extract operations from a JSON OpenAPI document at a URL or engagement-relative path. Prefer this over grep, jq, or Python when the task is OpenAPI operation inventory. |

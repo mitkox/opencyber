@@ -369,7 +369,7 @@ async def oc_finding_report(engagement_id: str, path: str, title: str, target: s
     return await asyncio.to_thread(write_finding_report, engagement_id, path, title, target, severity, summary, evidence, remediation, evidence_ids)
 
 
-@mcp.tool(name="oc_http_request", description="Send a complete HTTP request and return the full response. When OPENCYBER_ENFORCE_SCOPE is on, engagement_id is required and the requested host must be in the engagement targets.", structured_output=True)
+@mcp.tool(name="oc_http_request", description="Send an HTTP request and return its status, headers and up to 256 KiB of decompressed response body. Larger bodies report truncation and partial coverage. When OPENCYBER_ENFORCE_SCOPE is on, engagement_id is required and the requested host must be in the engagement targets.", structured_output=True)
 async def oc_http_request(method: str, url: str, headers: dict[str, str] | None = None, body: str | None = None, follow_redirects: bool = True, timeout: float | None = None, engagement_id: str | None = None) -> dict[str, Any]:
     return await asyncio.to_thread(http_request, method, url, headers, body, follow_redirects, timeout, engagement_id)
 
@@ -732,47 +732,11 @@ async def oc_offline_status() -> dict[str, Any]:
 # ---------------------------------------------------------------------------
 
 
-# PoC reasons predate the shared error contract. Map them onto registered codes
-# once, here, so every refusal carries both the historical payload and the
-# structured error block. Unknown reasons fail closed as invalid_argument.
-_POC_ERROR_CODES: dict[str, str] = {
-    "approval_invalid": "approval_invalid",
-    "artifact_invalid": "invalid_argument",
-    "authorization_expired": "authorization_invalid",
-    "authorization_invalid": "authorization_invalid",
-    "authorization_not_yet_valid": "authorization_invalid",
-    "authorization_required": "authorization_required",
-    "chain_invalid": "conflict",
-    "invalid_capability": "invalid_argument",
-    "invalid_chain_name": "invalid_argument",
-    "invalid_cve": "invalid_argument",
-    "invalid_expiry": "invalid_argument",
-    "invalid_id": "invalid_argument",
-    "invalid_limit": "invalid_argument",
-    "invalid_request": "invalid_argument",
-    "invalid_source": "invalid_argument",
-    "invalid_spec": "invalid_argument",
-    "invalid_step": "invalid_argument",
-    "invalid_steps": "invalid_argument",
-    "invalid_timestamp": "invalid_argument",
-    "lint_failed": "invalid_argument",
-    "run_failed": "execution_failed",
-    "run_invalid": "conflict",
-    "scope_violation": "scope_denied",
-    "spec_invalid": "invalid_argument",
-    "technique_not_authorized": "authorization_invalid",
-    "unknown_engagement": "engagement_not_found",
-    "unknown_run": "not_found",
-    "unknown_spec": "not_found",
-}
-
-
 def _poc_refusal(exc: PocError) -> dict[str, Any]:
     """Return a structured refusal instead of an MCP transport error."""
     payload = exc.as_dict()
-    code = _POC_ERROR_CODES.get(exc.reason, "invalid_argument")
     payload["ok"] = False
-    payload["error"] = OcError(code, exc.message, details=dict(exc.details)).to_dict()
+    payload["error"] = exc.to_error().to_dict()
     payload["coverage"] = envelope_coverage("unknown", exhausted=False)
     payload["limitations"] = [
         "The PoC tool refused before performing target work; status and reason record why."

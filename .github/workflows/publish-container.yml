@@ -5,7 +5,7 @@ name: Publish qualified prerelease
       version:
         description: Qualified prerelease version; dispatch against its annotated tag
         required: true
-        default: 0.5.0
+        default: 0.5.1
         type: string
       candidate_run_id:
         description: Successful build-candidate workflow run ID

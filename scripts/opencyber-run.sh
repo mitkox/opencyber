@@ -5,7 +5,7 @@
 #
 set -Eeuo pipefail
 
-readonly DEFAULT_IMAGE="opencyber:0.5.0"
+readonly DEFAULT_IMAGE="opencyber:0.5.1"
 readonly DEFAULT_NAME="opencyber"
 readonly DEFAULT_VOLUME="opencyber-workspace"
 readonly DEFAULT_WORKSPACE="/workspace"
