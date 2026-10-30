@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
+readonly EXPECTED_VERSION="0.5.1"
 
 [[ $# == 2 ]] || { echo "usage: $0 IMAGE JSON_OUTPUT" >&2; exit 2; }
 image=$1
@@ -40,7 +41,7 @@ if [[ "$status" == 0 ]]; then
   >"$temporary/result.json" 2>"$temporary/stderr" || status=$?
 fi
 
-python3 - "$temporary" "$image" "$output" "$status" <<'PY'
+python3 - "$temporary" "$image" "$output" "$status" "$EXPECTED_VERSION" <<'PY'
 import json
 from pathlib import Path
 import sys
@@ -60,7 +61,7 @@ report["container_stderr"] = stderr[:32768].decode("utf-8", errors="replace")
 report["container_stderr_bytes"] = len(stderr)
 report["container_stderr_limited"] = len(stderr) > 32768
 report["checks"].append({"name": "image_identity", "passed": bool(identity.get("id"))
-                         and identity.get("version") == "0.5.0"})
+                         and identity.get("version") == sys.argv[5]})
 report["checks"].append({"name": "container_execution", "passed": status == 0})
 report["passed"] = bool(report.get("passed")) and all(check["passed"] for check in report["checks"])
 output.parent.mkdir(parents=True, exist_ok=True)

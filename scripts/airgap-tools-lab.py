@@ -25,6 +25,7 @@ import xml.etree.ElementTree as ET
 
 
 STREAM_LIMIT = 32 * 1024
+EXPECTED_VERSION = "0.5.1"
 WORDPRESS_VERSION = "6.8.3"
 REQUIRED_TOOLS = {
     "oc_nmap": "nmap",
@@ -133,6 +134,7 @@ from opencyber.catalog import CATALOG
 from opencyber.catalog_identity import alignment
 from opencyber.server import mcp
 expected = json.loads(__import__('sys').argv[1])
+expected_version = __import__('sys').argv[2]
 specs = {spec.name: spec for spec in CATALOG}
 missing = [name for name, executable in expected.items() if name not in specs
            or not specs[name].required or specs[name].executable != executable]
@@ -141,9 +143,9 @@ live = alignment(mcp._tool_manager._tools)
 report = {'version': __version__, 'missing_required_tools': missing,
           'unavailable_required_tools': unavailable, 'alignment': live}
 print(json.dumps(report))
-raise SystemExit(bool(missing or unavailable or not live['matches'] or __version__ != '0.5.0'))
+raise SystemExit(bool(missing or unavailable or not live['matches'] or __version__ != expected_version))
 """
-    result = command_check("installed_mcp_catalog", [sys.executable, "-c", program, json.dumps(REQUIRED_TOOLS)],
+    result = command_check("installed_mcp_catalog", [sys.executable, "-c", program, json.dumps(REQUIRED_TOOLS), EXPECTED_VERSION],
                            timeout=45)
     try:
         result["catalog"] = json.loads(result["stdout"])

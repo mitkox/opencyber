@@ -23,6 +23,8 @@ ALIASES = [
     (ROOT / "scripts" / "opencyber-run.sh", r'^readonly DEFAULT_IMAGE="opencyber:([^"]+)"$'),
     (ROOT / "scripts" / "opencyber-airgap.sh", r'^readonly DEFAULT_IMAGE="opencyber:([^"]+)"$'),
     (ROOT / "scripts" / "publish-image.sh", r"^version=\$\{2:-(\S+)\}$"),
+    (ROOT / "scripts" / "airgap-tools-lab.py", r'^EXPECTED_VERSION = "([^"]+)"$'),
+    (ROOT / "scripts" / "airgap-tools-image.sh", r'^readonly EXPECTED_VERSION="([^"]+)"$'),
     (ROOT / ".github" / "workflows" / "publish-container.yml", r"^\s+default: (\S+)$"),
 ]
 
