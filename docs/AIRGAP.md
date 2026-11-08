@@ -164,11 +164,16 @@ The export directory contains:
   `scripts/generate-sbom.sh` was run before export.
 
 `export` refuses to overwrite an existing archive unless you pass `--force`.
-`import` verifies the checksum, runs `docker load`, and then runs
-`opencyber-doctor`; a doctor failure aborts with "do not deploy this image".
+`import` requires `release.json`, verifies that the checksum file names the
+selected archive and that exactly one entry is present, then runs `docker load`.
+After loading it compares the loaded image ID and any recorded repo digest with
+`release.json` and aborts on a mismatch. A successful load must then pass the
+strict `opencyber-mcp --self-test` and `opencyber-doctor`; both checks run in
+the importing daemon's store, so use a clean store for a candidate import.
 
-`verify` checks archive integrity and that the archive and checksum file are
-present; a missing `release.json` is a warning, not a failure. It does **not**
+`verify` checks archive integrity, that the archive and checksum file are
+present, and that the checksum file names the selected archive; a missing
+`release.json` is a warning for `verify` but a failure for `import`. It does **not**
 establish provenance: `release.json` is an unsigned manifest, and the SHA-256
 file only proves the archive matches the copy recorded beside it. Anyone who
 can replace both can produce a consistent bundle. Compare the recorded repo

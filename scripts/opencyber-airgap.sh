@@ -22,7 +22,7 @@ Usage:
   scripts/opencyber-airgap.sh import [--input DIR]
 
 Options:
-  --image IMAGE   Image reference to export (default: opencyber:0.5.0).
+  --image IMAGE   Image reference to export (default: opencyber:0.5.1).
   --output DIR    Destination directory for export (default: opencyber-airgap).
   --input DIR     Source directory for verify/import (default: opencyber-airgap).
   --force         Overwrite an existing export archive.
@@ -157,11 +157,18 @@ verify_archive() {
       [[ -n "$recorded_image" ]] && image="$recorded_image"
     fi
   fi
-  [[ -f "$directory/${resolved_archive_name}.sha256" ]] || die "checksum file is missing in $directory"
+  local checksum_file="${resolved_archive_name}.sha256"
+  [[ -f "$directory/${checksum_file}" ]] || die "checksum file is missing in $directory"
   [[ -f "$resolved_archive" ]] || die "archive is missing: $resolved_archive"
+  local checksum_lines listed
+  checksum_lines="$(grep -cve '^[[:space:]]*$' "$directory/${checksum_file}" || true)"
+  [[ "$checksum_lines" == "1" ]] || die "checksum file must contain exactly one entry: ${checksum_file}"
+  listed="$(awk 'NF {print $2; exit}' "$directory/${checksum_file}")"
+  listed="${listed#\*}"
+  [[ "$listed" == "$resolved_archive_name" ]] || die "checksum file names '${listed}', not the selected archive '${resolved_archive_name}'"
   archive_name="$resolved_archive_name"
   archive="$resolved_archive"
-  ( cd "$directory" && sha256sum -c "${resolved_archive_name}.sha256" )
+  ( cd "$directory" && sha256sum -c --strict "${checksum_file}" ) || die "archive checksum does not match"
   [[ -f "$directory/release.json" ]] || printf 'opencyber-airgap: warning: release.json is missing\n' >&2
   printf 'opencyber-airgap: checksum OK for %s\n' "$resolved_archive"
 }
@@ -169,19 +176,30 @@ verify_archive() {
 import_image() {
   require_docker
   verify_archive
-  docker load -i "$archive"
-  printf 'opencyber-airgap: loaded %s\n' "$image"
-  if docker image inspect "$image" >/dev/null 2>&1; then
-    if docker run --rm --entrypoint sh "$image" -c 'command -v opencyber-doctor >/dev/null 2>&1' >/dev/null 2>&1; then
-      if docker run --rm --entrypoint opencyber-doctor "$image" --quiet; then
-        printf 'opencyber-airgap: doctor OK\n'
-      else
-        die "doctor failed after import; do not deploy this image"
-      fi
-    else
-      printf 'opencyber-airgap: warning: image does not expose opencyber-doctor; skipped doctor\n' >&2
-    fi
+  [[ -f "$directory/release.json" ]] || die "release.json is required for import identity checks"
+  local recorded_image recorded_id recorded_digests
+  recorded_image="$(sed -n 's/.*"image"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$directory/release.json" | head -n 1)"
+  recorded_id="$(sed -n 's/.*"image_id"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$directory/release.json" | head -n 1)"
+  recorded_digests="$(sed -n 's/.*"repo_digests"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/p' "$directory/release.json" | head -n 1)"
+  [[ -n "$recorded_image" && -n "$recorded_id" ]] || die "release.json is missing image identity fields"
+  docker load -i "$archive" || die "docker load failed"
+  printf 'opencyber-airgap: loaded %s\n' "$recorded_image"
+  docker image inspect "$recorded_image" >/dev/null 2>&1 || die "loaded image is not inspectable: $recorded_image"
+  local loaded_id loaded_digests
+  loaded_id="$(docker image inspect --format '{{.Id}}' "$recorded_image")"
+  loaded_digests="$(docker image inspect --format '{{join .RepoDigests ","}}' "$recorded_image")"
+  [[ "$loaded_id" == "$recorded_id" ]] || die "loaded image ID does not match release.json; do not deploy this image"
+  if [[ -n "$recorded_digests" ]]; then
+    [[ -n "$loaded_digests" ]] || die "loaded image exposes no repo digest but release.json records one; do not deploy this image"
+    [[ "$loaded_digests" == "$recorded_digests" ]] || die "loaded repo digest does not match release.json; do not deploy this image"
   fi
+  printf 'opencyber-airgap: identity OK (%s)\n' "$loaded_id"
+  docker run --rm --entrypoint opencyber-mcp "$recorded_image" --self-test >/dev/null \
+    || die "strict MCP self-test failed after import; do not deploy this image"
+  printf 'opencyber-airgap: strict MCP self-test OK\n'
+  docker run --rm --entrypoint opencyber-doctor "$recorded_image" --quiet \
+    || die "doctor failed after import; do not deploy this image"
+  printf 'opencyber-airgap: doctor OK\n'
 }
 
 case "$command_name" in

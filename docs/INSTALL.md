@@ -294,6 +294,9 @@ does not replace those gates. See [Release](RELEASE.md) for the maintainer proce
 
 ## Upgrade
 
+Re-run the installer with the new version or digest. The managed container is replaced, but the `opencyber-workspace` volume is never recreated, so engagements and evidence survive the upgrade. To roll back, re-run the installer with the previous version or digest; the workspace is preserved the same way. `--uninstall` keeps the volume unless `--purge-workspace` is also supplied.
+
+
 The private-beta.1 assets remain frozen. Repository documentation updates do
 not update the installed image. For a later preview, use its release-specific
 download, import and upgrade instructions, and back up the workspace first.
