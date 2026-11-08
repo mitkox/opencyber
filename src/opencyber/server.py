@@ -557,8 +557,8 @@ async def oc_browser_close(engagement_id: str, session_id: str) -> dict[str, Any
 
 
 @mcp.tool(name="oc_browser_navigate", description="Navigate a live OpenCyber browser session to a URL and return the resulting status, headers, URL, and title.", structured_output=True)
-async def oc_browser_navigate(engagement_id: str, session_id: str, url: str, wait_until: str = "load") -> dict[str, Any]:
-    return await BROWSER_MANAGER.navigate(engagement_id, session_id, url, wait_until)
+async def oc_browser_navigate(engagement_id: str, session_id: str, url: str, wait_until: str = "load", timeout_ms: int = 30000) -> dict[str, Any]:
+    return await BROWSER_MANAGER.navigate(engagement_id, session_id, url, wait_until, timeout_ms)
 
 
 @mcp.tool(name="oc_browser_snapshot", description="Return the current page text and accessibility-oriented ARIA snapshot, with optional complete HTML.", structured_output=True)
@@ -567,8 +567,8 @@ async def oc_browser_snapshot(engagement_id: str, session_id: str, include_html:
 
 
 @mcp.tool(name="oc_browser_action", description="Perform a selector-based browser action: click, fill, type, clear, press, check, uncheck, select, or hover.", structured_output=True)
-async def oc_browser_action(engagement_id: str, session_id: str, action: str, selector: str, value: str = "") -> dict[str, Any]:
-    return await BROWSER_MANAGER.action(engagement_id, session_id, action, selector, value)
+async def oc_browser_action(engagement_id: str, session_id: str, action: str, selector: str, value: str = "", timeout_ms: int = 30000) -> dict[str, Any]:
+    return await BROWSER_MANAGER.action(engagement_id, session_id, action, selector, value, timeout_ms)
 
 
 @mcp.tool(name="oc_browser_screenshot", description="Capture a browser screenshot into the selected engagement and return its relative artifact path.", structured_output=True)
@@ -597,8 +597,8 @@ async def oc_browser_network_rules(engagement_id: str, session_id: str, blocked_
 
 
 @mcp.tool(name="oc_browser_network_log", description="Return complete request/response metadata captured by a live browser session, optionally clearing the in-memory log afterward.", structured_output=True)
-async def oc_browser_network_log(engagement_id: str, session_id: str, clear: bool = False) -> dict[str, Any]:
-    return await BROWSER_MANAGER.network_log(engagement_id, session_id, clear)
+async def oc_browser_network_log(engagement_id: str, session_id: str, clear: bool = False, offset: int = 0, limit: int = 500) -> dict[str, Any]:
+    return await BROWSER_MANAGER.network_log(engagement_id, session_id, clear, offset, limit)
 
 
 @mcp.tool(name="oc_payload_encode", description="Encode text as base64, base64url, hex, URL, or form data.", structured_output=True)
@@ -794,6 +794,7 @@ def oc_poc_spec_create(
     limits: dict[str, Any] | None = None,
     source: str = "",
     notes: str = "",
+    allow_insecure_tls: bool = False,
 ) -> dict[str, Any]:
     try:
         return create_spec(
@@ -807,6 +808,7 @@ def oc_poc_spec_create(
             limits=limits,
             source=source,
             notes=notes,
+            allow_insecure_tls=allow_insecure_tls,
         )
     except PocError as exc:
         return _poc_refusal(exc)

@@ -81,6 +81,7 @@ The `oc_chain_*` and `oc_poc_*` tools add a two-signature gate on top of the nor
 - **Runs are bounded.** At most 20 requests and 60 seconds per run, with at most 1 MiB per captured response body (the environment may only lower the request/deadline caps), one concurrent run per engagement, and a scrubbed environment. On timeout the process group is terminated and the partial evidence is retained.
 - **Techniques are non-destructive by construction.** The rendered templates cover version/banner assertions, bounded HTTP sequences, auth-difference checks, OOB callbacks to an operator-supplied in-scope listener, canary file reads, and TCP probes. Reverse shells, persistence, credential dumping, privilege-escalation payloads, C2, evasion, DoS, and exfiltration are refused; they are out of scope even with authorization.
 - **Limits.** Lint is static and best-effort, not a sandbox. A `custom` PoC runs as container root inside the trust boundary, so approve only code you have read. The container is still not an egress firewall.
+- **TLS.** HTTPS probes verify the target certificate and hostname by default. A self-signed lab target requires the spec's `allow_insecure_tls: true` field, which is covered by the spec digest and recorded in the run evidence; no environment variable can disable verification.
 - **Audit.** `poc.authorization.created`, `poc.chain.created`, `poc.approval.created`, `poc.approval.revoked`, and `poc.run.started/completed/refused` are appended to the engagement audit chain.
 
 See [POC_CHAINS.md](POC_CHAINS.md) for the operator workflow and [INTEGRATIONS.md](INTEGRATIONS.md) for the agent adapters.
@@ -208,6 +209,7 @@ Tool output is untrusted input to the agent. Every result states `provenance.unt
 - The HTTP workbench defaults `verify_tls=True`. It can be changed per session with `oc_http_session_create` or `oc_http_session_update`; disabling it removes certificate validation for that session.
 - Native `oc_http_request`, `oc_graphql_request`, OpenAPI fetches, GraphQL audit, and API fuzz use Python `requests` with its default certificate verification. They do not expose a per-call `verify` switch.
 - Browser tools are not engagement-scope-enforced. Native HTTP/API tools check each request and redirect host when enforcement is enabled. A browser session can reach any host the container can route to, and can exfiltrate data through page loads or JavaScript evaluation.
+- Browser navigation and actions require a finite deadline (`timeout_ms`, 1-120000 ms, default 30000); zero and negative values are refused. The in-memory network log stops at 1000 retained events, counts dropped events, and returns paginated pages with a continuation offset.
 
 ## Credentials and secret handling
 

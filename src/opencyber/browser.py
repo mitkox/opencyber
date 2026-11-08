@@ -13,6 +13,52 @@ import uuid
 
 from .audit import safe_record
 from .engagements import get_engagement, resolve_engagement_path
+from .errors import OcError
+
+
+DEFAULT_TIMEOUT_MS = 30_000
+MAX_TIMEOUT_MS = 120_000
+MAX_NETWORK_EVENTS = 1_000
+DEFAULT_NETWORK_PAGE = 500
+MAX_NETWORK_PAGE = 1_000
+
+
+def _validate_timeout(timeout_ms: int) -> int:
+    if isinstance(timeout_ms, bool) or not isinstance(timeout_ms, int):
+        raise OcError("invalid_argument", "timeout_ms must be an integer")
+    if timeout_ms < 1 or timeout_ms > MAX_TIMEOUT_MS:
+        raise OcError(
+            "invalid_argument",
+            f"timeout_ms must be between 1 and {MAX_TIMEOUT_MS}",
+            details={"timeout_ms": timeout_ms, "max": MAX_TIMEOUT_MS},
+        )
+    return timeout_ms
+
+
+def _record_network_event(session: "BrowserSession", event: dict[str, Any]) -> None:
+    if len(session.network_events) >= MAX_NETWORK_EVENTS:
+        session.network_dropped += 1
+        return
+    session.network_events.append(event)
+    with session.network_log_path.open("a", encoding="utf-8") as handle:
+        handle.write(json.dumps(event, sort_keys=True) + "\n")
+
+
+def _paginate_events(
+    events: list[dict[str, Any]], offset: int, limit: int
+) -> tuple[list[dict[str, Any]], int | None]:
+    if isinstance(offset, bool) or not isinstance(offset, int) or offset < 0:
+        raise OcError("invalid_argument", "offset must be a non-negative integer")
+    if isinstance(limit, bool) or not isinstance(limit, int) or limit < 1 or limit > MAX_NETWORK_PAGE:
+        raise OcError(
+            "invalid_argument",
+            f"limit must be between 1 and {MAX_NETWORK_PAGE}",
+            details={"limit": limit, "max": MAX_NETWORK_PAGE},
+        )
+    page = events[offset : offset + limit]
+    candidate = offset + len(page)
+    next_offset: int | None = candidate if candidate < len(events) else None
+    return page, next_offset
 
 
 def _now() -> str:
@@ -29,6 +75,7 @@ class BrowserSession:
     created_at: str
     network_log_path: Path
     network_events: list[dict[str, Any]] = field(default_factory=list)
+    network_dropped: int = 0
     blocked_patterns: list[str] = field(default_factory=list)
     url_replacements: list[dict[str, str]] = field(default_factory=list)
     extra_headers: dict[str, str] = field(default_factory=dict)
@@ -126,9 +173,7 @@ class BrowserManager:
         )
 
         def record_network_event(event: dict[str, Any]) -> None:
-            session.network_events.append(event)
-            with session.network_log_path.open("a", encoding="utf-8") as handle:
-                handle.write(json.dumps(event, sort_keys=True) + "\n")
+            _record_network_event(session, event)
 
         def on_request(request: Any) -> None:
             record_network_event(
@@ -187,6 +232,7 @@ class BrowserManager:
             "url": session.page.url,
             "title": await session.page.title(),
             "network_event_count": len(session.network_events),
+            "network_dropped": session.network_dropped,
             "blocked_patterns": session.blocked_patterns,
             "url_replacements": session.url_replacements,
             "extra_headers": session.extra_headers,
@@ -198,9 +244,16 @@ class BrowserManager:
         self._sessions.pop(session_id, None)
         return {"engagement_id": engagement_id, "session_id": session_id, "closed": True}
 
-    async def navigate(self, engagement_id: str, session_id: str, url: str, wait_until: str = "load") -> dict[str, Any]:
+    async def navigate(
+        self,
+        engagement_id: str,
+        session_id: str,
+        url: str,
+        wait_until: str = "load",
+        timeout_ms: int = DEFAULT_TIMEOUT_MS,
+    ) -> dict[str, Any]:
         session = self._get(engagement_id, session_id)
-        response = await session.page.goto(url, wait_until=wait_until, timeout=0)
+        response = await session.page.goto(url, wait_until=wait_until, timeout=_validate_timeout(timeout_ms))
         result = {
             "engagement_id": engagement_id,
             "session_id": session_id,
@@ -246,28 +299,30 @@ class BrowserManager:
         action: str,
         selector: str,
         value: str = "",
+        timeout_ms: int = DEFAULT_TIMEOUT_MS,
     ) -> dict[str, Any]:
         session = self._get(engagement_id, session_id)
         locator = session.page.locator(selector).first
         normalized = action.lower()
+        timeout = _validate_timeout(timeout_ms)
         if normalized == "click":
-            await locator.click(timeout=0)
+            await locator.click(timeout=timeout)
         elif normalized == "fill":
-            await locator.fill(value, timeout=0)
+            await locator.fill(value, timeout=timeout)
         elif normalized == "type":
-            await locator.type(value, timeout=0)
+            await locator.type(value, timeout=timeout)
         elif normalized == "clear":
-            await locator.clear(timeout=0)
+            await locator.clear(timeout=timeout)
         elif normalized == "press":
-            await locator.press(value, timeout=0)
+            await locator.press(value, timeout=timeout)
         elif normalized == "check":
-            await locator.check(timeout=0)
+            await locator.check(timeout=timeout)
         elif normalized == "uncheck":
-            await locator.uncheck(timeout=0)
+            await locator.uncheck(timeout=timeout)
         elif normalized == "select":
-            await locator.select_option(value, timeout=0)
+            await locator.select_option(value, timeout=timeout)
         elif normalized == "hover":
-            await locator.hover(timeout=0)
+            await locator.hover(timeout=timeout)
         else:
             raise ValueError("action must be click, fill, type, clear, press, check, uncheck, select, or hover")
         result = {
@@ -390,9 +445,17 @@ class BrowserManager:
             "extra_headers": session.extra_headers,
         }
 
-    async def network_log(self, engagement_id: str, session_id: str, clear: bool = False) -> dict[str, Any]:
+    async def network_log(
+        self,
+        engagement_id: str,
+        session_id: str,
+        clear: bool = False,
+        offset: int = 0,
+        limit: int = DEFAULT_NETWORK_PAGE,
+    ) -> dict[str, Any]:
         session = self._get(engagement_id, session_id)
         events = list(session.network_events)
+        page, next_offset = _paginate_events(events, offset, limit)
         if clear:
             session.network_events.clear()
             session.network_log_path.write_text("", encoding="utf-8")
@@ -400,7 +463,12 @@ class BrowserManager:
         return {
             "engagement_id": engagement_id,
             "session_id": session_id,
-            "events": events,
+            "events": page,
+            "total": len(events),
+            "dropped": session.network_dropped,
+            "offset": offset,
+            "limit": limit,
+            "next_offset": next_offset,
             "history_path": str(session.network_log_path.relative_to(root)),
             "cleared": clear,
         }

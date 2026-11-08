@@ -5,7 +5,7 @@
 OpenCyber Harness 0.5.1 exposes **256 MCP tools**:
 174 executable-backed tools and 82 native tools.
 
-Contract digest: `b559a643e058481ee24e00a71e77983ab8d324115f82f064fa6de30dfd96700d`. A running server reports the digest it
+Contract digest: `a1ad621b1ab972dcb5aee20d18da386ec13f28ae58ec333d60dba2fe067b25cc`. A running server reports the digest it
 actually advertises with `oc_catalog`, so a stale container or a modified
 registration is detectable. Pass `expected_catalog_digest` to `oc_catalog`
 to pin the contract a client was built against.
@@ -41,8 +41,8 @@ the advertised executable set; it has no effect in compact mode.
 | Effect | Tools |
 | --- | ---: |
 | `device` | 75 |
-| `filesystem` | 228 |
-| `mutation` | 212 |
+| `filesystem` | 229 |
+| `mutation` | 213 |
 | `network` | 128 |
 | `process` | 197 |
 | `secret` | 5 |
@@ -508,7 +508,7 @@ documented helper programs.
 | `oc_chain_plan` | workflow | `filesystem`, `mutation` | engagement | Validate a CVE capability chain deterministically. Each step supplies requires/provides capability tokens, a written basis, and an optional evidence source; the tool computes satisfaction closure, missing tokens, and cycles, attaches nuclei/trivy artifact observations, and persists the chain. It never invents CVE semantics: annotate only what the advisory or evidence supports. |
 | `oc_chain_get` | inspect | `filesystem` | engagement | Read one persisted CVE capability chain by chain_id, or list chain summaries (verdict, step count, created_at) when chain_id is omitted. |
 | `oc_poc_spec_create` | manage | `filesystem`, `mutation` | engagement | Create one declarative PoC spec for a chain step: technique class, in-scope target, bounded request list, closed assertion language, and limits. Validates the target against the engagement and the chain step. Does not render or execute anything. |
-| `oc_poc_render` | inspect | none | engagement | Render a PoC spec into a bounded stdlib-only Python verifier under the engagement, or store custom source verbatim for the separate approval tier. Returns the code path and SHA-256 bound by the run approval; does not execute anything. |
+| `oc_poc_render` | inspect | `filesystem`, `mutation` | engagement | Render a PoC spec into a bounded stdlib-only Python verifier under the engagement, or store custom source verbatim for the separate approval tier. Returns the code path and SHA-256 bound by the run approval; does not execute anything. |
 | `oc_poc_lint` | inspect | none | engagement | Static review of a PoC spec and its code: engagement scope for every host, supported technique class, hard request/time/output caps, and forbidden destructive or weaponized patterns. Returns blocking findings, warnings, and per-host scope verdicts. Signed-authorization coverage is enforced at run time, not here. Best-effort defense in depth, not a sandbox. |
 | `oc_poc_run` | execute | `filesystem`, `mutation`, `network`, `process` | engagement | Execute one approved PoC spec. Requires a complete chain, a valid signed authorization covering the target and technique, and a signed single-use approval whose spec/code hashes still match; re-lints and preflights scope, then runs under hard limits and captures evidence. Refusals return a machine-readable reason. Never bypass the gate. |
 | `oc_poc_evidence` | inspect | `filesystem` | engagement | List PoC runs in the engagement with verdict and evidence paths, or read one run's structured result and artifacts when run_id is supplied. |
