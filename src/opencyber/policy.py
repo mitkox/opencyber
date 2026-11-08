@@ -24,7 +24,7 @@ import re
 from typing import Any, Iterable
 
 from .errors import OcError
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlsplit
 
 from .assets import OFFLINE_NETWORK_EXECUTABLES, offline_enabled
 from .engagements import get_engagement
@@ -67,6 +67,56 @@ def enforcement_enabled() -> bool:
 
 def unscoped_execution_allowed() -> bool:
     return os.environ.get(UNSCOPED_ENV, "").strip().lower() in TRUTHY
+
+
+_AMBIGUOUS_AUTHORITY = re.compile(r"[\\\s\x00-\x1f\x7f@]")
+
+
+def canonical_http_url(url: str) -> str:
+    """Validate one HTTP target so the parsed authority is the sent authority.
+
+    ``requests`` re-quotes a URL before sending it, so a raw backslash or
+    userinfo authority can be parsed as one host for scope checks and sent to
+    another. Those forms, plus control characters, whitespace and encoded
+    separators in the authority, are refused here before any caller makes a
+    scope or credential decision.
+    """
+    if not isinstance(url, str) or not url:
+        raise OcError("invalid_argument", "URL must be a non-empty string")
+    try:
+        parts = urlsplit(url)
+        parsed_port = parts.port
+    except ValueError as exc:
+        raise OcError("invalid_argument", f"invalid URL: {exc}") from exc
+    if parts.scheme.lower() not in {"http", "https"}:
+        raise OcError("invalid_argument", "URL must use http or https")
+    if not parts.netloc:
+        raise OcError("invalid_argument", "URL must include an authority")
+    if _AMBIGUOUS_AUTHORITY.search(parts.netloc) or "%" in parts.netloc:
+        raise OcError(
+            "invalid_argument",
+            "URL authority is ambiguous: backslash, userinfo, whitespace, control "
+            "characters and encoded separators are refused",
+        )
+    if not parts.hostname:
+        raise OcError("invalid_argument", "URL must include a host")
+    if parsed_port is not None and not (0 < parsed_port < 65536):
+        raise OcError("invalid_argument", "URL port is out of range")
+    return url
+
+
+def credential_boundary_changed(current_url: str, next_url: str) -> bool:
+    """Return True when a hop must drop authorization and cookies.
+
+    Credentials are kept only while the effective host stays the same and the
+    scheme does not downgrade. A same-host HTTP-to-HTTPS upgrade therefore keeps
+    them, matching the documented redirect rule.
+    """
+    current = urlsplit(canonical_http_url(current_url))
+    following = urlsplit(canonical_http_url(next_url))
+    if (current.hostname or "").lower() != (following.hostname or "").lower():
+        return True
+    return current.scheme.lower() == "https" and following.scheme.lower() == "http"
 
 
 def _normalize_host(value: str) -> str | None:
@@ -269,6 +319,7 @@ def url_scope_decision(engagement_id: str | None, url: str) -> dict[str, Any]:
     this decision instead. When enforcement is off the call is allowed and the
     decision says so, which the result echoes as ``scope_enforced: false``.
     """
+    canonical_http_url(url)
     host = _normalize_host(url)
     if not enforcement_enabled():
         return {

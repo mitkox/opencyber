@@ -15,7 +15,7 @@ import uuid
 from .audit import safe_record
 from .engagements import get_engagement, resolve_engagement_path
 from .http_client import resolve_timeout
-from .policy import enforce_url_scope
+from .policy import canonical_http_url, credential_boundary_changed, enforce_url_scope
 
 
 HTTP_SESSION_PATTERN = re.compile(r"http_\d{8}_[0-9a-f]{32}")
@@ -320,10 +320,11 @@ def repeat_http_request(
         if not state["follow_redirects"] or response.status_code not in {301, 302, 303, 307, 308} or not location:
             break
         next_url = urljoin(response.url, location)
+        canonical_http_url(next_url)
         enforce_url_scope(engagement_id, next_url, tool="oc_http_repeater")
         if not _is_in_scope(state, next_url):
             raise ValueError(f"redirect leaves declared HTTP session scope: {next_url}")
-        suppress_cookies = client.should_strip_auth(current_url, next_url)
+        suppress_cookies = credential_boundary_changed(current_url, next_url)
         if suppress_cookies:
             # Manual redirects must preserve requests' credential boundary.
             merged_headers = {

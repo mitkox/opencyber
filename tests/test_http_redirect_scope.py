@@ -141,6 +141,63 @@ class HttpRedirectScopeTests(unittest.TestCase):
                 http_workbench.repeat_http_request(self.engagement_id, session["session_id"], "GET", "/redirect")
         self.assertEqual(adapter.sent_headers[1]["Authorization"], "Bearer private")
 
+
+    def test_initial_backslash_authority_is_refused_before_any_request(self):
+        adapter = FixtureTransport()
+        with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "1"}), patch.object(
+            requests.Session, "get_adapter", return_value=adapter
+        ):
+            with self.assertRaises(OcError) as raised:
+                native_tools.http_request(
+                    "GET", "http://outside.test\\@allowed.test/", engagement_id=self.engagement_id
+                )
+        self.assertEqual(raised.exception.code, "invalid_argument")
+        self.assertEqual(adapter.sent, [])
+
+    def test_workbench_initial_backslash_authority_is_refused_before_any_request(self):
+        adapter = FixtureTransport()
+        with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "0"}):
+            session = http_workbench.create_http_session(
+                self.engagement_id, "Initial authority", "https://allowed.test/",
+                scope_hosts=["allowed.test"],
+            )
+            with patch.object(requests.Session, "get_adapter", return_value=adapter):
+                with self.assertRaises(OcError) as raised:
+                    http_workbench.repeat_http_request(
+                        self.engagement_id, session["session_id"], "GET",
+                        "http://outside.test\\@allowed.test/",
+                    )
+        self.assertEqual(raised.exception.code, "invalid_argument")
+        self.assertEqual(adapter.sent, [])
+
+    def test_backslash_redirect_location_is_refused(self):
+        adapter = FixtureTransport("http://outside.test\\@allowed.test/target")
+        with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "0"}):
+            session = http_workbench.create_http_session(
+                self.engagement_id, "Redirect authority", "https://allowed.test/",
+                scope_hosts=["allowed.test", "outside.test"],
+            )
+            with patch.object(requests.Session, "get_adapter", return_value=adapter):
+                with self.assertRaises(OcError) as raised:
+                    http_workbench.repeat_http_request(
+                        self.engagement_id, session["session_id"], "GET", "/redirect"
+                    )
+        self.assertEqual(raised.exception.code, "invalid_argument")
+        self.assertEqual(len(adapter.sent), 1)
+
+    def test_same_host_http_to_https_upgrade_preserves_credentials(self):
+        adapter = FixtureTransport("https://allowed.test/target")
+        with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "0"}):
+            session = http_workbench.create_http_session(
+                self.engagement_id, "Upgrade", "http://allowed.test/",
+                default_headers={"Authorization": "Bearer private"},
+            )
+            with patch.object(requests.Session, "get_adapter", return_value=adapter):
+                http_workbench.repeat_http_request(
+                    self.engagement_id, session["session_id"], "GET", "/redirect"
+                )
+        self.assertEqual(adapter.sent_headers[1]["Authorization"], "Bearer private")
+
     def test_cross_origin_redirect_does_not_erase_original_host_cookie(self):
         adapter = FixtureTransport("https://outside.test/target")
         with patch.dict("os.environ", {"OPENCYBER_ENFORCE_SCOPE": "0"}):
