@@ -1364,6 +1364,42 @@ class RunTests(HttpFixtureMixin, WorkspaceMixin, unittest.IsolatedAsyncioTestCas
         self.assertEqual(recorded["coverage"]["status"], "partial")
         self.assertEqual(recorded["limit"]["id"], "poc.max_bytes")
 
+    async def test_executor_output_cap_is_reported_as_partial_coverage(self):
+        spec = self.make_spec(
+            "version_assert",
+            step_order=2,
+            target=self.base_url,
+            requests=[{"method": "GET", "path": "/canary"}],
+            assertions=[{"type": "status_in", "statuses": [200]}],
+        )
+        payload = build_payload(spec, [build_record(0, status=200, body_text="ok")])
+        capped_output = poc_result_line(payload) + "\n"
+        received_bytes = 4 * 1024 * 1024 + 17
+
+        async def capped(*args, **kwargs):
+            return {
+                "available": True,
+                "success": True,
+                "returncode": 0,
+                "stdout": capped_output,
+                "stderr": "",
+                "stdout_bytes": received_bytes,
+                "stderr_bytes": 0,
+                "truncated": True,
+                "max_output_bytes": 4 * 1024 * 1024,
+            }
+
+        with patch.object(poc.executor, "execute_tool", capped):
+            result = await self._async_run(spec)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result["coverage"]["status"], "partial")
+        self.assertEqual(result["limit"]["id"], "tool.max_output_bytes")
+        self.assertEqual(result["limit"]["effective"], 4 * 1024 * 1024)
+        evidence = read_json(self.run_dir(result["run_id"]) / "evidence.json")
+        self.assertTrue(evidence["executor_truncated"])
+        self.assertEqual(evidence["stdout_bytes"], received_bytes)
+        self.assertTrue(any("executor output cap" in item for item in result["limitations"]))
+
     async def test_run_refuses_multiple_poc_result_lines(self):
         spec = self.make_spec(
             "version_assert", step_order=2, target=self.base_url

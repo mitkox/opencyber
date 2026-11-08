@@ -705,6 +705,16 @@ def _run_contract(record: Mapping[str, Any]) -> dict[str, Any]:
             "Not every configured assertion passed; this run does not establish the vulnerability claim."
         )
     if truncated:
+        if record.get("executor_truncated") is True:
+            limitations.append(
+                "The probe's captured output exceeded the executor output cap; bytes beyond it "
+                "were read and discarded, so the retained output is incomplete."
+            )
+            if limit is None:
+                limit = limits.facts(
+                    "tool.max_output_bytes",
+                    effective=record.get("executor_max_output_bytes"),
+                )
         limitations.append(
             "Captured output was truncated at a per-run byte ceiling; retained bodies are incomplete."
         )
@@ -2675,6 +2685,13 @@ async def _run_impl(
         stdout_text = str((exec_result or {}).get("stdout") or "")
         stderr_text = str((exec_result or {}).get("stderr") or "")
         output_sha256 = sha256_hex(stdout_text)
+        executor_truncated = bool((exec_result or {}).get("truncated"))
+        executor_stdout_bytes = (exec_result or {}).get("stdout_bytes")
+        if isinstance(executor_stdout_bytes, bool) or not isinstance(executor_stdout_bytes, int):
+            executor_stdout_bytes = None
+        executor_max_output_bytes = (exec_result or {}).get("max_output_bytes")
+        if isinstance(executor_max_output_bytes, bool) or not isinstance(executor_max_output_bytes, int):
+            executor_max_output_bytes = None
 
         payload: dict[str, Any] | None = None
         findings: list[dict[str, Any]] = []
@@ -2731,6 +2748,7 @@ async def _run_impl(
             transcript_truncated
             or request_truncated
             or (payload or {}).get("truncated")
+            or executor_truncated
         )
         try:
             saved_stdout_bytes, stdout_truncated = _write_bounded_text(
@@ -2769,6 +2787,9 @@ async def _run_impl(
             "duration_ms": duration_ms,
             "request_count": request_count,
             "truncated": truncated,
+            "executor_truncated": executor_truncated,
+            **({"executor_stdout_bytes": executor_stdout_bytes} if executor_stdout_bytes is not None else {}),
+            **({"executor_max_output_bytes": executor_max_output_bytes} if executor_max_output_bytes is not None else {}),
             "started_at": started_at,
             "completed_at": completed_at,
             "timeout_s": spec["limits"]["timeout_s"],
@@ -2802,8 +2823,14 @@ async def _run_impl(
             "timed_out": timed_out,
             "returncode": returncode,
             "output_sha256": output_sha256,
-            "stdout_bytes": len(stdout_text.encode("utf-8", errors="replace")),
+            "stdout_bytes": (
+                executor_stdout_bytes
+                if executor_stdout_bytes is not None
+                else len(stdout_text.encode("utf-8", errors="replace"))
+            ),
             "stderr_bytes": len(stderr_text.encode("utf-8", errors="replace")),
+            "executor_truncated": executor_truncated,
+            "executor_max_output_bytes": executor_max_output_bytes,
             "stdout_saved_bytes": saved_stdout_bytes,
             "stderr_saved_bytes": saved_stderr_bytes,
             "stdout_truncated": stdout_truncated,
