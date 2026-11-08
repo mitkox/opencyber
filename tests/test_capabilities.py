@@ -11,7 +11,9 @@ from unittest.mock import patch
 from urllib.parse import parse_qs, urlparse
 
 import opencyber.engagements as engagements
+from opencyber import native_tools
 from opencyber.api_audit import audit_graphql, audit_jwt, audit_openapi, fuzz_api_parameter
+from opencyber.errors import OcError
 from opencyber.http_workbench import (
     create_http_session,
     get_http_session,
@@ -34,6 +36,12 @@ class FixtureHandler(BaseHTTPRequestHandler):
 
     def do_GET(self):
         parsed = urlparse(self.path)
+        if parsed.path == "/slow":
+            import time as _time
+            _time.sleep(0.3)
+        if parsed.path == "/huge":
+            self._send(200, {"data": "x" * (300 * 1024)})
+            return
         if parsed.path == "/redirect-out":
             self.send_response(302)
             self.send_header("location", "https://example.com/")
@@ -69,6 +77,14 @@ class FixtureHandler(BaseHTTPRequestHandler):
     def do_POST(self):
         length = int(self.headers.get("content-length", "0"))
         raw = self.rfile.read(length).decode()
+        if self.path == "/huge":
+            self._send(200, {"data": "x" * (300 * 1024)})
+            return
+        if self.path == "/redirect-303":
+            self.send_response(303)
+            self.send_header("location", "/echo")
+            self.end_headers()
+            return
         if self.path == "/graphql":
             self._send(
                 200,
@@ -155,6 +171,53 @@ class CapabilityTests(unittest.TestCase):
         self.assertEqual(jwt["coverage"]["status"], "complete")
         self.assertTrue(any("not cryptographically verified" in item for item in jwt["limitations"]))
 
+    def test_http_consumers_bound_and_typed_response_failures(self):
+        huge = self.base_url + "/huge"
+        with patch.dict("os.environ", {"NO_PROXY": "127.0.0.1"}):
+            graph = native_tools.graphql_request(huge, "{ x }")
+            self.assertTrue(graph["truncated"])
+            self.assertEqual(graph["coverage"]["status"], "partial")
+            self.assertEqual(graph["limit"]["id"], "http.response_max_bytes")
+            for call in (
+                lambda: native_tools.inspect_openapi(self.engagement_id, huge),
+                lambda: audit_openapi(self.engagement_id, huge),
+                lambda: audit_graphql(self.engagement_id, huge),
+            ):
+                with self.subTest(call=call), self.assertRaises(OcError) as raised:
+                    call()
+                self.assertEqual(raised.exception.code, "truncated")
+            fuzz = fuzz_api_parameter(
+                self.engagement_id, self.base_url, "/huge", "GET", "query", "value", ["one"], 1
+            )
+            self.assertTrue(fuzz["results"][0]["truncated"])
+            self.assertEqual(fuzz["results"][0]["limit"]["id"], "http.response_max_bytes")
+
+    def test_workbench_response_is_bounded_with_partial_evidence(self):
+        state = create_http_session(self.engagement_id, "Bounded", self.base_url)
+        session_id = state["session_id"]
+        with patch.dict("os.environ", {"NO_PROXY": "127.0.0.1"}):
+            result = repeat_http_request(self.engagement_id, session_id, "GET", "/huge")
+        self.assertTrue(result["response"]["truncated"])
+        self.assertLessEqual(len(result["response"]["body"].encode()), 262144)
+        self.assertEqual(result["response"]["limit"]["id"], "http.response_max_bytes")
+
+    def test_cancelled_intruder_and_fuzz_stop_before_the_next_payload(self):
+        state = create_http_session(self.engagement_id, "Cancelled", self.base_url)
+        cancelled = threading.Event()
+        cancelled.set()
+        intruder = intrude_http_parameter(
+            self.engagement_id, state["session_id"], "GET", "/echo", "query", "probe",
+            ["a", "b"], 2, cancel_event=cancelled,
+        )
+        self.assertEqual(intruder["request_count"], 0)
+        self.assertTrue(intruder["cancelled"])
+        fuzz = fuzz_api_parameter(
+            self.engagement_id, self.base_url, "/echo", "GET", "query", "value",
+            ["a", "b"], 2, cancel_event=cancelled,
+        )
+        self.assertEqual(fuzz["request_count"], 0)
+        self.assertTrue(fuzz["cancelled"])
+
     def test_api_fuzzing_is_caller_bounded(self):
         result = fuzz_api_parameter(
             self.engagement_id,
@@ -209,10 +272,52 @@ class CapabilityTests(unittest.TestCase):
         )
         self.assertEqual(intruder["request_count"], 2)
         self.assertEqual(len(read_http_history(self.engagement_id, session_id)["entries"]), 3)
-        with self.assertRaises(ValueError):
-            repeat_http_request(self.engagement_id, session_id, "GET", "https://example.com/")
-        with self.assertRaises(ValueError):
-            repeat_http_request(self.engagement_id, session_id, "GET", "/redirect-out")
+        from opencyber.errors import OcError
+
+        for url in ("https://example.com/", "/redirect-out"):
+            with self.subTest(url=url), self.assertRaises(OcError) as raised:
+                repeat_http_request(self.engagement_id, session_id, "GET", url)
+            self.assertEqual(raised.exception.code, "scope_denied")
+
+    def test_redirect_evidence_records_final_body_and_original_body(self):
+        state = create_http_session(self.engagement_id, "Redirect evidence", self.base_url)
+        session_id = state["session_id"]
+        repeat_http_request(
+            self.engagement_id, session_id, "POST", "/redirect-303", body="original-body"
+        )
+        entry = read_http_history(self.engagement_id, session_id)["entries"][-1]
+        self.assertEqual(entry["request"]["method"], "GET")
+        self.assertIsNone(entry["request"]["body"])
+        self.assertEqual(entry["request"]["original_body"], "original-body")
+        final = json.loads(entry["response"]["body"])
+        self.assertEqual(final["path"], "/echo")
+
+    def test_concurrent_session_update_is_not_overwritten_by_inflight_request(self):
+        state = create_http_session(self.engagement_id, "Session race", self.base_url)
+        session_id = state["session_id"]
+        started = threading.Event()
+
+        def update_during_request():
+            started.set()
+            update_http_session(
+                self.engagement_id,
+                session_id,
+                default_headers={"x-racy": "updated"},
+                follow_redirects=False,
+            )
+
+        thread = threading.Thread(target=update_during_request)
+        request_thread = threading.Thread(
+            target=lambda: repeat_http_request(self.engagement_id, session_id, "GET", "/slow")
+        )
+        request_thread.start()
+        started.wait(timeout=1)
+        thread.start()
+        thread.join(timeout=2)
+        request_thread.join(timeout=2)
+        current = get_http_session(self.engagement_id, session_id)
+        self.assertEqual(current["default_headers"], {"x-racy": "updated"})
+        self.assertFalse(current["follow_redirects"])
 
     def test_persisted_cookies_keep_host_path_and_secure_restrictions(self):
         base = self.base_url.replace("127.0.0.1", "localhost")

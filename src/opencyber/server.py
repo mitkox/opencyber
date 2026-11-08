@@ -492,7 +492,10 @@ async def oc_jwt_audit(engagement_id: str, token: str, expected_issuer: str = ""
 
 @mcp.tool(name="oc_api_fuzz", description="Run a caller-bounded, single-parameter API fuzz matrix against an authorized target and preserve complete response evidence. The caller selects payloads and max_requests.", structured_output=True)
 async def oc_api_fuzz(engagement_id: str, base_url: str, path: str, method: str, location: str, parameter: str, payloads: list[str], max_requests: int, headers: dict[str, str] | None = None, base_body: str = "", follow_redirects: bool = True, timeout: float | None = None) -> dict[str, Any]:
-    return await asyncio.to_thread(fuzz_api_parameter, engagement_id, base_url, path, method, location, parameter, payloads, max_requests, headers, base_body, follow_redirects, timeout)
+    return await _analysis_call(
+        fuzz_api_parameter, engagement_id, base_url, path, method, location,
+        parameter, payloads, max_requests, headers, base_body, follow_redirects, timeout,
+    )
 
 
 @mcp.tool(name="oc_http_session_create", description="Create a persistent engagement-scoped HTTP workbench session with declared target scope, default headers, cookies, TLS, and redirect behavior.", structured_output=True)
@@ -522,7 +525,10 @@ async def oc_http_repeater(engagement_id: str, session_id: str, method: str, url
 
 @mcp.tool(name="oc_http_intruder", description="Run caller-bounded sniper-style payload iteration through an HTTP workbench session against one query, header, body, or path location.", structured_output=True)
 async def oc_http_intruder(engagement_id: str, session_id: str, method: str, url: str, location: str, parameter: str, payloads: list[str], max_requests: int, headers: dict[str, str] | None = None, body: str = "", timeout: float | None = None) -> dict[str, Any]:
-    return await asyncio.to_thread(intrude_http_parameter, engagement_id, session_id, method, url, location, parameter, payloads, max_requests, headers, body, timeout)
+    return await _analysis_call(
+        intrude_http_parameter, engagement_id, session_id, method, url, location,
+        parameter, payloads, max_requests, headers, body, timeout,
+    )
 
 
 @mcp.tool(name="oc_http_history", description="Read the complete persisted request/response history for one engagement HTTP workbench session.", structured_output=True)
