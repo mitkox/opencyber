@@ -5,7 +5,7 @@ name: Publish qualified prerelease
       version:
         description: Qualified prerelease version; dispatch against its annotated tag
         required: true
-        default: 0.5.1
+        default: 1.0.0-beta.1
         type: string
       candidate_run_id:
         description: Successful build-candidate workflow run ID
@@ -39,7 +39,7 @@ jobs:
       run: |
         declared="$(python3 scripts/check-version-consistency.py --print)"
         requested="${REQUESTED_VERSION:-${GITHUB_REF_NAME#v}}"
-        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
         [[ "$GITHUB_REPOSITORY" == mitkox/opencyber && "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == "v$declared" ]]
         [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == tag ]]
         [[ "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" == "$GITHUB_SHA" ]]

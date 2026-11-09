@@ -210,12 +210,12 @@ class AirgapTests(unittest.TestCase):
         )
 
     def export_bundle(self) -> None:
-        result = self.run_airgap("export", "--image", "opencyber:0.5.1", "--output", str(self.bundle))
+        result = self.run_airgap("export", "--image", "opencyber:1.0.0-beta.1", "--output", str(self.bundle))
         self.assertEqual(result.returncode, 0, result.stderr)
 
     def test_checksum_filename_mismatch_fails_before_load(self):
         self.export_bundle()
-        checksum = self.bundle / "opencyber-0.5.1.tar.sha256"
+        checksum = self.bundle / "opencyber-1.0.0-beta.1.tar.sha256"
         checksum.write_text("0" * 64 + "  different.tar\n")
         result = self.run_airgap("import", "--input", str(self.bundle))
         self.assertNotEqual(result.returncode, 0)

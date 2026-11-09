@@ -25,7 +25,7 @@ import xml.etree.ElementTree as ET
 
 
 STREAM_LIMIT = 32 * 1024
-EXPECTED_VERSION = "0.5.1"
+EXPECTED_VERSION = "1.0.0-beta.1"
 WORDPRESS_VERSION = "6.8.3"
 REQUIRED_TOOLS = {
     "oc_nmap": "nmap",

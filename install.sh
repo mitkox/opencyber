@@ -2,7 +2,7 @@
 
 set -Eeuo pipefail
 
-readonly DEFAULT_VERSION="0.5.1"
+readonly DEFAULT_VERSION="1.0.0-beta.1"
 readonly DEFAULT_IMAGE="ghcr.io/mitkox/opencyber"
 readonly DEFAULT_CONTAINER="opencyber"
 readonly DEFAULT_VOLUME="opencyber-workspace"
@@ -29,7 +29,7 @@ Usage:
   install.sh --uninstall [--purge-workspace]
 
 Options:
-  --version VERSION     Install a specific release (default: 0.5.1).
+  --version VERSION     Install a specific release (default: 1.0.0-beta.1).
   --digest SHA256       Pin the image by digest instead of tag (sha256:<64 hex>).
   --uninstall           Remove the installer-managed OpenCyber container.
   --purge-workspace     Also remove its Docker volume during uninstall.
@@ -126,7 +126,7 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.dev[0-9]+)?$ ]] || die "version must look like 1.0.0 or 1.0.1.dev0."
+[[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(\.dev[0-9]+|-[0-9A-Za-z]+(\.[0-9A-Za-z]+)*)?$ ]] || die "version must look like 1.0.0 or 1.0.1.dev0."
 if [[ -n "$digest" && ! "$digest" =~ ^sha256:[0-9a-f]{64}$ ]]; then
   die "--digest must look like sha256:<64 lowercase hex characters>."
 fi

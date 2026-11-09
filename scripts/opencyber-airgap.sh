@@ -5,7 +5,7 @@
 #
 set -Eeuo pipefail
 
-readonly DEFAULT_IMAGE="opencyber:0.5.1"
+readonly DEFAULT_IMAGE="opencyber:1.0.0-beta.1"
 readonly DEFAULT_OUTPUT="opencyber-airgap"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 readonly SCRIPT_DIR
@@ -22,7 +22,7 @@ Usage:
   scripts/opencyber-airgap.sh import [--input DIR]
 
 Options:
-  --image IMAGE   Image reference to export (default: opencyber:0.5.1).
+  --image IMAGE   Image reference to export (default: opencyber:1.0.0-beta.1).
   --output DIR    Destination directory for export (default: opencyber-airgap).
   --input DIR     Source directory for verify/import (default: opencyber-airgap).
   --force         Overwrite an existing export archive.

@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 set -Eeuo pipefail
-readonly EXPECTED_VERSION="0.5.1"
+readonly EXPECTED_VERSION="1.0.0-beta.1"
 
 [[ $# == 2 ]] || { echo "usage: $0 IMAGE JSON_OUTPUT" >&2; exit 2; }
 image=$1

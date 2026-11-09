@@ -2,7 +2,7 @@
 
 # Tool reference
 
-OpenCyber Harness 0.5.1 exposes **254 MCP tools**:
+OpenCyber Harness 1.0.0-beta.1 exposes **254 MCP tools**:
 172 executable-backed tools and 82 native tools.
 
 Contract digest: `824ba7cd37e955829e25591adcb26f5052b5c1b2d47c2dd5ce170dd766a71f3b`. A running server reports the digest it

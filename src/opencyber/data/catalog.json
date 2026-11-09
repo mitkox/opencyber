@@ -2,7 +2,7 @@
   "schema_version": 1,
   "contract_schema_version": 1,
   "generated_by": "scripts/record-catalog.py",
-  "server_version": "0.5.1",
+  "server_version": "1.0.0-beta.1",
   "catalog_sha256": "824ba7cd37e955829e25591adcb26f5052b5c1b2d47c2dd5ce170dd766a71f3b",
   "counts": {"by_group": {"api_audit": 4, "assets": 2, "audit": 2, "automotive": 6, "binary": 14, "blue_team": 7, "browser": 13, "cloud_container_iac": 8, "credentials": 8, "diagnostics": 1, "embedded": 16, "engagement_management": 3, "enumeration": 16, "exploitation": 1, "forensics": 11, "general_execution": 2, "gps": 3, "hardware": 9, "http_workbench": 7, "ir": 1, "mobile": 2, "native_and_workspace": 23, "network": 11, "nfc_rfid": 7, "poc_chain": 8, "policy": 1, "rf": 13, "usb": 2, "utilities": 2, "web": 31, "wireless": 5, "wireless_attack": 15}, "by_kind": {"executable": 172, "native": 82}, "by_shape": {"execute": 176, "inspect": 41, "manage": 15, "observe": 9, "search": 5, "workflow": 8}, "total": 254},
   "tools": [

@@ -129,7 +129,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 # Release version. Keep in sync with src/opencyber/__init__.py;
 # scripts/check-version-consistency.py enforces this.
-ARG OPENCYBER_VERSION=0.5.1
+ARG OPENCYBER_VERSION=1.0.0-beta.1
 # Optional offline CVE index. Empty keeps the image smaller; set to e.g.
 # "2024 2025 2026" to bake NVD-derived records into oc_cve_lookup.
 ARG OPENCYBER_CVE_YEARS=""
