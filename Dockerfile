@@ -67,6 +67,45 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     && tar -czf /out/sources/go-modules.tar.gz -C /go/pkg mod \
     && cd /out && sha256sum anew urlfinder subzy jaeles kube-bench yq > /out/sources/binaries.sha256
 
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    build() { version="$1"; shift; CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go install "$@" ; }; \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/lc/gau/v2/cmd/gau@v2.2.4 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/OJ/gobuster/v3@v3.8.2 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/hakluke/hakrawler@v0.0.0-20260805040537-52a16fe61bd1 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/katana/cmd/katana@v1.8.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/httpx/cmd/httpx@v1.12.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.11.1 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/ffuf/ffuf/v2@v2.3.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/tomnomnom/qsreplace@v0.0.3 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.17.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/owasp-amass/amass/v4/cmd/amass@v4.2.0 \
+    && mkdir -p /out/rebuilt \
+    && cp /go/bin/gau /out/rebuilt/getallurls \
+    && cp /go/bin/gobuster /go/bin/hakrawler /go/bin/katana /go/bin/httpx /go/bin/nuclei /go/bin/ffuf /go/bin/qsreplace /go/bin/subfinder /go/bin/amass /out/rebuilt/ \
+    && cd /out/rebuilt && sha256sum * > /out/rebuilt.sha256
+
+# Rebuild katana and amass with the fixed pgx dependency. Their upstream
+# modules still pin 5.7.x/5.4.x; copy each module, require the fixed release,
+# and build its command package.
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    go mod download github.com/projectdiscovery/katana@v1.8.0 github.com/owasp-amass/amass/v4@v4.2.0 \
+    && katana_src="$(go list -m -f '{{.Dir}}' github.com/projectdiscovery/katana@v1.8.0)" \
+    && cp -a "$katana_src" /tmp/katana-src \
+    && chmod -R u+w /tmp/katana-src \
+    && cd /tmp/katana-src \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/rebuilt/katana ./cmd/katana \
+    && amass_src="$(go list -m -f '{{.Dir}}' github.com/owasp-amass/amass/v4@v4.2.0)" \
+    && cp -a "$amass_src" /tmp/amass-src \
+    && chmod -R u+w /tmp/amass-src \
+    && cd /tmp/amass-src \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/rebuilt/amass ./cmd/amass
+
 FROM --platform=$TARGETPLATFORM rust:1.99-bookworm@sha256:48b7f435b8fc6378ce43b44f15e3a47fd8919b2825f835c39bd4bd3da50af5b8 AS rust-tools
 
 ARG X8_VERSION=4.3.2
@@ -307,17 +346,18 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
 # install the fixed releases from PyPI into the system interpreter. The old
 # dist-info/module trees are deleted so the image inventory reflects the code
 # actually imported (the /usr/local copy precedes /usr/lib on sys.path).
-RUN python3 -m pip install --no-cache-dir --break-system-packages \
-        "pillow==13.0.0" "Brotli==1.2.1" "certifi==2026.10.18" \
-    && rm -rf /usr/lib/python3/dist-packages/PIL /usr/lib/python3/dist-packages/pillow-12.3.0.dist-info \
+RUN rm -rf /usr/lib/python3/dist-packages/PIL /usr/lib/python3/dist-packages/pillow-12.3.0.dist-info /usr/lib/python3/dist-packages/pillow-12.3.0.egg-info \
         /usr/lib/python3/dist-packages/brotli* /usr/lib/python3/dist-packages/Brotli-1.2.0.egg-info \
         /usr/lib/python3/dist-packages/_brotli* /usr/lib/python3/dist-packages/certifi \
         /usr/lib/python3/dist-packages/certifi-2026.7.22.dist-info \
+    && python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed \
+        "pillow==13.0.0" "Brotli==1.2.1" "certifi==2026.10.18" \
     && python3 -c "import PIL, brotli, certifi; assert PIL.__version__ == '13.0.0'"
 
 # Ruby: update the system net-imap gem and replace the vulnerable default zlib
 # spec with the fixed gem. The stdlib extension remains available.
 RUN gem update net-imap --no-document \
+    && rm -rf /usr/lib/ruby/gems/3.3.0/gems/net-imap-0.4.19 /usr/lib/ruby/gems/3.3.0/specifications/net-imap-0.4.19.gemspec \
     && rm -f /usr/lib/ruby/gems/3.3.0/specifications/default/zlib-3.1.1.gemspec \
     && ruby -rzlib -e "puts Zlib::VERSION"
 
@@ -373,24 +413,6 @@ RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
 
 RUN gem install --no-document zsteg -v 0.2.14 \
     && gem install --no-document one_gadget -v 2.1.1
-
-RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
-    set -eu; \
-    build() { version="$1"; shift; CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go install "$@" ; }; \
-    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/lc/gau/v2/cmd/gau@v2.2.4 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/OJ/gobuster/v3@v3.8.2 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/hakluke/hakrawler@v0.0.0-20260805040537-52a16fe61bd1 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/katana/cmd/katana@v1.8.0 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/httpx/cmd/httpx@v1.12.0 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.11.1 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/ffuf/ffuf/v2@v2.3.0 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/tomnomnom/qsreplace@v0.0.3 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.17.0 \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/owasp-amass/amass/v4/cmd/amass@v4.2.0 \
-    && mkdir -p /out/rebuilt \
-    && cp /go/bin/gau /out/rebuilt/getallurls \
-    && cp /go/bin/gobuster /go/bin/hakrawler /go/bin/katana /go/bin/httpx /go/bin/nuclei /go/bin/ffuf /go/bin/qsreplace /go/bin/subfinder /go/bin/amass /out/rebuilt/ \
-    && cd /out/rebuilt && sha256sum * > /out/rebuilt.sha256
 
 COPY --from=go-tools /out/rebuilt/getallurls /usr/bin/getallurls
 COPY --from=go-tools /out/rebuilt/gobuster /usr/bin/gobuster
