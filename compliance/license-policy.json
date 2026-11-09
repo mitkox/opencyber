@@ -212,9 +212,9 @@
     "reviewer": "mitkox-ai",
     "recorded_at": "2026-11-09",
     "basis": "Maintainer direction: unknown-license components are recorded as accepted residual risk for the public beta after removing Oracle Instant Client, Microsoft DIA, Metasploit and oscanner. This disposition is bound to the exact projected component set; any candidate scan whose unknown set differs must be reviewed and this record refreshed before publication.",
-    "count": 1912,
-    "sha256": "e47183728496464e968aca859f345907d0dbdb0f4ba7cdc7a4aed3d6251c1239",
-    "source_scan": "release-evidence/0.5.1-candidate-3378ada-20261029/checks/license-policy.txt projected over sbom/image.cdx.json after vendor removal; retained at .review/reports/u7-projected-license-policy.err",
+    "count": 1852,
+    "sha256": "7cf3b1a3fd51ab6ea62517fce8d209d707baa41a54c75aadf33cc0df90bfccb7",
+    "source_scan": "1.0.0-beta.1 amd64 candidate SBOM rescanned 2026-11-09 with canonical syft arguments and enrich-sbom-licenses.py; list retained in compliance/unknown-license-components.txt",
     "component_list": "compliance/unknown-license-components.txt"
   }
 }
