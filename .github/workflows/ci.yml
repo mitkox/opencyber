@@ -209,7 +209,7 @@ jobs:
           python - <<'PY'
           import json
           catalog = json.load(open("/tmp/catalog.json"))
-          assert len(catalog) == 174, len(catalog)
+          assert len(catalog) == 171, len(catalog)
           print("wheel catalog entries:", len(catalog))
           PY
 
