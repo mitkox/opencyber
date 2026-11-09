@@ -280,7 +280,7 @@ the pull request resolves it.
 ## Pull request process
 
 1. During private beta, accept the maintainer's repository invitation and
-   authenticate with `gh auth login`. Clone with `gh repo clone mitkox-dev/opencyber`.
+   authenticate with `gh auth login`. Clone with `gh repo clone mitkox/opencyber`.
    External beta testers receive **Read** access and can report issues without
    pushing changes. Ask the maintainer for contributor access before submitting
    code. Private forking is disabled for the beta; never copy private source into

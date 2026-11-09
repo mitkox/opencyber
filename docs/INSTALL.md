@@ -1,6 +1,6 @@
 # Installing OpenCyber Harness
 
-The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 is available for Linux amd64. Start with [Beta testing](BETA_TESTING.md) for a
 synthetic first result. The preview is unqualified: native arm64, hardware and
 production acceptance, vendor reviews and license metadata follow-ups remain
@@ -32,7 +32,7 @@ After accepting the repository invitation, download while connected:
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 Outside collaborators with repository **Read access** can download these
@@ -94,7 +94,7 @@ Authenticate and select that source:
 
 ```sh
 gh auth login
-gh repo clone mitkox-dev/opencyber
+gh repo clone mitkox/opencyber
 cd opencyber
 BETA_SOURCE_COMMIT='REPLACE_WITH_FULL_QUALIFIED_COMMIT_FROM_MAINTAINER'
 BETA_PLATFORM_DIGEST='sha256:REPLACE_WITH_QUALIFIED_PLATFORM_DIGEST_FROM_MAINTAINER'
@@ -123,7 +123,7 @@ container it does not manage; uninstall also refuses to purge an unmanaged volum
 
 ```sh
 less install.sh
-OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
+OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
   bash install.sh --version 0.5.0 --digest "$BETA_PLATFORM_DIGEST"
 ```
 
@@ -213,7 +213,7 @@ by the maintainer, or record the current `HEAD` for development:
 
 ```sh
 gh auth login
-gh repo clone mitkox-dev/opencyber
+gh repo clone mitkox/opencyber
 cd opencyber
 git rev-parse HEAD
 python3 -m venv .venv
@@ -305,7 +305,7 @@ For a future **installer-managed qualified candidate**, keep its matching
 source checkout and digest to reinstall it:
 
 ```sh
-OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
+OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
   bash install.sh --version 0.5.0 --digest "$BETA_PLATFORM_DIGEST"
 ```
 

@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-image_repository=${1:-ghcr.io/mitkox-dev/opencyber}
+image_repository=${1:-ghcr.io/mitkox/opencyber}
 version=${2:-0.5.1}
 
 declared_version="$(python3 scripts/check-version-consistency.py --print)"
@@ -16,8 +16,8 @@ if [[ -n "$(git status --porcelain)" ]]; then
   exit 1
 fi
 
-if [[ "$image_repository" != "ghcr.io/mitkox-dev/opencyber" ]]; then
-  echo "error: the signed release workflow publishes ghcr.io/mitkox-dev/opencyber" >&2
+if [[ "$image_repository" != "ghcr.io/mitkox/opencyber" ]]; then
+  echo "error: the signed release workflow publishes ghcr.io/mitkox/opencyber" >&2
   exit 1
 fi
 
@@ -28,9 +28,9 @@ fi
 
 ref=$(git symbolic-ref --quiet --short HEAD || git rev-parse HEAD)
 gh workflow run build-candidate.yml \
-  --repo mitkox-dev/opencyber \
+  --repo mitkox/opencyber \
   --ref "$ref" \
   --field "version=$version"
 
 echo "dispatched candidate validation for $image_repository:$version; publication requires a selected qualified software run; hardware evidence is optional (docs/RELEASE.md)"
-echo "watch it with: gh run list --repo mitkox-dev/opencyber --workflow build-candidate.yml"
+echo "watch it with: gh run list --repo mitkox/opencyber --workflow build-candidate.yml"

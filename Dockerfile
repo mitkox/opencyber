@@ -28,7 +28,7 @@
 #     --tmpfs /root/.config --tmpfs /root/.cache \
 #     --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
 #     -v opencyber-workspace:/workspace \
-#     ghcr.io/mitkox-dev/opencyber:0.5.0
+#     ghcr.io/mitkox/opencyber:0.5.0
 #
 # The /root/.config and /root/.cache tmpfs mounts are required under a read-only
 # rootfs: Chromium's crashpad handler aborts with
@@ -496,8 +496,8 @@ RUN set -eux; \
 
 LABEL org.opencontainers.image.title="OpenCyber Harness" \
       org.opencontainers.image.description="Security MCP toolkit for authorized red and blue team work" \
-      org.opencontainers.image.source="https://github.com/mitkox-dev/opencyber" \
-      org.opencontainers.image.url="https://github.com/mitkox-dev/opencyber" \
+      org.opencontainers.image.source="https://github.com/mitkox/opencyber" \
+      org.opencontainers.image.url="https://github.com/mitkox/opencyber" \
       org.opencontainers.image.version="${OPENCYBER_VERSION}" \
       com.opencyber.harness.version="${OPENCYBER_VERSION}" \
       org.opencontainers.image.licenses="Apache-2.0 AND LicenseRef-OpenCyber-Third-Party" \

@@ -1,6 +1,6 @@
 # Vendor terms and unresolved beta reviews
 
-The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 retains Oracle connectivity and optional Microsoft PDB analysis. The maintainer
 chose a full-toolkit preview for a small invited group, with vendor reviews
 still pending. It is **unqualified**. No accepted vendor agreement, signature,

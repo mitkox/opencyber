@@ -294,7 +294,7 @@ no earlier public version to recommend as a rollback target.
 3. Re-run the installer with the new version or digest:
 
    ```sh
-   OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
+   OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
    bash install.sh --version 0.5.0 --digest BETA_PLATFORM_DIGEST
    ```
 

@@ -1,8 +1,8 @@
 # Manage private beta access
 
 The complete reviewed OpenCyber source and the published
-[v0.5.0-private-beta.1 full-toolkit amd64 preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
-are in the same private [`mitkox-dev/opencyber`](https://github.com/mitkox-dev/opencyber)
+[v0.5.0-private-beta.1 full-toolkit amd64 preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
+are in the same private [`mitkox/opencyber`](https://github.com/mitkox/opencyber)
 repository. A repository **Read** invitation exposes both the source and all
 private release assets, including the image and source/compliance bundles.
 GitHub Releases cannot restrict those assets separately from repository Read.
@@ -36,21 +36,21 @@ is required by the organization, testers must enable it before accepting.
 The equivalent authenticated maintainer command is:
 
 ```sh
-gh api --method PUT repos/mitkox-dev/opencyber/collaborators/GITHUB_USERNAME \
+gh api --method PUT repos/mitkox/opencyber/collaborators/GITHUB_USERNAME \
   -f permission=pull
 ```
 
 `pull` is GitHub's API permission for the Read role. Confirm pending invitations:
 
 ```sh
-gh api repos/mitkox-dev/opencyber/invitations \
+gh api repos/mitkox/opencyber/invitations \
   --jq '.[] | {login: .invitee.login, permissions}'
 ```
 
 After acceptance, verify the effective role:
 
 ```sh
-gh api repos/mitkox-dev/opencyber/collaborators/GITHUB_USERNAME/permission \
+gh api repos/mitkox/opencyber/collaborators/GITHUB_USERNAME/permission \
   --jq '{login: .user.login, permission, role_name}'
 ```
 
@@ -75,7 +75,7 @@ authenticated GitHub account:
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 No GHCR permission or Docker registry login is needed. Carry the complete
@@ -105,7 +105,7 @@ unresolved for the current preview; they are not enforced by its same-repository
 release access.
 
 The candidate workflow's private organization package is
-`ghcr.io/mitkox-dev/opencyber-beta-candidates`. Keep inheritance from the source
+`ghcr.io/mitkox/opencyber-beta-candidates`. Keep inheritance from the source
 repository disabled. [GitHub limits direct access grants for private organization packages](https://docs.github.com/en/packages/learn-github-packages/configuring-a-packages-access-control-and-visibility)
 to organization members or teams, so direct package Read for an outside
 collaborator is not an established delivery path. The current preview uses

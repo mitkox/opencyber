@@ -24,7 +24,7 @@ Hardware inventory is useful only for a device-related report. MCP server
 stderr belongs to the client's server log; `docker logs` does not capture a
 separate `docker exec` session's stderr.
 
-The current delivery is the private [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1).
+The current delivery is the private [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1).
 Repository **Read** access includes its assets; this delivery needs no GHCR
 permission. Follow [Beta testing](BETA_TESTING.md) to download all 38 assets,
 transfer the complete directory and run `bash beta-import.sh`. The helper

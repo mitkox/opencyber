@@ -11,7 +11,7 @@ Use synthetic evidence first, separate workspace volumes, no host-directory
 mounts or devices, and the network-disabled profile below. Keep tokens outside
 the backend; tool results can still reach the tester's chosen model provider.
 
-The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 is available for **Linux amd64**. The maintainer adds beta testers; accept the
 private repository invitation before downloading. Use an owned lab and
 synthetic evidence.
@@ -39,13 +39,13 @@ inventory and captured gate results for the recorded limits.
   `docker info`. This preview is not an arm64 image.
 - Bash and Python 3 on the Docker host. GitHub CLI (`gh`) is needed only on
   the connected download machine.
-- Read access to `mitkox-dev/opencyber` and all 38 private release assets
+- Read access to `mitkox/opencyber` and all 38 private release assets
   (13,310,405,014 bytes, about 13.3 GB). Allow additional space for the assembled
   image archive, Docker's expanded image, evidence and any source assembly.
 - An MCP client that can launch a local stdio server. OpenCyber supplies tools;
   the client supplies the agent and model.
 
-The repository belongs to the `mitkox-dev` organization. External beta testers
+The repository belongs to the `mitkox` organization. External beta testers
 join as **outside collaborators with Read access**. You can browse, clone and
 download the complete reviewed source, read documentation and report issues;
 you cannot push or change repository settings. Organization membership is not
@@ -66,7 +66,7 @@ Authenticate with the GitHub account that received the invitation:
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 For an offline machine, transfer the **whole `opencyber-beta` folder**. Keep
@@ -242,7 +242,7 @@ Read [PoC chains](POC_CHAINS.md) before using approval-gated execution.
 
 ## 4. Send a useful report
 
-Use the private repository's [bug report form](https://github.com/mitkox-dev/opencyber/issues/new/choose)
+Use the private repository's [bug report form](https://github.com/mitkox/opencyber/issues/new/choose)
 for ordinary defects. Other invited collaborators may read those reports.
 Email suspected vulnerabilities or conduct concerns privately to
 [tech@mitkox.com](mailto:tech@mitkox.com); follow [Security](../SECURITY.md)

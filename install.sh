@@ -3,7 +3,7 @@
 set -Eeuo pipefail
 
 readonly DEFAULT_VERSION="0.5.1"
-readonly DEFAULT_IMAGE="ghcr.io/mitkox-dev/opencyber"
+readonly DEFAULT_IMAGE="ghcr.io/mitkox/opencyber"
 readonly DEFAULT_CONTAINER="opencyber"
 readonly DEFAULT_VOLUME="opencyber-workspace"
 readonly MANAGED_LABEL="com.opencyber.harness.managed"
@@ -178,7 +178,7 @@ fi
 if [[ "$verify_attestation" == true ]]; then
   require_command gh
   log "verifying the build attestation for ${image}"
-  gh attestation verify "oci://${image}" --repo mitkox-dev/opencyber
+  gh attestation verify "oci://${image}" --repo mitkox/opencyber
 fi
 
 if [[ "$offline" == true ]]; then

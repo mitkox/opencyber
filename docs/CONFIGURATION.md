@@ -278,7 +278,7 @@ These are consumed by `install.sh` and `scripts/opencyber-run.sh`; they are not 
 | --- | --- | --- | --- |
 | `OPENCYBER_VERSION` | `install.sh` | `0.5.0` | Release to install. Must match `X.Y.Z` and the image's `com.opencyber.harness.version` label. |
 | `OPENCYBER_DIGEST` | `install.sh` | empty | Pin the image by digest (`sha256:` plus 64 lowercase hex characters). Equivalent to `--digest`; the command-line option wins when both are supplied. |
-| `OPENCYBER_IMAGE` | `install.sh`, `scripts/opencyber-run.sh` | `ghcr.io/mitkox-dev/opencyber` (installer); `opencyber:0.5.0` (launcher) | Image repository or reference. |
+| `OPENCYBER_IMAGE` | `install.sh`, `scripts/opencyber-run.sh` | `ghcr.io/mitkox/opencyber` (installer); `opencyber:0.5.0` (launcher) | Image repository or reference. |
 | `OPENCYBER_CONTAINER_NAME` | `install.sh`, `scripts/opencyber-run.sh` | `opencyber` | Container name. |
 | `OPENCYBER_VOLUME_NAME` | `install.sh`, `scripts/opencyber-run.sh` | `opencyber-workspace` | Docker volume mounted as the workspace. |
 | `OPENCYBER_WORKSPACE_PATH` | `scripts/opencyber-run.sh` only | `/workspace` | Container-side mount target for the workspace volume. It does not set `OPENCYBER_WORKSPACE` inside the container. |

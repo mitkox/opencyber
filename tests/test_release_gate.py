@@ -127,17 +127,17 @@ class ReleaseGateTests(unittest.TestCase):
                 gate.verify_staging("owner/staging", "ghcr.io/owner/staging:bootstrap")
             probe.assert_not_called()
 
-    def test_organization_staging_uses_organization_package_metadata(self):
+    def test_user_staging_uses_user_package_metadata(self):
         def metadata(*args):
-            if args != ("gh", "api", "orgs/mitkox-dev/packages/container/opencyber-beta-candidates"):
+            if args != ("gh", "api", "users/mitkox/packages/container/opencyber-beta-candidates"):
                 raise subprocess.CalledProcessError(404, args)
             return b'{"visibility":"private"}'
 
         with patch.object(gate, "command", side_effect=metadata), patch.object(
             gate.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, "", "unauthorized")
         ):
-            gate.verify_staging("mitkox-dev/opencyber-beta-candidates",
-                                "ghcr.io/mitkox-dev/opencyber-beta-candidates:bootstrap")
+            gate.verify_staging("mitkox/opencyber-beta-candidates",
+                                "ghcr.io/mitkox/opencyber-beta-candidates:bootstrap")
 
     def test_network_failure_does_not_prove_staging_privacy(self):
         with patch.object(gate, "command", return_value=b'{"visibility":"private"}'), patch.object(

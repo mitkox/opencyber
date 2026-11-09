@@ -1,6 +1,6 @@
 # Offline and airgapped beta use
 
-The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 supplies the full toolkit for native **Linux amd64**. Its frozen source is
 `c1201976caf49c45068bb507032aee75e4509e20`, and its local image tag is
 `opencyber:0.5.0-private-beta.1-amd64`. It is an **unqualified private preview**:
@@ -17,7 +17,7 @@ After accepting the maintainer's repository Read invitation, download all
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 Carry the **whole directory** to the offline host, including all 14 numbered
@@ -101,7 +101,7 @@ tag or source snapshot. A local build is a development artifact.
 
 ```sh
 gh auth login
-gh repo clone mitkox-dev/opencyber
+gh repo clone mitkox/opencyber
 cd opencyber
 git switch --detach BETA_SOURCE_COMMIT
 docker build --provenance=false -t opencyber:0.5.0 .

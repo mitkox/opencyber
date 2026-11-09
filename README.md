@@ -2,7 +2,7 @@
 A container-native red and blue team security MCP toolkit for agent runtimes.</p>
 
 > **0.5.0 has an invited-tester private preview for Linux amd64.** Download
-> [v0.5.0-private-beta.1](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+> [v0.5.0-private-beta.1](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 > with repository Read access. This preview is unqualified; native arm64,
 > hardware and production acceptance remain open. Public publication and
 > broader distribution require separate approval.
@@ -12,7 +12,7 @@ published `v0.5.0-private-beta.1` preview remains unchanged and does not include
 those fixes. A new image has not been cleared for sharing.
 
 **Beta testers: start with the [beta guide](docs/BETA_TESTING.md).**
-External testers receive Read access to `mitkox-dev/opencyber`; maintainers
+External testers receive Read access to `mitkox/opencyber`; maintainers
 manage invitations using the [beta access guide](docs/BETA_ACCESS.md). The beta
 guide covers the published archive, MCP client setup and a synthetic first
 exercise. The preview includes the full toolkit, including Oracle tooling and
@@ -68,7 +68,7 @@ maintainer's repository invitation, download all release assets while connected:
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 cd opencyber-beta
 ```
 

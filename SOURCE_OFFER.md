@@ -18,7 +18,7 @@ Any longer period required by an applicable component license remains in effect.
 
 During the private beta, request the corresponding source bundle from
 [tech@mitkox.com](mailto:tech@mitkox.com), or open an issue in the private
-[repository](https://github.com/mitkox-dev/opencyber/issues) if you have access, with:
+[repository](https://github.com/mitkox/opencyber/issues) if you have access, with:
 
 - the title `Corresponding source request`;
 - the image reference and immutable identity (the private preview's image ID,
@@ -38,14 +38,14 @@ the licenses of the components they receive.
 ## Published private preview source
 
 Invited repository readers can obtain the exact source and image bundle from
-[v0.5.0-private-beta.1](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1).
+[v0.5.0-private-beta.1](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1).
 Download all 38 assets, about 13.3 GB, while connected and carry the complete
 directory for airgapped use:
 
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 `opencyber-source-c120197.tar.gz` is the complete first-party source snapshot
@@ -95,7 +95,7 @@ repository access.
   notices and source coverage. WPScan retains its unmodified custom license and
   copyright notices; this offer does not confer commercial or database rights.
 - For future public releases, those payloads and manifests will be publicly
-  downloadable [release assets](https://github.com/mitkox-dev/opencyber/releases)
+  downloadable [release assets](https://github.com/mitkox/opencyber/releases)
   for each published version.
 - Build the Docker `corresponding-source` target with the same platform and
   arguments as the runtime to capture exact Kali source archives, Debian

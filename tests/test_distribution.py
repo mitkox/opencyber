@@ -148,7 +148,7 @@ class DistributionComplianceTests(unittest.TestCase):
         self.assertIn("sbom-path:", PUBLISH_WORKFLOW)
         self.assertIn("push-to-registry: true", PUBLISH_WORKFLOW)
         self.assertIn("LicenseRef-OpenCyber-Third-Party", DOCKERFILE)
-        self.assertIn("IMAGE_NAME: mitkox-dev/opencyber", PUBLISH_WORKFLOW)
+        self.assertIn("IMAGE_NAME: mitkox/opencyber", PUBLISH_WORKFLOW)
 
     def test_release_workflow_verifies_version_compliance_and_signatures(self) -> None:
         self.assertIn("scripts/check-version-consistency.py --print", PUBLISH_WORKFLOW)
