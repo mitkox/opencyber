@@ -32,7 +32,7 @@ class DistributionComplianceTests(unittest.TestCase):
     def test_downloaded_assets_are_checksum_verified(self) -> None:
         self.assertIn("NUCLEI_TEMPLATES_SHA256", DOCKERFILE)
         self.assertIn("/out/yq /usr/local/bin/yq", DOCKERFILE)
-        self.assertEqual(DOCKERFILE.count("sha256sum -c -"), 1)
+        self.assertEqual(DOCKERFILE.count("sha256sum -c -"), 2)
         self.assertIn("ADD --checksum=sha256:", DOCKERFILE)
 
     def test_restricted_packages_are_not_installed(self) -> None:
@@ -90,7 +90,6 @@ class DistributionComplianceTests(unittest.TestCase):
             "bladerf",
             "ubertooth",
             "bluez",
-            "bettercap",
             "hcxdumptool",
             "proxmark3",
             "libnfc-bin",

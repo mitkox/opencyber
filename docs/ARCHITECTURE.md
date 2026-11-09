@@ -15,7 +15,7 @@ flowchart LR
 
   subgraph Container["OpenCyber container - root, trust boundary"]
     Server["opencyber-mcp<br/>MCPServer over stdio"]
-    Registry["tool registry<br/>172 executable-backed<br/>82 native"]
+    Registry["tool registry<br/>171 executable-backed<br/>82 native"]
     Contract["authority and result envelope"]
     Results["optional result retention"]
     Executor["executor.py<br/>direct exec, no shell"]
@@ -54,7 +54,7 @@ The client sends JSON-RPC over the stdin/stdout of a `docker exec` process. The 
 | `limits.py` | Named resource ceilings with units, bounds, source, setting or parameter, recovery, and what they do not raise. |
 | `catalog_identity.py` | Deterministic catalog projection, per-tool and set-level SHA-256, and alignment between the advertised and recorded contract. |
 | `result_store.py` | Optional result retention (`off`/`digest`/`full`), the evidence index, `oc_result_get`, and `oc_result_list`. |
-| `catalog.py` | Declarative `TOOL_GROUPS` inventory. Builds the 172-entry executable-backed catalog and category counts. |
+| `catalog.py` | Declarative `TOOL_GROUPS` inventory. Builds the 171-entry executable-backed catalog and category counts. |
 | `diagnostics.py` | Derived native-tool inventory, self-test, the check-based doctor report, and human-readable report formatting. |
 | `executor.py` | Validates argv, applies scope and offline decisions, executes without a shell under a named deadline and per-stream output cap, captures output, audits the call, and terminates process groups on cancellation. |
 | `execution_tools.py` | Implements `oc_bash` and `oc_python` on top of the executor. |
@@ -82,26 +82,26 @@ The client sends JSON-RPC over the stdin/stdout of a `docker exec` process. The 
 The count is fixed at import time:
 
 ```text
-172 executable-backed tools (CATALOG)
+171 executable-backed tools (CATALOG)
 + 82 native tools (contract registry)
-= 254 advertised MCP tools in full mode
+= 253 advertised MCP tools in full mode
 ```
 
-1. `catalog.build_catalog()` walks `TOOL_GROUPS`, normalizes each slug to `oc_<name>`, rejects duplicate names, and freezes the 172-entry `CATALOG`. Each entry carries a name, executable, category, and description.
+1. `catalog.build_catalog()` walks `TOOL_GROUPS`, normalizes each slug to `oc_<name>`, rejects duplicate names, and freezes the 171-entry `CATALOG`. Each entry carries a name, executable, category, and description.
 2. `_registered_catalog()` in `server.py` applies the mode and category filter once, at module import:
    - `OPENCYBER_MCP_MODE=compact` returns an empty selection.
    - Otherwise, `OPENCYBER_TOOL_CATEGORIES` selects executable categories. An unknown category raises a `ValueError`, so the server fails to start instead of silently advertising a smaller set.
-   - With neither variable set, all 172 entries are selected.
+   - With neither variable set, all 171 entries are selected.
 3. Every selected catalog entry is registered as an MCP tool with one shared async wrapper and one shared input schema: `engagement_id`, `arguments`, `working_directory`, and `stdin`.
 4. The 82 native tools are registered explicitly with `@mcp.tool`. `contracts.CONTRACTS` is the single source of truth for their names, groups, task shape, effects, and scope; `diagnostics.FIXED_TOOL_CATEGORIES` is derived from it, and a binding pass attaches the declared contract and the result envelope to every registered tool. Tests compare the registry against the live tool manager and fail when either side has an extra name.
-5. `oc_catalog` reads the full `CATALOG` plus the live MCPServer tool manager. It reports both `external_tool_count` (172) and `registered_external_tool_count` (the selected subset), plus the catalog digest and the advertised payload size, so compact and filtered modes remain discoverable and provable.
+5. `oc_catalog` reads the full `CATALOG` plus the live MCPServer tool manager. It reports both `external_tool_count` (171) and `registered_external_tool_count` (the selected subset), plus the catalog digest and the advertised payload size, so compact and filtered modes remain discoverable and provable.
 6. `catalog_identity` projects every advertised tool into a deterministic, digested view that is recorded in `src/opencyber/data/catalog.json`. `make catalog-check` fails when the recorded contract is stale, and a running server compares what it advertises with the recorded digest. See [CONTRACTS.md](CONTRACTS.md).
 
 Mode arithmetic:
 
 | Mode | Executable-backed advertised | Native advertised | Total |
 | --- | ---: | ---: | ---: |
-| Full | 172 | 82 | 254 |
+| Full | 171 | 82 | 253 |
 | Compact | 0 | 82 | 82 |
 | Category filter | Selected categories | 82 | 82 plus selection |
 

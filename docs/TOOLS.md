@@ -2,10 +2,10 @@
 
 # Tool reference
 
-OpenCyber Harness 1.0.0-beta.1 exposes **254 MCP tools**:
-172 executable-backed tools and 82 native tools.
+OpenCyber Harness 1.0.0-beta.1 exposes **253 MCP tools**:
+171 executable-backed tools and 82 native tools.
 
-Contract digest: `824ba7cd37e955829e25591adcb26f5052b5c1b2d47c2dd5ce170dd766a71f3b`. A running server reports the digest it
+Contract digest: `d1fb0fec454e3c637c4ebc107afc15cedaca0b3e1e193c9377631b8feed45281`. A running server reports the digest it
 actually advertises with `oc_catalog`, so a stale container or a modified
 registration is detectable. Pass `expected_catalog_digest` to `oc_catalog`
 to pin the contract a client was built against.
@@ -31,7 +31,7 @@ the advertised executable set; it has no effect in compact mode.
 
 | Task shape | Tools |
 | --- | ---: |
-| `execute` | 176 |
+| `execute` | 175 |
 | `inspect` | 41 |
 | `manage` | 15 |
 | `observe` | 9 |
@@ -40,11 +40,11 @@ the advertised executable set; it has no effect in compact mode.
 
 | Effect | Tools |
 | --- | ---: |
-| `device` | 75 |
-| `filesystem` | 227 |
-| `mutation` | 211 |
-| `network` | 126 |
-| `process` | 195 |
+| `device` | 74 |
+| `filesystem` | 226 |
+| `mutation` | 210 |
+| `network` | 125 |
+| `process` | 194 |
 | `secret` | 5 |
 
 ## Executable-backed tools
@@ -75,9 +75,9 @@ Every call runs under a named deadline and per-stream output cap; see
 | utilities | 2 |
 | web | 31 |
 | wireless | 5 |
-| wireless_attack (hardware) | 15 |
+| wireless_attack (hardware) | 14 |
 
-**Total: 172**
+**Total: 171**
 
 ### automotive
 
@@ -330,7 +330,6 @@ Every call runs under a named deadline and per-stream output cap; see
 
 | Tool | Executable | Description |
 | --- | --- | --- |
-| `oc_bettercap` | `bettercap` | Run bettercap from the OpenCyber wireless attack toolkit. The container executes `bettercap` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_bluetoothctl` | `bluetoothctl` | Run bluetoothctl from the OpenCyber wireless attack toolkit. The container executes `bluetoothctl` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_btmgmt` | `btmgmt` | Run btmgmt from the OpenCyber wireless attack toolkit. The container executes `btmgmt` directly with the supplied argv tokens; shell parsing is never used. |
 | `oc_btmon` | `btmon` | Run btmon from the OpenCyber wireless attack toolkit. The container executes `btmon` directly with the supplied argv tokens; shell parsing is never used. |

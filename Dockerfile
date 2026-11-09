@@ -147,14 +147,12 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
     && apt-get install -y --no-install-recommends \
         /tmp/opencyber-offline-wordlists.deb \
         aircrack-ng \
-        amass \
         apktool \
         arjun \
         arp-scan \
         autorecon \
         autopsy \
         avrdude \
-        bettercap \
         binutils \
         binwalk \
         bladerf \
@@ -179,35 +177,29 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         evil-winrm \
         exploitdb \
         feroxbuster \
-        ffuf \
         fierce \
         file \
         flashrom \
         foremost \
         gdb \
         gdb-multiarch \
-        getallurls \
         gpsd \
         gpsd-clients \
         ghidra \
         git \
-        gobuster \
         hackrf \
-        hakrawler \
         hash-identifier \
         hashcat \
         hashcat-utils \
         hcxdumptool \
         hcxtools \
         httpie \
-        httpx-toolkit \
         hydra \
         iproute2 \
         iw \
         jadx \
         john \
         jq \
-        katana \
         kismet \
         libcap2-bin \
         libimage-exiftool-perl \
@@ -229,7 +221,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         netexec \
         nikto \
         nmap \
-        nuclei \
         nodejs \
         node-playwright \
         openocd \
@@ -259,7 +250,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         python3-venv \
         qemu-system-arm \
         qemu-user \
-        qsreplace \
         radare2 \
         recon-ng \
         reaver \
@@ -284,7 +274,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         sqlmap \
         steghide \
         stlink-tools \
-        subfinder \
         tcpdump \
         testdisk \
         theharvester \
@@ -313,6 +302,33 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
     && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Remove the distro Python copies that still carry fixed critical advisories;
+# install the fixed releases from PyPI into the system interpreter. The old
+# dist-info/module trees are deleted so the image inventory reflects the code
+# actually imported (the /usr/local copy precedes /usr/lib on sys.path).
+RUN python3 -m pip install --no-cache-dir --break-system-packages \
+        "pillow==13.0.0" "Brotli==1.2.1" "certifi==2026.10.18" \
+    && rm -rf /usr/lib/python3/dist-packages/PIL /usr/lib/python3/dist-packages/pillow-12.3.0.dist-info \
+        /usr/lib/python3/dist-packages/brotli* /usr/lib/python3/dist-packages/Brotli-1.2.0.egg-info \
+        /usr/lib/python3/dist-packages/_brotli* /usr/lib/python3/dist-packages/certifi \
+        /usr/lib/python3/dist-packages/certifi-2026.7.22.dist-info \
+    && python3 -c "import PIL, brotli, certifi; assert PIL.__version__ == '13.0.0'"
+
+# Ruby: update the system net-imap gem and replace the vulnerable default zlib
+# spec with the fixed gem. The stdlib extension remains available.
+RUN gem update net-imap --no-document \
+    && rm -f /usr/lib/ruby/gems/3.3.0/specifications/default/zlib-3.1.1.gemspec \
+    && ruby -rzlib -e "puts Zlib::VERSION"
+
+# Ghidra's optional server bundle and crypto library: drop the unused server
+# netty jars and replace the vulnerable Bouncy Castle jar with the fixed release.
+RUN rm -rf /usr/share/ghidra/Ghidra/Features/GhidraServer/data/yajsw-stable-13.18/lib/core/netty \
+    && curl -fsSL -o /tmp/bcprov-jdk18on-1.85.jar \
+        https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk18on/1.85/bcprov-jdk18on-1.85.jar \
+    && echo "20af26bf6060bb8005cc2389916812c1e0e998dc48d2ced7131b89461b54cff7  /tmp/bcprov-jdk18on-1.85.jar" | sha256sum -c - \
+    && cp /tmp/bcprov-jdk18on-1.85.jar /usr/share/ghidra/Ghidra/Framework/Generic/lib/bcprov-jdk18on-1.84.jar \
+    && rm /tmp/bcprov-jdk18on-1.85.jar
 
 # Kali adds file capabilities to Nmap. They can exceed a hardened container's
 # bounding set and make exec fail with EPERM, even for --version. The launcher
@@ -358,6 +374,34 @@ RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
 RUN gem install --no-document zsteg -v 0.2.14 \
     && gem install --no-document one_gadget -v 2.1.1
 
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    build() { version="$1"; shift; CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go install "$@" ; }; \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/lc/gau/v2/cmd/gau@v2.2.4 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/OJ/gobuster/v3@v3.8.2 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/hakluke/hakrawler@v0.0.0-20260805040537-52a16fe61bd1 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/katana/cmd/katana@v1.8.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/httpx/cmd/httpx@v1.12.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.11.1 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/ffuf/ffuf/v2@v2.3.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/tomnomnom/qsreplace@v0.0.3 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.17.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/owasp-amass/amass/v4/cmd/amass@v4.2.0 \
+    && mkdir -p /out/rebuilt \
+    && cp /go/bin/gau /out/rebuilt/getallurls \
+    && cp /go/bin/gobuster /go/bin/hakrawler /go/bin/katana /go/bin/httpx /go/bin/nuclei /go/bin/ffuf /go/bin/qsreplace /go/bin/subfinder /go/bin/amass /out/rebuilt/ \
+    && cd /out/rebuilt && sha256sum * > /out/rebuilt.sha256
+
+COPY --from=go-tools /out/rebuilt/getallurls /usr/bin/getallurls
+COPY --from=go-tools /out/rebuilt/gobuster /usr/bin/gobuster
+COPY --from=go-tools /out/rebuilt/hakrawler /usr/bin/hakrawler
+COPY --from=go-tools /out/rebuilt/katana /usr/bin/katana
+COPY --from=go-tools /out/rebuilt/httpx /usr/bin/httpx-toolkit
+COPY --from=go-tools /out/rebuilt/nuclei /usr/bin/nuclei
+COPY --from=go-tools /out/rebuilt/ffuf /usr/bin/ffuf
+COPY --from=go-tools /out/rebuilt/qsreplace /usr/bin/qsreplace
+COPY --from=go-tools /out/rebuilt/subfinder /usr/bin/subfinder
+COPY --from=go-tools /out/rebuilt/amass /usr/bin/amass
 COPY --from=go-tools /out/anew /usr/local/bin/anew
 COPY --from=go-tools /out/urlfinder /usr/local/bin/urlfinder
 COPY --from=go-tools /out/subzy /usr/local/bin/subzy
@@ -485,7 +529,7 @@ RUN set -eux; \
     test "$(nuclei -tl -silent 2>/dev/null | wc -l)" -gt 1000; \
     for binary in hackrf_info hackrf_transfer hackrf_sweep rtl_sdr rtl_test rtl_power rtl_433 \
         SoapySDRUtil LimeUtil bladeRF-cli ubertooth-util ubertooth-rx ubertooth-scan \
-        iw iwconfig wifite hcxdumptool hcxpcapngtool reaver bully pixiewps mdk4 cowpatty bettercap \
+        iw iwconfig wifite hcxdumptool hcxpcapngtool reaver bully pixiewps mdk4 cowpatty \
         bluetoothctl btmon hcitool btmgmt proxmark3 nfc-list nfc-poll nfc-mfclassic mfoc mfcuk pcsc_scan \
         lsusb usbguard openocd jtag avrdude dfu-util esptool st-info st-flash minicom picocom screen \
         flashrom sigrok-cli qemu-arm qemu-system-arm gdb-multiarch unblob \

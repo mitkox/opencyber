@@ -46,9 +46,9 @@ class ManifestTests(unittest.TestCase):
         assert manifest is not None
         self.assertEqual(manifest["schema_version"], 1)
         self.assertEqual(manifest["contract_schema_version"], 1)
-        self.assertEqual(manifest["counts"]["by_kind"], {"executable": 172, "native": 82})
-        self.assertEqual(manifest["counts"]["total"], 254)
-        self.assertEqual(len(manifest["tools"]), 254)
+        self.assertEqual(manifest["counts"]["by_kind"], {"executable": 171, "native": 82})
+        self.assertEqual(manifest["counts"]["total"], 253)
+        self.assertEqual(len(manifest["tools"]), 253)
         names = [entry["name"] for entry in manifest["tools"]]
         self.assertEqual(names, sorted(names))
         for entry in manifest["tools"]:

@@ -198,7 +198,6 @@ TOOL_GROUPS: dict[str, tuple[tuple[str, str], ...]] = {
         ("pixiewps", "pixiewps"),
         ("mdk4", "mdk4"),
         ("cowpatty", "cowpatty"),
-        ("bettercap", "bettercap"),
         ("bluetoothctl", "bluetoothctl"),
         ("btmon", "btmon"),
         ("hcitool", "hcitool"),
