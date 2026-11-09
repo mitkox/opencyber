@@ -24,7 +24,7 @@ Hardware inventory is useful only for a device-related report. MCP server
 stderr belongs to the client's server log; `docker logs` does not capture a
 separate `docker exec` session's stderr.
 
-The current delivery is the private [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1).
+The current delivery is the private [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1).
 Repository **Read** access includes its assets; this delivery needs no GHCR
 permission. Follow [Beta testing](BETA_TESTING.md) to download all 38 assets,
 transfer the complete directory and run `bash beta-import.sh`. The helper
@@ -86,8 +86,8 @@ Hardware `tooling_ready` domains are not doctor problems. A software-only contai
 ## Architecture mismatch
 
 The published preview contains **Linux amd64 only**. Use native amd64 for
-beta testing; arm64 and emulated operation are unqualified. A future qualified
-release requires separate native amd64 and arm64 acceptance.
+beta testing; emulated operation is unqualified. A future qualified
+release requires native amd64 acceptance.
 
 ```sh
 docker info --format '{{.Architecture}}'
@@ -371,7 +371,7 @@ seconds. A cap or timeout means the result can be partial; inspect `coverage`,
 | `volume '<name>' exists but is not managed by this installer.` | `--purge-workspace` found an unlabeled volume. | Remove it yourself only after confirming it is not needed, or leave it in place. |
 | `image version label is '<x>', but <v> was requested.` | The tag points to a different version, or a digest/tag pair is mismatched. | Use the matching `--version` and `--digest`. |
 | `Docker is installed but its daemon is not available.` | The daemon is stopped or the socket is inaccessible. | Start Docker and fix socket permissions. |
-| `unsupported Docker architecture ...` | The daemon architecture is neither amd64 nor arm64. | Use a supported host. |
+| `unsupported Docker architecture ...` | The daemon architecture is not amd64. | Use a linux/amd64 host. |
 | `--verify-attestation requires network access and cannot be combined with --offline.` | Two incompatible modes. | Verify before transfer; install offline without attestation. |
 | Upgrade left a `<name>-rollback-<epoch>` container | The new install failed and the trap could not complete, or a previous run was interrupted. | Inspect both containers, start the rollback one if needed, then remove the failed container. |
 | Container is running but unhealthy | Doctor found a degraded image or a required asset changed. | Run `opencyber-doctor --json`; do not treat a running process as a healthy harness. |

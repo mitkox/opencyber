@@ -2,7 +2,10 @@
 
 from __future__ import annotations
 
+from contextlib import contextmanager
 from datetime import datetime, timezone
+import fcntl
+from functools import wraps
 from http.cookiejar import Cookie
 import json
 from pathlib import Path
@@ -14,8 +17,9 @@ import uuid
 
 from .audit import safe_record
 from .engagements import get_engagement, resolve_engagement_path
-from .http_client import resolve_timeout
-from .policy import enforce_url_scope
+from .errors import OcError
+from .http_client import bounded_response, request_errors, resolve_timeout
+from .policy import canonical_http_url, credential_boundary_changed, enforce_url_scope
 
 
 HTTP_SESSION_PATTERN = re.compile(r"http_\d{8}_[0-9a-f]{32}")
@@ -52,6 +56,28 @@ def _write_state(engagement_id: str, state: dict[str, Any]) -> None:
     temporary = path.with_suffix(".json.tmp")
     temporary.write_text(json.dumps(state, indent=2, sort_keys=True) + "\n", encoding="utf-8")
     temporary.replace(path)
+
+
+@contextmanager
+def _session_lock(engagement_id: str, session_id: str):
+    """Serialize read-modify-write cycles for one workbench session."""
+    path = _session_path(engagement_id, session_id).with_suffix(".lock")
+    handle = path.open("a+")
+    try:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_EX)
+        yield
+    finally:
+        fcntl.flock(handle.fileno(), fcntl.LOCK_UN)
+        handle.close()
+
+
+def _session_locked(function):
+    @wraps(function)
+    def wrapper(engagement_id: str, session_id: str, *args: Any, **kwargs: Any):
+        with _session_lock(engagement_id, session_id):
+            return function(engagement_id, session_id, *args, **kwargs)
+
+    return wrapper
 
 
 def _load_state(engagement_id: str, session_id: str) -> dict[str, Any]:
@@ -183,6 +209,7 @@ def get_http_session(engagement_id: str, session_id: str) -> dict[str, Any]:
     return {**_public_state(state), "history_count": history_count}
 
 
+@_session_locked
 def update_http_session(
     engagement_id: str,
     session_id: str,
@@ -288,7 +315,11 @@ def repeat_http_request(
     absolute_url, merged_headers, body = _apply_rules(state, absolute_url, merged_headers, body)
     enforce_url_scope(engagement_id, absolute_url, tool="oc_http_repeater")
     if not _is_in_scope(state, absolute_url):
-        raise ValueError(f"request is outside declared HTTP session scope: {absolute_url}")
+        raise OcError(
+            "scope_denied",
+            f"request is outside declared HTTP session scope: {absolute_url}",
+            details={"url": absolute_url, "session_id": session_id},
+        )
     started = time.monotonic()
     client = requests.Session()
     cookie_jar = _restore_cookies(state)
@@ -299,15 +330,19 @@ def repeat_http_request(
     suppress_cookies = False
     while True:
         client.cookies = requests.cookies.RequestsCookieJar() if suppress_cookies else _cookies_for_host(cookie_jar, current_url)
-        response = client.request(
-            current_method,
-            current_url,
-            headers=merged_headers,
-            data=current_body,
-            verify=state["verify_tls"],
-            allow_redirects=False,
-            timeout=request_timeout,
-        )
+        with request_errors():
+            response = client.request(
+                current_method,
+                current_url,
+                headers=merged_headers,
+                data=current_body,
+                verify=state["verify_tls"],
+                allow_redirects=False,
+                timeout=request_timeout,
+                hooks={"response": [bounded_response]},
+                stream=True,
+            )
+        response_truncated = getattr(response, "_opencyber_body_truncated", False) is True
         # Extract into the complete jar too, so deletion cookies apply even
         # when credentials were suppressed on a redirected request.
         requests.cookies.extract_cookies_to_jar(cookie_jar, response.request, response.raw)
@@ -320,10 +355,15 @@ def repeat_http_request(
         if not state["follow_redirects"] or response.status_code not in {301, 302, 303, 307, 308} or not location:
             break
         next_url = urljoin(response.url, location)
+        canonical_http_url(next_url)
         enforce_url_scope(engagement_id, next_url, tool="oc_http_repeater")
         if not _is_in_scope(state, next_url):
-            raise ValueError(f"redirect leaves declared HTTP session scope: {next_url}")
-        suppress_cookies = client.should_strip_auth(current_url, next_url)
+            raise OcError(
+                "scope_denied",
+                f"redirect leaves declared HTTP session scope: {next_url}",
+                details={"url": next_url, "session_id": session_id},
+            )
+        suppress_cookies = credential_boundary_changed(current_url, next_url)
         if suppress_cookies:
             # Manual redirects must preserve requests' credential boundary.
             merged_headers = {
@@ -337,17 +377,20 @@ def repeat_http_request(
         current_url = next_url
         if len(redirect_chain) >= 30:
             raise ValueError("HTTP redirect chain exceeded 30 in-scope redirects")
-    state["cookies"] = cookie_jar.get_dict()
-    state["_cookie_jar"] = _cookie_records(cookie_jar)
-    state["updated_at"] = _now()
-    _write_state(engagement_id, state)
+    with _session_lock(engagement_id, session_id):
+        current = _load_state(engagement_id, session_id)
+        current["cookies"] = cookie_jar.get_dict()
+        current["_cookie_jar"] = _cookie_records(cookie_jar)
+        current["updated_at"] = _now()
+        _write_state(engagement_id, current)
     entry: dict[str, Any] = {
         "timestamp": _now(),
         "request": {
             "method": response.request.method,
             "url": response.request.url,
             "headers": dict(response.request.headers),
-            "body": body,
+            "body": current_body,
+            "original_body": body,
         },
         "response": {
             "status": response.status_code,
@@ -356,6 +399,17 @@ def repeat_http_request(
             "body": response.text,
             "elapsed_ms": round((time.monotonic() - started) * 1000, 3),
             "redirect_chain": redirect_chain,
+            **(
+                {
+                    "truncated": True,
+                    "limitations": [
+                        "The response body exceeded http.response_max_bytes; only its prefix is retained."
+                    ],
+                    "limit": {"id": "http.response_max_bytes"},
+                }
+                if response_truncated
+                else {}
+            ),
         },
     }
     _append_history(engagement_id, session_id, entry)
@@ -387,6 +441,7 @@ def intrude_http_parameter(
     headers: dict[str, str] | None = None,
     body: str = "",
     timeout: float | None = None,
+    cancel_event: Any = None,
 ) -> dict[str, Any]:
     if max_requests < 1 or len(payloads) > max_requests:
         raise ValueError("payload count exceeds caller-selected max_requests")
@@ -395,6 +450,8 @@ def intrude_http_parameter(
         raise ValueError("location must be query, header, body, or path")
     results = []
     for payload in payloads:
+        if cancel_event is not None and cancel_event.is_set():
+            break
         candidate_url = url
         candidate_headers = dict(headers or {})
         candidate_body = body or None
@@ -427,6 +484,7 @@ def intrude_http_parameter(
         "location": normalized,
         "parameter": parameter,
         "request_count": len(results),
+        "cancelled": bool(cancel_event is not None and cancel_event.is_set()),
         "results": results,
     }
 

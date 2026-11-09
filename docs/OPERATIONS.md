@@ -52,7 +52,7 @@ docker run -d --name opencyber \
 | `--security-opt no-new-privileges` | Blocks privilege gain through setuid or file capabilities. |
 | `--read-only` | Protects the image filesystem from persistent change. |
 | tmpfs `/tmp`, `/run` | Writable scratch space for tools that assume it exists. |
-| tmpfs `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Disposable AutoRecon, NetExec and Metasploit state under the read-only root filesystem. |
+| tmpfs `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Disposable AutoRecon and NetExec state under the read-only root filesystem. |
 | tmpfs `/root/.config`, `/root/.cache` | Required for Chromium's crashpad handler under a read-only rootfs. Without them browser tools fail with `chrome_crashpad_handler: --database is required`. |
 | `-v ...:/workspace` | Persistent engagement and evidence storage. |
 
@@ -294,7 +294,7 @@ no earlier public version to recommend as a rollback target.
 3. Re-run the installer with the new version or digest:
 
    ```sh
-   OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
+   OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
    bash install.sh --version 0.5.0 --digest BETA_PLATFORM_DIGEST
    ```
 

@@ -28,7 +28,7 @@
 #     --tmpfs /root/.config --tmpfs /root/.cache \
 #     --tmpfs /root/.local/share --tmpfs /root/.nxc --tmpfs /root/.msf4 \
 #     -v opencyber-workspace:/workspace \
-#     ghcr.io/mitkox-dev/opencyber:0.5.0
+#     ghcr.io/mitkox/opencyber:0.5.0
 #
 # The /root/.config and /root/.cache tmpfs mounts are required under a read-only
 # rootfs: Chromium's crashpad handler aborts with
@@ -66,6 +66,64 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
         -exec cp --parents {} /out/licenses/go-modules/ \; \
     && tar -czf /out/sources/go-modules.tar.gz -C /go/pkg mod \
     && cd /out && sha256sum anew urlfinder subzy jaeles kube-bench yq > /out/sources/binaries.sha256
+
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    build() { version="$1"; shift; CGO_ENABLED=0 GOOS="$TARGETOS" GOARCH="$TARGETARCH" go install "$@" ; }; \
+    CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/lc/gau/v2/cmd/gau@v2.2.4 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/OJ/gobuster/v3@v3.8.2 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/hakluke/hakrawler@v0.0.0-20260805040537-52a16fe61bd1 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/katana/cmd/katana@v1.8.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/httpx/cmd/httpx@v1.12.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/nuclei/v3/cmd/nuclei@v3.11.1 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/ffuf/ffuf/v2@v2.3.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/tomnomnom/qsreplace@v0.0.3 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/projectdiscovery/subfinder/v2/cmd/subfinder@v2.17.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go install github.com/owasp-amass/amass/v4/cmd/amass@v4.2.0 \
+    && mkdir -p /out/rebuilt \
+    && cp /go/bin/gau /out/rebuilt/getallurls \
+    && cp /go/bin/gobuster /go/bin/hakrawler /go/bin/katana /go/bin/httpx /go/bin/nuclei /go/bin/ffuf /go/bin/qsreplace /go/bin/subfinder /go/bin/amass /out/rebuilt/ \
+    && cd /out/rebuilt && sha256sum * > /out/rebuilt.sha256
+
+# Rebuild katana and amass with the fixed pgx dependency. Their upstream
+# modules still pin 5.7.x/5.4.x; copy each module, require the fixed release,
+# and build its command package.
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    go mod download github.com/projectdiscovery/katana@v1.8.0 github.com/owasp-amass/amass/v4@v4.2.0 \
+    && katana_src="$(go list -m -f '{{.Dir}}' github.com/projectdiscovery/katana@v1.8.0)" \
+    && cp -a "$katana_src" /tmp/katana-src \
+    && chmod -R u+w /tmp/katana-src \
+    && cd /tmp/katana-src \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 golang.org/x/net@v0.60.0 github.com/andybalholm/brotli@v1.2.7 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/rebuilt/katana ./cmd/katana \
+    && amass_src="$(go list -m -f '{{.Dir}}' github.com/owasp-amass/amass/v4@v4.2.0)" \
+    && cp -a "$amass_src" /tmp/amass-src \
+    && chmod -R u+w /tmp/amass-src \
+    && cd /tmp/amass-src \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/rebuilt/amass ./cmd/amass
+
+# Rebuild the remaining Go tools whose upstream modules pin vulnerable x/net
+# and brotli releases.
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    go mod download github.com/projectdiscovery/httpx@v1.12.0 github.com/projectdiscovery/nuclei/v3@v3.11.1 github.com/projectdiscovery/subfinder/v2@v2.17.0 github.com/ffuf/ffuf/v2@v2.3.0 \
+    && for spec in \
+        "github.com/projectdiscovery/httpx@v1.12.0|./cmd/httpx|httpx" \
+        "github.com/projectdiscovery/nuclei/v3@v3.11.1|./cmd/nuclei|nuclei" \
+        "github.com/projectdiscovery/subfinder/v2@v2.17.0|./cmd/subfinder|subfinder" \
+        "github.com/ffuf/ffuf/v2@v2.3.0|.|ffuf"; do \
+      module="${spec%%|*}"; rest="${spec#*|}"; pkg="${rest%%|*}"; out="${rest#*|}"; \
+      src="$(go list -m -f '{{.Dir}}' "$module")"; \
+      rm -rf "/tmp/build-$out"; cp -a "$src" "/tmp/build-$out"; chmod -R u+w "/tmp/build-$out"; \
+      cd "/tmp/build-$out"; \
+      CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get golang.org/x/net@v0.60.0 github.com/andybalholm/brotli@v1.2.7; \
+      CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy; \
+      CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o "/out/rebuilt/$out" "$pkg"; \
+    done
 
 FROM --platform=$TARGETPLATFORM rust:1.99-bookworm@sha256:48b7f435b8fc6378ce43b44f15e3a47fd8919b2825f835c39bd4bd3da50af5b8 AS rust-tools
 
@@ -129,7 +187,7 @@ ARG DEBIAN_FRONTEND=noninteractive
 ARG TARGETARCH
 # Release version. Keep in sync with src/opencyber/__init__.py;
 # scripts/check-version-consistency.py enforces this.
-ARG OPENCYBER_VERSION=0.5.1
+ARG OPENCYBER_VERSION=1.0.0-beta.1
 # Optional offline CVE index. Empty keeps the image smaller; set to e.g.
 # "2024 2025 2026" to bake NVD-derived records into oc_cve_lookup.
 ARG OPENCYBER_CVE_YEARS=""
@@ -147,14 +205,12 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
     && apt-get install -y --no-install-recommends \
         /tmp/opencyber-offline-wordlists.deb \
         aircrack-ng \
-        amass \
         apktool \
         arjun \
         arp-scan \
         autorecon \
         autopsy \
         avrdude \
-        bettercap \
         binutils \
         binwalk \
         bladerf \
@@ -179,35 +235,29 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         evil-winrm \
         exploitdb \
         feroxbuster \
-        ffuf \
         fierce \
         file \
         flashrom \
         foremost \
         gdb \
         gdb-multiarch \
-        getallurls \
         gpsd \
         gpsd-clients \
         ghidra \
         git \
-        gobuster \
         hackrf \
-        hakrawler \
         hash-identifier \
         hashcat \
         hashcat-utils \
         hcxdumptool \
         hcxtools \
         httpie \
-        httpx-toolkit \
         hydra \
         iproute2 \
         iw \
         jadx \
         john \
         jq \
-        katana \
         kismet \
         libcap2-bin \
         libimage-exiftool-perl \
@@ -218,7 +268,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         masscan \
         mdk4 \
         medusa \
-        metasploit-framework \
         mfcuk \
         mfoc \
         minicom \
@@ -230,7 +279,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         netexec \
         nikto \
         nmap \
-        nuclei \
         nodejs \
         node-playwright \
         openocd \
@@ -260,7 +308,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         python3-venv \
         qemu-system-arm \
         qemu-user \
-        qsreplace \
         radare2 \
         recon-ng \
         reaver \
@@ -285,7 +332,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         sqlmap \
         steghide \
         stlink-tools \
-        subfinder \
         tcpdump \
         testdisk \
         theharvester \
@@ -314,6 +360,50 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
     && rm -f /etc/ssl/private/ssl-cert-snakeoil.key /etc/ssl/certs/ssl-cert-snakeoil.pem \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
+
+# Remove the distro Python copies that still carry fixed critical advisories;
+# install the fixed releases from PyPI into the system interpreter. The old
+# dist-info/module trees are deleted so the image inventory reflects the code
+# actually imported (the /usr/local copy precedes /usr/lib on sys.path).
+RUN rm -rf /usr/lib/python3/dist-packages/PIL /usr/lib/python3/dist-packages/pillow-12.3.0.dist-info /usr/lib/python3/dist-packages/pillow-12.3.0.egg-info \
+        /usr/lib/python3/dist-packages/brotli* /usr/lib/python3/dist-packages/Brotli-1.2.0.egg-info \
+        /usr/lib/python3/dist-packages/_brotli* /usr/lib/python3/dist-packages/certifi \
+        /usr/lib/python3/dist-packages/certifi-2026.7.22.dist-info \
+    && python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed \
+        "pillow==13.0.0" "Brotli==1.2.1" "certifi==2026.10.18" \
+    && python3 -c "import PIL, brotli, certifi; assert PIL.__version__ == '13.0.0'"
+
+# Replace the remaining fixable distro Python libraries with their fixed
+# releases. The old dist-info/egg-info trees are removed so the image inventory
+# reflects the imported code.
+RUN rm -rf /usr/lib/python3/dist-packages/pypdf* /usr/lib/python3/dist-packages/mistune* \
+        /usr/lib/python3/dist-packages/tornado* /usr/lib/python3/dist-packages/aiohttp* \
+        /usr/lib/python3/dist-packages/mcp-* /usr/lib/python3/dist-packages/mcp \
+        /usr/lib/python3/dist-packages/msgpack* /usr/lib/python3/dist-packages/Mako* \
+        /usr/lib/python3/dist-packages/mako* /usr/lib/python3/dist-packages/pyasn1* \
+        /usr/lib/python3/dist-packages/urllib3* \
+    && python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed \
+        "pypdf==6.21.4" "mistune==3.3.0" "tornado==6.5.9" "aiohttp==3.14.4" \
+        "mcp==1.28.1" "msgpack==1.2.3" "Mako==1.3.12" "pyasn1==0.6.5" "urllib3==2.8.0" \
+    && python3 -c "import pypdf, mistune, tornado, aiohttp, mcp, msgpack, mako, pyasn1, urllib3"
+
+# Ruby: update the system net-imap gem and replace the vulnerable default zlib
+# spec with the fixed gem. The stdlib extension remains available.
+RUN gem update net-imap --no-document \
+    && rm -rf /usr/lib/ruby/gems/3.3.0/gems/net-imap-0.4.19 /usr/lib/ruby/gems/3.3.0/specifications/net-imap-0.4.19.gemspec \
+    && rm -f /usr/lib/ruby/gems/3.3.0/specifications/default/zlib-3.1.1.gemspec \
+    && ruby -rzlib -e "puts Zlib::VERSION"
+
+# Ghidra's optional server bundle and crypto library: drop the unused server
+# netty jars and replace the vulnerable Bouncy Castle jar with the fixed release.
+RUN rm -rf /usr/share/ghidra/Ghidra/Features/GhidraServer/data/yajsw-stable-13.18/lib/core/netty \
+    && curl -fsSL -o /tmp/bcprov-jdk18on-1.85.jar \
+        https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk18on/1.85/bcprov-jdk18on-1.85.jar \
+    && echo "20af26bf6060bb8005cc2389916812c1e0e998dc48d2ced7131b89461b54cff7  /tmp/bcprov-jdk18on-1.85.jar" | sha256sum -c - \
+    && mv /usr/share/ghidra/Ghidra/Framework/Generic/lib/bcprov-jdk18on-1.84.jar /tmp/bcprov-jdk18on-1.84.jar \
+    && cp /tmp/bcprov-jdk18on-1.85.jar /usr/share/ghidra/Ghidra/Framework/Generic/lib/bcprov-jdk18on-1.85.jar \
+    && rm /tmp/bcprov-jdk18on-1.84.jar /tmp/bcprov-jdk18on-1.85.jar \
+    && rm -f /usr/share/zaproxy/plugin/network-beta-0.25.0.zap
 
 # Kali adds file capabilities to Nmap. They can exceed a hardened container's
 # bounding set and make exec fail with EPERM, even for --version. The launcher
@@ -344,6 +434,7 @@ RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
     && /opt/opencyber-analysis/bin/python -m pip install --no-cache-dir \
         angr==10.0.0 \
         volatility3==2.28.0 \
+    && /opt/opencyber-analysis/bin/python -m pip uninstall -y pyxdia \
     && python3 -m venv --system-site-packages /opt/opencyber-checkov \
     && /opt/opencyber-checkov/bin/python -m pip install --no-cache-dir --upgrade pip==26.2.2 \
     && /opt/opencyber-checkov/bin/python -m pip install --no-cache-dir checkov==3.3.20 \
@@ -358,6 +449,16 @@ RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
 RUN gem install --no-document zsteg -v 0.2.14 \
     && gem install --no-document one_gadget -v 2.1.1
 
+COPY --from=go-tools /out/rebuilt/getallurls /usr/bin/getallurls
+COPY --from=go-tools /out/rebuilt/gobuster /usr/bin/gobuster
+COPY --from=go-tools /out/rebuilt/hakrawler /usr/bin/hakrawler
+COPY --from=go-tools /out/rebuilt/katana /usr/bin/katana
+COPY --from=go-tools /out/rebuilt/httpx /usr/bin/httpx-toolkit
+COPY --from=go-tools /out/rebuilt/nuclei /usr/bin/nuclei
+COPY --from=go-tools /out/rebuilt/ffuf /usr/bin/ffuf
+COPY --from=go-tools /out/rebuilt/qsreplace /usr/bin/qsreplace
+COPY --from=go-tools /out/rebuilt/subfinder /usr/bin/subfinder
+COPY --from=go-tools /out/rebuilt/amass /usr/bin/amass
 COPY --from=go-tools /out/anew /usr/local/bin/anew
 COPY --from=go-tools /out/urlfinder /usr/local/bin/urlfinder
 COPY --from=go-tools /out/subzy /usr/local/bin/subzy
@@ -485,7 +586,7 @@ RUN set -eux; \
     test "$(nuclei -tl -silent 2>/dev/null | wc -l)" -gt 1000; \
     for binary in hackrf_info hackrf_transfer hackrf_sweep rtl_sdr rtl_test rtl_power rtl_433 \
         SoapySDRUtil LimeUtil bladeRF-cli ubertooth-util ubertooth-rx ubertooth-scan \
-        iw iwconfig wifite hcxdumptool hcxpcapngtool reaver bully pixiewps mdk4 cowpatty bettercap \
+        iw iwconfig wifite hcxdumptool hcxpcapngtool reaver bully pixiewps mdk4 cowpatty \
         bluetoothctl btmon hcitool btmgmt proxmark3 nfc-list nfc-poll nfc-mfclassic mfoc mfcuk pcsc_scan \
         lsusb usbguard openocd jtag avrdude dfu-util esptool st-info st-flash minicom picocom screen \
         flashrom sigrok-cli qemu-arm qemu-system-arm gdb-multiarch unblob \
@@ -496,8 +597,8 @@ RUN set -eux; \
 
 LABEL org.opencontainers.image.title="OpenCyber Harness" \
       org.opencontainers.image.description="Security MCP toolkit for authorized red and blue team work" \
-      org.opencontainers.image.source="https://github.com/mitkox-dev/opencyber" \
-      org.opencontainers.image.url="https://github.com/mitkox-dev/opencyber" \
+      org.opencontainers.image.source="https://github.com/mitkox/opencyber" \
+      org.opencontainers.image.url="https://github.com/mitkox/opencyber" \
       org.opencontainers.image.version="${OPENCYBER_VERSION}" \
       com.opencyber.harness.version="${OPENCYBER_VERSION}" \
       org.opencontainers.image.licenses="Apache-2.0 AND LicenseRef-OpenCyber-Third-Party" \

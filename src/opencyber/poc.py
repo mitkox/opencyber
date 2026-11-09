@@ -128,6 +128,7 @@ SPEC_RECORD_KEYS = (
     "assertions",
     "limits",
     "capture",
+    "allow_insecure_tls",
     "source",
     "notes",
     "created_at",
@@ -328,8 +329,9 @@ def _send(url, method, headers, body_bytes, deadline, limit):
     try:
         if scheme == "https":
             context = ssl.create_default_context()
-            context.check_hostname = False
-            context.verify_mode = ssl.CERT_NONE
+            if CONFIG.get("allow_insecure_tls") is True:
+                context.check_hostname = False
+                context.verify_mode = ssl.CERT_NONE
             connection = http.client.HTTPSConnection(
                 host, port, timeout=timeout, context=context
             )
@@ -337,10 +339,6 @@ def _send(url, method, headers, body_bytes, deadline, limit):
             connection = http.client.HTTPConnection(host, port, timeout=timeout)
         connection.request(method, _path_with_query(url), body=body_bytes, headers=headers)
         response = connection.getresponse()
-        raw = response.read(limit + 1)
-        truncated = len(raw) > limit
-        if truncated:
-            raw = raw[:limit]
         response_headers = {}
         for name, value in response.getheaders():
             key = str(name)
@@ -351,10 +349,31 @@ def _send(url, method, headers, body_bytes, deadline, limit):
         record["status"] = int(response.status)
         record["reason"] = str(response.reason or "")
         record["headers"] = _redact(response_headers)
+        chunks = []
+        total = 0
+        read_error = None
+        try:
+            while total <= limit:
+                block = response.read1(min(65536, limit + 1 - total))
+                if not block:
+                    break
+                chunks.append(block)
+                total += len(block)
+        except TimeoutError:
+            read_error = "timed_out_after_partial_body" if chunks else "timed_out_before_data"
+        except (OSError, http.client.HTTPException, ssl.SSLError, ValueError) as exc:
+            read_error = type(exc).__name__ + ": " + str(exc)
+        raw = b"".join(chunks)
+        truncated = len(raw) > limit
+        if truncated:
+            raw = raw[:limit]
         record["body_bytes"] = len(raw)
         record["body_sha256"] = hashlib.sha256(raw).hexdigest()
         record["body_text"] = raw.decode("utf-8", "replace")
         record["truncated"] = truncated
+        record["body_complete"] = read_error is None
+        if read_error is not None:
+            record["error"] = read_error
     except (OSError, http.client.HTTPException, ssl.SSLError, ValueError) as exc:
         record["error"] = type(exc).__name__ + ": " + str(exc)
     finally:
@@ -529,10 +548,11 @@ def _run_tcp(deadline, payload):
     limit = int(CONFIG["max_bytes"])
     started = time.monotonic()
     connection = None
+    chunks = []
+    read_error = None
     try:
         connection = socket.create_connection((host, port), timeout=timeout)
         connection.settimeout(timeout)
-        chunks = []
         total = 0
         while total <= limit:
             block = connection.recv(min(65536, limit + 1 - total))
@@ -540,6 +560,11 @@ def _run_tcp(deadline, payload):
                 break
             chunks.append(block)
             total += len(block)
+    except TimeoutError:
+        read_error = "timed_out_after_partial_body" if chunks else "timed_out_before_data"
+    except (OSError, ValueError) as exc:
+        read_error = type(exc).__name__ + ": " + str(exc)
+    finally:
         raw = b"".join(chunks)
         if len(raw) > limit:
             raw = raw[:limit]
@@ -547,9 +572,9 @@ def _run_tcp(deadline, payload):
         record["body_bytes"] = len(raw)
         record["body_sha256"] = hashlib.sha256(raw).hexdigest()
         record["body_text"] = raw.decode("utf-8", "replace")
-    except (OSError, ValueError) as exc:
-        record["error"] = type(exc).__name__ + ": " + str(exc)
-    finally:
+        record["body_complete"] = read_error is None
+        if read_error is not None:
+            record["error"] = read_error
         if connection is not None:
             try:
                 connection.close()
@@ -705,6 +730,16 @@ def _run_contract(record: Mapping[str, Any]) -> dict[str, Any]:
             "Not every configured assertion passed; this run does not establish the vulnerability claim."
         )
     if truncated:
+        if record.get("executor_truncated") is True:
+            limitations.append(
+                "The probe's captured output exceeded the executor output cap; bytes beyond it "
+                "were read and discarded, so the retained output is incomplete."
+            )
+            if limit is None:
+                limit = limits.facts(
+                    "tool.max_output_bytes",
+                    effective=record.get("executor_max_output_bytes"),
+                )
         limitations.append(
             "Captured output was truncated at a per-run byte ceiling; retained bodies are incomplete."
         )
@@ -1668,6 +1703,8 @@ def _validate_stored_spec(
         raise PocError("spec_invalid", "stored spec assertions are not normalized")
     if record["capture"] != CAPTURE_RECORD:
         raise PocError("spec_invalid", "stored spec capture settings are not recognized")
+    if not isinstance(record["allow_insecure_tls"], bool):
+        raise PocError("spec_invalid", "stored spec allow_insecure_tls must be a boolean")
     if not isinstance(record["source"], str):
         raise PocError("spec_invalid", "stored spec source must be a string")
     if not isinstance(record["notes"], str):
@@ -1713,6 +1750,7 @@ def create_spec(
     limits: Any = None,
     source: str = "",
     notes: str = "",
+    allow_insecure_tls: bool = False,
 ) -> dict[str, Any]:
     """Validate and persist one PoC spec for a chain step."""
     validate_record_id("chain", chain_id)
@@ -1735,6 +1773,8 @@ def create_spec(
     _check_target_step(engagement_id, target_normalized, step)
     source_normalized = _normalize_source(technique, source)
     notes_normalized = _normalize_notes(notes)
+    if not isinstance(allow_insecure_tls, bool):
+        raise _invalid("allow_insecure_tls must be a boolean")
 
     spec_id = new_record_id(SPEC_PREFIX)
     record: dict[str, Any] = {
@@ -1750,6 +1790,7 @@ def create_spec(
         "assertions": assertions_normalized,
         "limits": limits_normalized,
         "capture": dict(CAPTURE_RECORD),
+        "allow_insecure_tls": allow_insecure_tls,
         "source": source_normalized,
         "notes": notes_normalized,
         "created_at": iso_utc(utc_now()),
@@ -1858,6 +1899,7 @@ def _render_config(spec: Mapping[str, Any]) -> dict[str, Any]:
         "max_requests": int(spec["limits"]["max_requests"]),
         "timeout_s": int(spec["limits"]["timeout_s"]),
         "max_bytes": int(spec["limits"]["max_bytes"]),
+        "allow_insecure_tls": bool(spec.get("allow_insecure_tls", False)),
         "technique_config": technique_config,
     }
 
@@ -2675,6 +2717,13 @@ async def _run_impl(
         stdout_text = str((exec_result or {}).get("stdout") or "")
         stderr_text = str((exec_result or {}).get("stderr") or "")
         output_sha256 = sha256_hex(stdout_text)
+        executor_truncated = bool((exec_result or {}).get("truncated"))
+        executor_stdout_bytes = (exec_result or {}).get("stdout_bytes")
+        if isinstance(executor_stdout_bytes, bool) or not isinstance(executor_stdout_bytes, int):
+            executor_stdout_bytes = None
+        executor_max_output_bytes = (exec_result or {}).get("max_output_bytes")
+        if isinstance(executor_max_output_bytes, bool) or not isinstance(executor_max_output_bytes, int):
+            executor_max_output_bytes = None
 
         payload: dict[str, Any] | None = None
         findings: list[dict[str, Any]] = []
@@ -2731,6 +2780,7 @@ async def _run_impl(
             transcript_truncated
             or request_truncated
             or (payload or {}).get("truncated")
+            or executor_truncated
         )
         try:
             saved_stdout_bytes, stdout_truncated = _write_bounded_text(
@@ -2769,6 +2819,9 @@ async def _run_impl(
             "duration_ms": duration_ms,
             "request_count": request_count,
             "truncated": truncated,
+            "executor_truncated": executor_truncated,
+            **({"executor_stdout_bytes": executor_stdout_bytes} if executor_stdout_bytes is not None else {}),
+            **({"executor_max_output_bytes": executor_max_output_bytes} if executor_max_output_bytes is not None else {}),
             "started_at": started_at,
             "completed_at": completed_at,
             "timeout_s": spec["limits"]["timeout_s"],
@@ -2802,8 +2855,15 @@ async def _run_impl(
             "timed_out": timed_out,
             "returncode": returncode,
             "output_sha256": output_sha256,
-            "stdout_bytes": len(stdout_text.encode("utf-8", errors="replace")),
+            "stdout_bytes": (
+                executor_stdout_bytes
+                if executor_stdout_bytes is not None
+                else len(stdout_text.encode("utf-8", errors="replace"))
+            ),
             "stderr_bytes": len(stderr_text.encode("utf-8", errors="replace")),
+            "executor_truncated": executor_truncated,
+            "executor_max_output_bytes": executor_max_output_bytes,
+            "allow_insecure_tls": bool(spec.get("allow_insecure_tls", False)),
             "stdout_saved_bytes": saved_stdout_bytes,
             "stderr_saved_bytes": saved_stderr_bytes,
             "stdout_truncated": stdout_truncated,

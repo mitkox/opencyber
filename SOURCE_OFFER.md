@@ -18,7 +18,7 @@ Any longer period required by an applicable component license remains in effect.
 
 During the private beta, request the corresponding source bundle from
 [tech@mitkox.com](mailto:tech@mitkox.com), or open an issue in the private
-[repository](https://github.com/mitkox-dev/opencyber/issues) if you have access, with:
+[repository](https://github.com/mitkox/opencyber/issues) if you have access, with:
 
 - the title `Corresponding source request`;
 - the image reference and immutable identity (the private preview's image ID,
@@ -38,14 +38,14 @@ the licenses of the components they receive.
 ## Published private preview source
 
 Invited repository readers can obtain the exact source and image bundle from
-[v0.5.0-private-beta.1](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1).
+[v0.5.0-private-beta.1](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1).
 Download all 38 assets, about 13.3 GB, while connected and carry the complete
 directory for airgapped use:
 
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 `opencyber-source-c120197.tar.gz` is the complete first-party source snapshot
@@ -66,7 +66,7 @@ the complete image and corresponding-source archives. Retain the source
 manifest, notices, SBOMs and actual license-gate report with the bundle. The
 captured source matched 1,428 components and 3,717 artifacts against the tested
 amd64 image. This records source matching, not completion of the remaining
-license metadata or Oracle/PDB vendor reviews.
+license metadata or Oracle/PDB vendor reviews; those vendor components are removed from the public beta image.
 
 This private preview uses local image tag
 `opencyber:0.5.0-private-beta.1-amd64`; `release-manifest.json` records its image
@@ -91,11 +91,11 @@ repository access.
 - Nmap, Ncat, Ndiff, Nping and the bundled Nmap scripts require the exact
   applicable license and source coverage. Include the Kali source package,
   patches and build inputs for the binary version actually distributed.
-  Metasploit modules and the other required offline assets retain their own
+  The required offline assets retain their own
   notices and source coverage. WPScan retains its unmodified custom license and
   copyright notices; this offer does not confer commercial or database rights.
 - For future public releases, those payloads and manifests will be publicly
-  downloadable [release assets](https://github.com/mitkox-dev/opencyber/releases)
+  downloadable [release assets](https://github.com/mitkox/opencyber/releases)
   for each published version.
 - Build the Docker `corresponding-source` target with the same platform and
   arguments as the runtime to capture exact Kali source archives, Debian

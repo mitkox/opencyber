@@ -38,8 +38,6 @@ OPTIONAL_INTEGRATIONS: dict[str, tuple[str, tuple[str, ...]]] = {
 TOOL_DEPENDENCIES: dict[str, tuple[str, ...]] = {
     "rustscan": ("nmap",),
     "autorecon": ("nmap",),
-    "msfconsole": ("nmap",),
-    "msfvenom": ("nmap",),
     "nxc": ("nmap",),
 }
 
@@ -123,8 +121,6 @@ TOOL_GROUPS: dict[str, tuple[tuple[str, str], ...]] = {
         ("evil_winrm", "evil-winrm"),
     ),
     "exploitation": (
-        ("metasploit", "msfconsole"),
-        ("msfvenom", "msfvenom"),
         ("exploit_search", "searchsploit"),
     ),
     "binary": (
@@ -202,7 +198,6 @@ TOOL_GROUPS: dict[str, tuple[tuple[str, str], ...]] = {
         ("pixiewps", "pixiewps"),
         ("mdk4", "mdk4"),
         ("cowpatty", "cowpatty"),
-        ("bettercap", "bettercap"),
         ("bluetoothctl", "bluetoothctl"),
         ("btmon", "btmon"),
         ("hcitool", "hcitool"),

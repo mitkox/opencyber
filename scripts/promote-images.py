@@ -50,8 +50,8 @@ def main() -> None:
     staging = f"{os.environ['REGISTRY']}/{os.environ['STAGING_NAME']}"
     if os.environ.get("GITHUB_REF_TYPE") != "tag":
         raise SystemExit("public promotion requires a release tag")
-    if len(records) != 2 or {r.get("platform") for r in records} != {"linux/amd64", "linux/arm64"}:
-        raise SystemExit("both native architecture receipts are required")
+    if len(records) != 1 or {r.get("platform") for r in records} != {"linux/amd64"}:
+        raise SystemExit("the native amd64 architecture receipt is required")
     for record in records:
         digest = record.get("digest", "")
         if record.get("commit") != commit or not re.fullmatch(r"sha256:[a-f0-9]{64}", digest):

@@ -308,6 +308,39 @@ class HttpFixtureMixin:
         return f"http://127.0.0.1:{self.http_port}"
 
 
+class SlowBannerFixture:
+    """Send a banner, then keep the connection open without more data."""
+
+    def __init__(self, banner: bytes = b"SSH-2.0-OpenCyberTest\r\n") -> None:
+        self.banner = banner
+        self.socket = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        self.socket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.socket.bind(("127.0.0.1", 0))
+        self.socket.listen(4)
+        self.port = self.socket.getsockname()[1]
+        self.thread = threading.Thread(target=self._serve, daemon=True)
+        self.thread.start()
+
+    def _serve(self) -> None:
+        while True:
+            try:
+                client, _address = self.socket.accept()
+            except OSError:
+                return
+            try:
+                client.sendall(self.banner)
+                threading.Event().wait(5)
+            except OSError:
+                pass
+            finally:
+                client.close()
+
+    def close(self) -> None:
+        with contextlib.suppress(OSError):
+            self.socket.close()
+        self.thread.join(timeout=2)
+
+
 class TcpBannerFixture:
     def __init__(self, banner: bytes = b"SSH-2.0-OpenCyberTest\r\n") -> None:
         self.banner = banner
@@ -410,6 +443,14 @@ def poc_result_line(payload: dict) -> str:
 
 
 class SpecValidationTests(WorkspaceMixin, unittest.TestCase):
+    def test_tls_verification_is_the_default_and_opt_out_is_explicit(self):
+        default = self.make_spec("version_assert")
+        self.assertFalse(default["allow_insecure_tls"])
+        insecure = self.make_spec("version_assert", allow_insecure_tls=True)
+        self.assertTrue(insecure["allow_insecure_tls"])
+        with self.assertRaises(poc.PocError):
+            self.make_spec("version_assert", allow_insecure_tls="yes")
+
     def test_create_spec_defaults_and_round_trip(self):
         spec = self.make_spec("version_assert")
         self.assertEqual(spec["schema_version"], 1)
@@ -1140,6 +1181,7 @@ class RunTests(HttpFixtureMixin, WorkspaceMixin, unittest.IsolatedAsyncioTestCas
             self.assertTrue((run_dir / name).is_file(), name)
         evidence = read_json(run_dir / "evidence.json")
         self.assertEqual(evidence["status"], "verified")
+        self.assertFalse(evidence["allow_insecure_tls"])
         self.assertEqual(evidence["spec_id"], spec["spec_id"])
         self.assertEqual(evidence["chain_id"], CHAIN_ID)
         self.assertEqual(
@@ -1288,6 +1330,24 @@ class RunTests(HttpFixtureMixin, WorkspaceMixin, unittest.IsolatedAsyncioTestCas
             any(entry["phase"] == "callback" for entry in evidence["transcript_entries"])
         )
 
+    async def test_tcp_banner_before_the_deadline_is_retained(self):
+        fixture = SlowBannerFixture()
+        self.addCleanup(fixture.close)
+        spec = self.make_spec(
+            "tcp_probe",
+            target=f"127.0.0.1:{fixture.port}",
+            step_order=2,
+            assertions=[{"type": "body_regex", "pattern": "SSH-2.0"}],
+            limits={"timeout_s": 1},
+        )
+        result = await self._async_run(spec)
+        self.assertEqual(result["status"], "not_verified")
+        probe = next(item for item in result["assertions"] if item["type"] == "probe_error")
+        self.assertFalse(probe["passed"])
+        stdout = (self.run_dir(result["run_id"]) / "stdout.txt").read_text()
+        self.assertIn("SSH-2.0-OpenCyberTest", stdout)
+        self.assertIn("timed_out_after_partial_body", stdout)
+
     async def test_run_tcp_probe_verified(self):
         fixture = TcpBannerFixture()
         self.addCleanup(fixture.close)
@@ -1363,6 +1423,42 @@ class RunTests(HttpFixtureMixin, WorkspaceMixin, unittest.IsolatedAsyncioTestCas
         recorded = poc.get_run(self.engagement_id, result["run_id"])
         self.assertEqual(recorded["coverage"]["status"], "partial")
         self.assertEqual(recorded["limit"]["id"], "poc.max_bytes")
+
+    async def test_executor_output_cap_is_reported_as_partial_coverage(self):
+        spec = self.make_spec(
+            "version_assert",
+            step_order=2,
+            target=self.base_url,
+            requests=[{"method": "GET", "path": "/canary"}],
+            assertions=[{"type": "status_in", "statuses": [200]}],
+        )
+        payload = build_payload(spec, [build_record(0, status=200, body_text="ok")])
+        capped_output = poc_result_line(payload) + "\n"
+        received_bytes = 4 * 1024 * 1024 + 17
+
+        async def capped(*args, **kwargs):
+            return {
+                "available": True,
+                "success": True,
+                "returncode": 0,
+                "stdout": capped_output,
+                "stderr": "",
+                "stdout_bytes": received_bytes,
+                "stderr_bytes": 0,
+                "truncated": True,
+                "max_output_bytes": 4 * 1024 * 1024,
+            }
+
+        with patch.object(poc.executor, "execute_tool", capped):
+            result = await self._async_run(spec)
+        self.assertTrue(result["truncated"])
+        self.assertEqual(result["coverage"]["status"], "partial")
+        self.assertEqual(result["limit"]["id"], "tool.max_output_bytes")
+        self.assertEqual(result["limit"]["effective"], 4 * 1024 * 1024)
+        evidence = read_json(self.run_dir(result["run_id"]) / "evidence.json")
+        self.assertTrue(evidence["executor_truncated"])
+        self.assertEqual(evidence["stdout_bytes"], received_bytes)
+        self.assertTrue(any("executor output cap" in item for item in result["limitations"]))
 
     async def test_run_refuses_multiple_poc_result_lines(self):
         spec = self.make_spec(

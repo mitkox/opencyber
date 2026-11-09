@@ -143,6 +143,11 @@ def main() -> int:
         for entry in policy.get("blocked_components", [])
         if entry["name"].casefold() in names
     ]
+    removed = [
+        entry
+        for entry in policy.get("removed_components", [])
+        if entry["name"].casefold() in names
+    ]
     review = [
         entry
         for entry in policy.get("review_required_components", [])
@@ -161,12 +166,36 @@ def main() -> int:
         print(f"NOTICE: {entry['name']}: {entry['reason']}")
     for entry in blocked:
         print(f"BLOCKED: {entry['name']}: {entry['reason']}", file=sys.stderr)
+    for entry in removed:
+        print(f"REMOVED: {entry['name']}: {entry['reason']}", file=sys.stderr)
     for name in unresolved:
         print(f"UNRESOLVED: {name}: missing license identity or version-bound review", file=sys.stderr)
 
-    if blocked or review or unresolved:
+    recorded = policy.get("recorded_unknown_licenses")
+    if unresolved and isinstance(recorded, dict):
+        digest = hashlib.sha256("\n".join(sorted(unresolved)).encode("utf-8")).hexdigest()
+        try:
+            reviewed = date.fromisoformat(recorded.get("recorded_at", ""))
+        except (TypeError, ValueError):
+            reviewed = date.min
+        if (
+            reviewed <= date.today()
+            and isinstance(recorded.get("owner"), str) and recorded["owner"].strip()
+            and isinstance(recorded.get("basis"), str) and recorded["basis"].strip()
+            and recorded.get("count") == len(unresolved)
+            and recorded.get("sha256") == digest
+        ):
+            print(
+                f"RECORDED: {len(unresolved)} unknown-license component(s) accepted by "
+                f"{recorded.get('owner')} on {recorded.get('recorded_at')} "
+                f"for {recorded.get('scope', 'the recorded scope')}."
+            )
+            unresolved = []
+
+    if blocked or removed or review or unresolved:
         print(
-            f"Release blocked by {len(blocked)} forbidden, {len(review)} review and {len(unresolved)} unknown-license component(s).",
+            f"Release blocked by {len(blocked)} forbidden, {len(removed)} removed, "
+            f"{len(review)} review and {len(unresolved)} unknown-license component(s).",
             file=sys.stderr,
         )
         return 1

@@ -99,14 +99,6 @@ ASSET_SPECS: tuple[AssetSpec, ...] = (
         internet_dependent=False,
     ),
     AssetSpec(
-        "metasploit-modules",
-        Path("/usr/share/metasploit-framework/modules"),
-        "tree",
-        min_count=1000,
-        required=True,
-        description="Bundled Metasploit modules and payloads for authorized local assessments.",
-    ),
-    AssetSpec(
         "nmap-scripts",
         Path("/usr/share/nmap/scripts"),
         "tree",

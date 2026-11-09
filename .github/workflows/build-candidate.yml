@@ -5,7 +5,7 @@ name: Build release candidate
       version:
         description: Version to build and qualify privately
         required: true
-        default: 0.5.0
+        default: 1.0.0-beta.1
         type: string
 concurrency:
   group: build-candidate-${{ github.ref }}
@@ -14,7 +14,7 @@ permissions:
   contents: read
 env:
   REGISTRY: ghcr.io
-  STAGING_NAME: mitkox-dev/opencyber-beta-candidates
+  STAGING_NAME: mitkox/opencyber-beta-candidates
 jobs:
   quality:
     uses: ./.github/workflows/ci.yml
@@ -30,7 +30,7 @@ jobs:
       run: |
         declared="$(python3 scripts/check-version-consistency.py --print)"
         requested="${REQUESTED_VERSION:-${GITHUB_REF_NAME#v}}"
-        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
+        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
         python3 scripts/check-version-consistency.py
         echo "version=$declared" >> "$GITHUB_OUTPUT"
       id: release
@@ -56,7 +56,7 @@ jobs:
       run: |
         sudo apt-get update && sudo apt-get install -y skopeo
         if ! gh api "orgs/${STAGING_NAME%/*}/packages/container/${STAGING_NAME#*/}" > /tmp/staging-package.json; then
-          printf 'FROM scratch\nLABEL org.opencontainers.image.source=https://github.com/mitkox-dev/opencyber\nLABEL com.opencyber.staging-bootstrap=true\n' | docker build -t "${REGISTRY}/${STAGING_NAME}:bootstrap" -
+          printf 'FROM scratch\nLABEL org.opencontainers.image.source=https://github.com/mitkox/opencyber\nLABEL com.opencyber.staging-bootstrap=true\n' | docker build -t "${REGISTRY}/${STAGING_NAME}:bootstrap" -
           docker push "${REGISTRY}/${STAGING_NAME}:bootstrap"
         fi
         python3 scripts/release-gate.py staging "$STAGING_NAME" "${REGISTRY}/${STAGING_NAME}:bootstrap"
@@ -80,9 +80,6 @@ jobs:
         - platform: linux/amd64
           artifact: amd64
           runner: ubuntu-24.04
-        - platform: linux/arm64
-          artifact: arm64
-          runner: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Prepare ephemeral runner

@@ -205,6 +205,12 @@ fragment) for the HTTP techniques, a `host:port` for `tcp_probe`, and either for
 `custom`. `step_order` is the chain record's satisfaction `order` and must name
 a satisfied step.
 
+HTTPS probes verify certificates and hostnames by default. A lab target with a
+self-signed or otherwise invalid certificate needs the explicit
+`allow_insecure_tls: true` field on the spec; the value is part of the persisted
+spec digest and the run evidence, and there is no environment variable or bare
+run flag that can disable verification.
+
 ### Assertions
 
 Assertions are a closed expression language. The server evaluates every one
@@ -242,7 +248,8 @@ Spec example:
     {"type": "status_in", "statuses": [200]},
     {"type": "body_regex", "pattern": "OPENCYBER-CANARY-[0-9a-f]{16}"}
   ],
-  "limits": {"max_requests": 3, "timeout_s": 15, "max_bytes": 262144}
+  "limits": {"max_requests": 3, "timeout_s": 15, "max_bytes": 262144},
+  "allow_insecure_tls": false
 }
 ```
 
@@ -304,7 +311,12 @@ Refusal reasons include: `approval_key_unavailable`, `authorization_required`,
 A completed run returns `{status, run_id, chain_id, spec_id, approval_id,
 technique, target, assertions: [{type, passed, detail}], evidence_path,
 output_sha256, duration_ms, request_count, truncated, started_at, completed_at,
-approval_consumed}`, plus `reason`/`message` on a refusal. `timeout` counts as a
+approval_consumed}`, plus `reason`/`message` on a refusal. When a read deadline
+interrupts an HTTP response or a TCP banner after bytes arrived, the received
+bytes are retained rather than discarded: the request record carries the partial
+`body_text`, `body_complete: false`, and `error: "timed_out_after_partial_body"`
+(or `timed_out_before_data` when nothing arrived), which the server reports as a
+failed probe assertion. `timeout` counts as a
 completed run. The approval is revalidated and durably consumed immediately
 before executor launch; cancellation, process death, failed launch, or an evidence
 write failure does not make it reusable. Preflight refusals leave it unused.

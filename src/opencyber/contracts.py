@@ -742,7 +742,7 @@ _NATIVE: tuple[ToolContract, ...] = (
         idempotent=False,
         errors=["invalid_argument", "already_exists"],
     ),
-    _native("oc_poc_render", "poc_chain", Shape.INSPECT, [], Scope.ENGAGEMENT, engagement=True, errors=["not_found", "invalid_argument"]),
+    _native("oc_poc_render", "poc_chain", Shape.INSPECT, [FILESYSTEM, MUTATION], Scope.ENGAGEMENT, engagement=True, idempotent=False, errors=["not_found", "invalid_argument"]),
     _native("oc_poc_lint", "poc_chain", Shape.INSPECT, [], Scope.ENGAGEMENT, engagement=True, errors=["not_found", "scope_denied"]),
     _native(
         "oc_poc_run",

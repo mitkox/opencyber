@@ -1,10 +1,10 @@
 # Offline and airgapped beta use
 
-The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 supplies the full toolkit for native **Linux amd64**. Its frozen source is
 `c1201976caf49c45068bb507032aee75e4509e20`, and its local image tag is
 `opencyber:0.5.0-private-beta.1-amd64`. It is an **unqualified private preview**:
-vendor reviews and license metadata remain unresolved, and native arm64,
+vendor reviews and license metadata remain unresolved, and amd64-only platform
 physical hardware, live Oracle/PDB workflows and production are unqualified.
 Private access does not waive component terms. See [RELEASE.md](RELEASE.md)
 for the recorded evidence and the separate qualified-candidate gates.
@@ -17,7 +17,7 @@ After accepting the maintainer's repository Read invitation, download all
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 Carry the **whole directory** to the offline host, including all 14 numbered
@@ -76,7 +76,7 @@ drop. Repository Read also exposes its private release assets; see
 ## Included assets and offline-mode limits
 
 The image includes nuclei templates, SecLists dictionaries, exploitdb, a generated baseline dictionary
-and host udev rules. Nmap NSE scripts and fingerprints, Metasploit modules and payloads, and the
+and host udev rules. Nmap NSE scripts and fingerprints and the
 restored local assessment tools are included in the image. Use the catalog's
 availability and omission reasons for the two excluded adapters. Hardware playbooks are not loose files: they are deterministic data and functions in
 `src/opencyber/hardware.py`, returned by `oc_hardware_plan` and
@@ -101,7 +101,7 @@ tag or source snapshot. A local build is a development artifact.
 
 ```sh
 gh auth login
-gh repo clone mitkox-dev/opencyber
+gh repo clone mitkox/opencyber
 cd opencyber
 git switch --detach BETA_SOURCE_COMMIT
 docker build --provenance=false -t opencyber:0.5.0 .
@@ -164,11 +164,16 @@ The export directory contains:
   `scripts/generate-sbom.sh` was run before export.
 
 `export` refuses to overwrite an existing archive unless you pass `--force`.
-`import` verifies the checksum, runs `docker load`, and then runs
-`opencyber-doctor`; a doctor failure aborts with "do not deploy this image".
+`import` requires `release.json`, verifies that the checksum file names the
+selected archive and that exactly one entry is present, then runs `docker load`.
+After loading it compares the loaded image ID and any recorded repo digest with
+`release.json` and aborts on a mismatch. A successful load must then pass the
+strict `opencyber-mcp --self-test` and `opencyber-doctor`; both checks run in
+the importing daemon's store, so use a clean store for a candidate import.
 
-`verify` checks archive integrity and that the archive and checksum file are
-present; a missing `release.json` is a warning, not a failure. It does **not**
+`verify` checks archive integrity, that the archive and checksum file are
+present, and that the checksum file names the selected archive; a missing
+`release.json` is a warning for `verify` but a failure for `import`. It does **not**
 establish provenance: `release.json` is an unsigned manifest, and the SHA-256
 file only proves the archive matches the copy recorded beside it. Anyone who
 can replace both can produce a consistent bundle. Compare the recorded repo
@@ -263,7 +268,7 @@ The build writes `/usr/share/opencyber/asset-manifest.json`. At runtime,
 `opencyber-doctor` compares measured counts and sizes against it and reports a
 mismatch instead of silently accepting a truncated template store or wordlist.
 Required assets include the nuclei template store, SecLists, the generated baseline dictionary,
-exploitdb, the shared wordlist directory, bundled Metasploit modules, Nmap
+exploitdb, the shared wordlist directory, Nmap
 scripts and WPScan local-detection metadata. Optional entries include the webshell collection,
 Wireshark data, the host udev rules, playbook documents and the CVE database.
 

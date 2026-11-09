@@ -78,3 +78,10 @@ Keep first exercises synthetic and use the network-disabled blue-team profile.
 Tools intentionally execute as container root, evidence can contain credentials,
 and the tester's MCP/model client may transmit returned data to its provider.
 This review does not establish hostile-client isolation or production readiness.
+
+## Public-beta review assignment (2026-11-09)
+
+- **Reviewer:** `mitkox-ai`, assigned by the maintainer as the independent reviewer for the public-beta delta.
+- **Review package:** pull request https://github.com/mitkox/opencyber/pull/4 (head `feat/public-beta-readiness`, vendor-removal commit `a9544e0`). The reviewer records the final reviewed commit here after the review.
+- **Required coverage:** cookie handling, response cap, refusal codes, redirect canonicalization, PoC truncation and TLS defaults, browser bounds, airgap identity, MCP contract/authority changes, installer and release tooling.
+- **Status:** approved by `mitkox-ai` on pull request #4 at 2026-11-09T10:55:15Z. Later commits on the branch are the vendor removal, critical/HIGH build remediation, amd64-only release-policy change and license rescan; the approval covers the reviewed delta and those follow-ups remain subject to the go/no-go record.

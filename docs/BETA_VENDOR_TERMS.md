@@ -1,6 +1,22 @@
 # Vendor terms and unresolved beta reviews
 
-The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+## Public beta status (2026-11-09)
+
+The public beta image **does not include** Oracle Instant Client, Microsoft DIA,
+`pyxdia`, `metasploit-framework`/`msfvenom`, or `oscanner`. Those components were
+removed because no redistribution agreement was recorded for them. The catalog,
+image compliance check and documentation were updated in the same change; the
+historical private-preview notes below are retained for audit context only.
+
+The remaining unknown-license component set is recorded, with its exact hash and
+count, in `compliance/license-policy.json` under `recorded_unknown_licenses`.
+That record is legal-risk acceptance by the maintainer for the public beta, not a
+finding that the components are licensed. Any candidate whose unknown set differs
+must be reviewed and the record refreshed before release.
+
+## Historical private-preview notes
+
+The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 retains Oracle connectivity and optional Microsoft PDB analysis. The maintainer
 chose a full-toolkit preview for a small invited group, with vendor reviews
 still pending. It is **unqualified**. No accepted vendor agreement, signature,

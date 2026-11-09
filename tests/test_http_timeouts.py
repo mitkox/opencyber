@@ -31,6 +31,17 @@ class SlowHandler(BaseHTTPRequestHandler):
         except (BrokenPipeError, ConnectionResetError):
             pass
 
+    def do_POST(self):
+        time.sleep(0.2)
+        self.send_response(200)
+        self.send_header("Content-Type", "application/json")
+        self.send_header("Content-Length", "2")
+        self.end_headers()
+        try:
+            self.wfile.write(b"{}")
+        except (BrokenPipeError, ConnectionResetError):
+            pass
+
     def log_message(self, *args):
         pass
 
@@ -47,6 +58,30 @@ class LoopbackFailureTests(unittest.TestCase):
                     for path in ("headers", "body"):
                         with self.subTest(path=path), self.assertRaises(OcError) as raised:
                             native_tools.http_request("GET", f"http://127.0.0.1:{server.server_port}/{path}", timeout=0.03)
+                        self.assertEqual(raised.exception.code, "timed_out")
+            finally:
+                server.shutdown()
+                thread.join(timeout=2)
+
+    def test_graphql_openapi_and_audit_consumers_translate_timeouts(self):
+        from opencyber.api_audit import audit_graphql, audit_openapi
+        from opencyber.errors import OcError
+
+        with ThreadingHTTPServer(("127.0.0.1", 0), SlowHandler) as server:
+            thread = threading.Thread(target=server.serve_forever, daemon=True)
+            thread.start()
+            base = f"http://127.0.0.1:{server.server_port}"
+            try:
+                with mock.patch.dict(os.environ, {"NO_PROXY": "127.0.0.1"}):
+                    calls = {
+                        "graphql_request": lambda: native_tools.graphql_request(base + "/headers", "{ x }", timeout=0.03),
+                        "inspect_openapi": lambda: native_tools.inspect_openapi("eng_unused", base + "/headers", timeout=0.03),
+                        "audit_graphql": lambda: audit_graphql("eng_unused", base + "/headers", timeout=0.03),
+                        "audit_openapi": lambda: audit_openapi("eng_unused", base + "/headers", timeout=0.03),
+                    }
+                    for name, call in calls.items():
+                        with self.subTest(tool=name), self.assertRaises(OcError) as raised:
+                            call()
                         self.assertEqual(raised.exception.code, "timed_out")
             finally:
                 server.shutdown()

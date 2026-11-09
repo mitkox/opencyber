@@ -69,8 +69,8 @@ class ReleaseGateTests(unittest.TestCase):
 
     def test_bad_staging_reference_copy_digest_or_signing_failure_stops_promotion(self):
         digest = "sha256:" + "a" * 64
-        records = [{"platform": "linux/" + arch, "commit": "candidate", "digest": digest,
-                    "staging_reference": "ghcr.io/owner/staging@" + digest} for arch in ("amd64", "arm64")]
+        records = [{"platform": "linux/amd64", "commit": "candidate", "digest": digest,
+                    "staging_reference": "ghcr.io/owner/staging@" + digest}]
         for failure in ("reference", "copy_digest", "sign"):
             with self.subTest(failure=failure), tempfile.TemporaryDirectory() as directory:
                 inputs, output = Path(directory) / "records.json", Path(directory) / "digests.json"
@@ -127,17 +127,17 @@ class ReleaseGateTests(unittest.TestCase):
                 gate.verify_staging("owner/staging", "ghcr.io/owner/staging:bootstrap")
             probe.assert_not_called()
 
-    def test_organization_staging_uses_organization_package_metadata(self):
+    def test_user_staging_uses_user_package_metadata(self):
         def metadata(*args):
-            if args != ("gh", "api", "orgs/mitkox-dev/packages/container/opencyber-beta-candidates"):
+            if args != ("gh", "api", "users/mitkox/packages/container/opencyber-beta-candidates"):
                 raise subprocess.CalledProcessError(404, args)
             return b'{"visibility":"private"}'
 
         with patch.object(gate, "command", side_effect=metadata), patch.object(
             gate.subprocess, "run", return_value=subprocess.CompletedProcess([], 1, "", "unauthorized")
         ):
-            gate.verify_staging("mitkox-dev/opencyber-beta-candidates",
-                                "ghcr.io/mitkox-dev/opencyber-beta-candidates:bootstrap")
+            gate.verify_staging("mitkox/opencyber-beta-candidates",
+                                "ghcr.io/mitkox/opencyber-beta-candidates:bootstrap")
 
     def test_network_failure_does_not_prove_staging_privacy(self):
         with patch.object(gate, "command", return_value=b'{"visibility":"private"}'), patch.object(
@@ -147,7 +147,7 @@ class ReleaseGateTests(unittest.TestCase):
                 gate.verify_staging("owner/staging", "ghcr.io/owner/staging:bootstrap")
 
     def receipts(self, root):
-        for arch, character in (("amd64", "a"), ("arm64", "b")):
+        for arch, character in (("amd64", "a"),):
             directory = root / arch
             directory.mkdir()
             image = "sha256:" + character * 64
@@ -165,23 +165,23 @@ class ReleaseGateTests(unittest.TestCase):
                 "source_manifest_sha256": hashlib.sha256(source.read_bytes()).hexdigest(),
             }))
 
-    def test_both_platforms_and_exact_source_bytes_are_required(self):
+    def test_amd64_and_exact_source_bytes_are_required(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.receipts(root)
-            self.assertEqual(len(gate.validate_records(root, "candidate")), 2)
+            self.assertEqual(len(gate.validate_records(root, "candidate")), 1)
             with self.assertRaisesRegex(ValueError, "same commit"):
                 gate.validate_records(root, "different")
-            (root / "arm64/corresponding-source.tar.gz").write_bytes(b"tampered")
+            (root / "amd64/corresponding-source.tar.gz").write_bytes(b"tampered")
             with self.assertRaisesRegex(ValueError, "checksum"):
                 gate.validate_records(root, "candidate")
 
-    def test_one_architecture_cannot_promote(self):
+    def test_amd64_receipt_is_required_for_promotion(self):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory)
             self.receipts(root)
-            (root / "arm64/arm64.record.json").unlink()
-            with self.assertRaisesRegex(ValueError, "both amd64 and arm64"):
+            (root / "amd64/amd64.record.json").unlink()
+            with self.assertRaisesRegex(ValueError, "amd64"):
                 gate.validate_records(root, "candidate")
 
     def test_vulnerability_exceptions_require_owner_reason_and_current_expiry(self):

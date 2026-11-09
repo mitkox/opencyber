@@ -15,15 +15,15 @@ CHECKER = ROOT / "scripts" / "check-license-policy.py"
 
 
 class LicensePolicyTests(unittest.TestCase):
-    def test_vendor_binary_delivery_stays_blocked_when_wrapper_reports_mit(self) -> None:
+    def test_removed_vendor_components_are_forbidden_if_they_return(self) -> None:
         policy = json.loads((ROOT / "compliance/license-policy.json").read_text(encoding="utf-8"))
-        for name in ("pyxdia", "oracle-instantclient-basic"):
+        for name in ("pyxdia", "oracle-instantclient-basic", "metasploit-framework"):
             with self.subTest(name=name):
                 result = self.run_checker(
                     [{"name": name, "licenses": [{"license": {"id": "MIT"}}]}], policy,
                 )
                 self.assertEqual(result.returncode, 1, result.stdout)
-                self.assertIn(f"REVIEW: {name}:", result.stdout)
+                self.assertIn(f"REMOVED: {name}:", result.stderr)
 
     def test_unknown_or_absent_license_is_a_release_blocker(self) -> None:
         result = self.run_checker(["unreviewed-component"], {})
@@ -71,6 +71,42 @@ class LicensePolicyTests(unittest.TestCase):
                 capture_output=True,
                 text=True,
             )
+
+    def test_recorded_unknown_set_is_accepted_only_for_the_exact_components(self) -> None:
+        policy = json.loads((ROOT / "compliance/license-policy.json").read_text(encoding="utf-8"))
+        recorded = policy["recorded_unknown_licenses"]
+        names = ["pkg:generic/fixture-a@1", "pkg:generic/fixture-b@2"]
+        import hashlib
+
+        policy = {
+            **policy,
+            "recorded_unknown_licenses": {
+                **recorded,
+                "count": len(names),
+                "sha256": hashlib.sha256("\n".join(sorted(names)).encode()).hexdigest(),
+            },
+        }
+        accepted = self.run_checker(
+            [{"name": name.split("/")[-1].split("@")[0], "purl": name} for name in names], policy,
+        )
+        self.assertEqual(accepted.returncode, 0, accepted.stderr)
+        self.assertIn("RECORDED: 2", accepted.stdout)
+        changed = self.run_checker(
+            [{"name": "fixture-a", "purl": "pkg:generic/fixture-a@1"},
+             {"name": "fixture-c", "purl": "pkg:generic/fixture-c@3"}], policy,
+        )
+        self.assertEqual(changed.returncode, 1)
+        self.assertIn("UNRESOLVED", changed.stderr)
+
+    def test_recorded_unknown_component_list_matches_the_policy(self) -> None:
+        policy = json.loads((ROOT / "compliance/license-policy.json").read_text(encoding="utf-8"))
+        recorded = policy["recorded_unknown_licenses"]
+        names = (ROOT / recorded["component_list"]).read_text(encoding="utf-8").splitlines()
+        self.assertEqual(len(names), recorded["count"])
+        self.assertEqual(
+            hashlib.sha256("\n".join(sorted(names)).encode("utf-8")).hexdigest(),
+            recorded["sha256"],
+        )
 
     def test_known_spdx_license_passes_but_unknown_expressions_fail(self) -> None:
         for license_id, expected in (("MIT", 0), ("NOASSERTION", 1), ("Not-A-Real-License", 1),

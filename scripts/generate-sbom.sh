@@ -3,7 +3,7 @@ set -euo pipefail
 
 if [[ $# -lt 1 || $# -gt 3 ]]; then
   echo "usage: $0 IMAGE [OUTPUT_DIRECTORY] [PLATFORM]" >&2
-  echo "example: $0 registry:ghcr.io/mitkox-dev/opencyber@sha256:... sbom linux/amd64" >&2
+  echo "example: $0 registry:ghcr.io/mitkox/opencyber@sha256:... sbom linux/amd64" >&2
   exit 2
 fi
 

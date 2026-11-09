@@ -13,12 +13,12 @@ effect, including custom and commercial terms.
 
 ## Release evidence
 
-The full-toolkit [v0.5.0-private-beta.1 private preview](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The full-toolkit [v0.5.0-private-beta.1 private preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 is published for native `linux/amd64`, from source commit
 `c1201976caf49c45068bb507032aee75e4509e20`, with local tag
 `opencyber:0.5.0-private-beta.1-amd64`. Its catalog has 256 MCP tools: 174
 executable integrations and 82 native tools. The maintainer chose to retain
-the full toolkit for a small invited group. Oracle connectivity and optional
+the toolkit for a small invited group. The public beta removes Oracle connectivity, optional
 Microsoft PDB components remain included with vendor review unresolved; no
 accepted agreement or redistribution entitlement is asserted.
 
@@ -41,12 +41,12 @@ release permission applies. See [docs/BETA_ACCESS.md](docs/BETA_ACCESS.md),
 
 Qualified candidates still require all source, license, vulnerability and
 native amd64/arm64 runtime gates under [docs/RELEASE.md](docs/RELEASE.md). The
-private `ghcr.io/mitkox-dev/opencyber-beta-candidates` package is a separate
+private `ghcr.io/mitkox/opencyber-beta-candidates` package is a separate
 candidate workflow channel, not required for this preview. A configured
 Dockerfile, catalog entry or private download does not prove qualification.
 
 A future public release will publish versioned multi-platform images at
-`ghcr.io/mitkox-dev/opencyber` after additional public acceptance. No such
+`ghcr.io/mitkox/opencyber` after additional public acceptance. No such
 publication is claimed here.
 
 For a qualified registry candidate or future public image, resolve immutable
@@ -93,7 +93,7 @@ states what is actually enforced:
 
 | Component | Audited version | Upstream | Declared license | Current status |
 | --- | --- | --- | --- | --- |
-| OpenCyber Harness | 0.5.0 | <https://github.com/mitkox-dev/opencyber> | Apache-2.0 | Independently written project source |
+| OpenCyber Harness | 0.5.0 | <https://github.com/mitkox/opencyber> | Apache-2.0 | Independently written project source |
 | MCP Python SDK | Python SDK (`mcp>=2.3,<3` declared; exact version in SBOM) | <https://github.com/modelcontextprotocol/python-sdk> | MIT | Notice required |
 | Playwright for Python | 1.64.1 | <https://github.com/microsoft/playwright-python> | Apache-2.0 | Notice required |
 | Requests | Kali package (`requests>=2.31` declared; exact version in SBOM) | <https://github.com/psf/requests> | Apache-2.0 | Notice required |
@@ -139,8 +139,7 @@ is an honestly named generated dictionary; cracking tools remain included.
 ## Required assessment tools and custom licenses
 
 The Dockerfile includes Nmap, Ncat, Ndiff, Nping (supplied by the Nmap package),
-RustScan, AutoRecon, Metasploit, NetExec and WPScan. Nmap scripts and Metasploit
-modules are required offline assets. Exact installed versions, licenses and
+RustScan, AutoRecon, NetExec and WPScan. Nmap scripts are required offline assets. Exact installed versions, licenses and
 asset hashes must come from the built image and its qualification bundle.
 These tools are not excluded merely because they use custom or reciprocal
 licenses.

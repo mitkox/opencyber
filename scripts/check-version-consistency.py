@@ -25,6 +25,7 @@ ALIASES = [
     (ROOT / "scripts" / "publish-image.sh", r"^version=\$\{2:-(\S+)\}$"),
     (ROOT / "scripts" / "airgap-tools-lab.py", r'^EXPECTED_VERSION = "([^"]+)"$'),
     (ROOT / "scripts" / "airgap-tools-image.sh", r'^readonly EXPECTED_VERSION="([^"]+)"$'),
+    (ROOT / ".github" / "workflows" / "build-candidate.yml", r"^\s+default: (\S+)$"),
     (ROOT / ".github" / "workflows" / "publish-container.yml", r"^\s+default: (\S+)$"),
 ]
 

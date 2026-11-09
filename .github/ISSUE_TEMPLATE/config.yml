@@ -1,14 +1,14 @@
 blank_issues_enabled: false
 contact_links:
   - name: Documentation
-    url: https://github.com/mitkox-dev/opencyber/blob/main/docs/README.md
+    url: https://github.com/mitkox/opencyber/blob/main/docs/README.md
     about: Install, configuration, tool, hardware, airgap, and security-model guides.
   - name: Support and troubleshooting
-    url: https://github.com/mitkox-dev/opencyber/blob/main/SUPPORT.md
+    url: https://github.com/mitkox/opencyber/blob/main/SUPPORT.md
     about: Self-checks to run first and the details to include in a support request.
   - name: Report a security vulnerability
-    url: https://github.com/mitkox-dev/opencyber/blob/main/SECURITY.md
+    url: https://github.com/mitkox/opencyber/blob/main/SECURITY.md
     about: Use the private beta reporting address in SECURITY.md; keep vulnerability details out of issues.
   - name: Code of conduct concern
-    url: https://github.com/mitkox-dev/opencyber/blob/main/CODE_OF_CONDUCT.md
+    url: https://github.com/mitkox/opencyber/blob/main/CODE_OF_CONDUCT.md
     about: Use the private reporting route described in the code of conduct.

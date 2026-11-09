@@ -13,7 +13,9 @@ import uuid
 from . import envelope
 from .audit import safe_record
 from .engagements import resolve_engagement_path
-from .http_client import redirect_scope_hooks, resolve_timeout
+from .errors import OcError
+from .http_client import bounded_response, redirect_scope_hooks, request_errors, resolve_timeout
+from .limits import facts
 from .policy import enforce_url_scope
 from .workspace import write_workspace_file
 
@@ -27,11 +29,24 @@ def _load_json(engagement_id: str, source: str, timeout: float | None = None) ->
         enforce_url_scope(engagement_id, source, tool="oc_openapi_audit")
         import requests
 
-        response = requests.get(source, timeout=resolve_timeout(timeout),
-                                hooks=redirect_scope_hooks(engagement_id, tool="oc_openapi_audit"))
-        response.raise_for_status()
-        document = response.json()
-        origin = response.url
+        hooks = redirect_scope_hooks(engagement_id, tool="oc_openapi_audit")
+        hooks.setdefault("response", []).append(bounded_response)
+        with request_errors():
+            response = requests.get(
+                source,
+                timeout=resolve_timeout(timeout),
+                hooks=hooks,
+                stream=True,
+            )
+            truncated = getattr(response, "_opencyber_body_truncated", False) is True
+            response.raise_for_status()
+            if truncated:
+                raise OcError(
+                    "truncated",
+                    "the API document exceeded http.response_max_bytes and is unusable",
+                )
+            document = response.json()
+            origin = response.url
         safe_record(
             engagement_id,
             {
@@ -179,17 +194,27 @@ def audit_graphql(
       }
     }
     """
-    response = requests.post(
-        url,
-        headers={"content-type": "application/json", **(headers or {})},
-        json={"query": query},
-        timeout=resolve_timeout(timeout),
-        hooks=redirect_scope_hooks(engagement_id, tool="oc_graphql_audit"),
-    )
-    try:
-        payload: Any = response.json()
-    except ValueError:
-        payload = response.text
+    hooks = redirect_scope_hooks(engagement_id, tool="oc_graphql_audit")
+    hooks.setdefault("response", []).append(bounded_response)
+    with request_errors():
+        response = requests.post(
+            url,
+            headers={"content-type": "application/json", **(headers or {})},
+            json={"query": query},
+            timeout=resolve_timeout(timeout),
+            hooks=hooks,
+            stream=True,
+        )
+        truncated = getattr(response, "_opencyber_body_truncated", False) is True
+        if truncated:
+            raise OcError(
+                "truncated",
+                "the GraphQL introspection response exceeded http.response_max_bytes and is unusable",
+            )
+        try:
+            payload: Any = response.json()
+        except ValueError:
+            payload = response.text
     schema = payload.get("data", {}).get("__schema") if isinstance(payload, dict) else None
     types = schema.get("types", []) if isinstance(schema, dict) else []
     type_map = {item.get("name"): item for item in types if isinstance(item, dict)}
@@ -295,6 +320,7 @@ def fuzz_api_parameter(
     base_body: str = "",
     follow_redirects: bool = True,
     timeout: float | None = None,
+    cancel_event: Any = None,
 ) -> dict[str, Any]:
     import requests
 
@@ -305,6 +331,8 @@ def fuzz_api_parameter(
         raise ValueError("location must be query, header, body, path, or json")
     results = []
     for payload in payloads:
+        if cancel_event is not None and cancel_event.is_set():
+            break
         url = urljoin(base_url.rstrip("/") + "/", path.lstrip("/"))
         request_headers = dict(headers or {})
         params = None
@@ -327,17 +355,24 @@ def fuzz_api_parameter(
             json_body[parameter] = payload
         enforce_url_scope(engagement_id, url, tool="oc_api_fuzz")
         started = time.monotonic()
-        response = requests.request(
-            method.upper(),
-            url,
-            headers=request_headers,
-            params=params,
-            data=body,
-            json=json_body,
-            allow_redirects=follow_redirects,
-            timeout=resolve_timeout(timeout),
-            hooks=redirect_scope_hooks(engagement_id, tool="oc_api_fuzz", follow_redirects=follow_redirects),
+        hooks = redirect_scope_hooks(
+            engagement_id, tool="oc_api_fuzz", follow_redirects=follow_redirects
         )
+        hooks.setdefault("response", []).append(bounded_response)
+        with request_errors():
+            response = requests.request(
+                method.upper(),
+                url,
+                headers=request_headers,
+                params=params,
+                data=body,
+                json=json_body,
+                allow_redirects=follow_redirects,
+                timeout=resolve_timeout(timeout),
+                hooks=hooks,
+                stream=True,
+            )
+        truncated = getattr(response, "_opencyber_body_truncated", False) is True
         safe_record(
             engagement_id,
             {
@@ -358,6 +393,18 @@ def fuzz_api_parameter(
                 "status": response.status_code,
                 "elapsed_ms": round((time.monotonic() - started) * 1000, 3),
                 "headers": dict(response.headers),
+                **(
+                    {
+                        "truncated": True,
+                        "coverage": envelope.coverage("partial", exhausted=False),
+                        "limitations": [
+                            "The response body exceeded http.response_max_bytes; only its prefix is retained."
+                        ],
+                        "limit": facts("http.response_max_bytes"),
+                    }
+                    if truncated
+                    else {}
+                ),
                 "body": response.text,
             }
         )
@@ -369,6 +416,7 @@ def fuzz_api_parameter(
         "location": normalized_location,
         "parameter": parameter,
         "request_count": len(results),
+        "cancelled": bool(cancel_event is not None and cancel_event.is_set()),
         "results": results,
         "finding_policy": "Responses are evidence; the caller must validate security impact.",
     }

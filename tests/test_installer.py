@@ -138,7 +138,7 @@ class InstallerTests(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         self.assertIn(f"OpenCyber Harness {version} is ready", result.stdout)
         calls = self.commands()
-        self.assertIn(f"pull ghcr.io/mitkox-dev/opencyber:{version}", calls)
+        self.assertIn(f"pull ghcr.io/mitkox/opencyber:{version}", calls)
         self.assertIn("volume create --label com.opencyber.harness.managed=true opencyber-workspace", calls)
         self.assertIn("--label com.opencyber.harness.managed=true", calls)
         self.assertIn("exec opencyber opencyber-mcp --self-test", calls)
@@ -180,7 +180,7 @@ class InstallerTests(unittest.TestCase):
         result = self.run_installer("--digest", digest)
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f"pull ghcr.io/mitkox-dev/opencyber@{digest}", self.commands())
+        self.assertIn(f"pull ghcr.io/mitkox/opencyber@{digest}", self.commands())
 
     def test_digest_environment_override_is_honored(self) -> None:
         digest = "sha256:" + "b" * 64
@@ -189,7 +189,7 @@ class InstallerTests(unittest.TestCase):
         result = self.run_installer()
 
         self.assertEqual(result.returncode, 0, result.stderr)
-        self.assertIn(f"pull ghcr.io/mitkox-dev/opencyber@{digest}", self.commands())
+        self.assertIn(f"pull ghcr.io/mitkox/opencyber@{digest}", self.commands())
 
     def test_invalid_digest_is_rejected(self) -> None:
         result = self.run_installer("--digest", "sha256:short")
@@ -226,6 +226,25 @@ class InstallerTests(unittest.TestCase):
         self.assertIn("stop opencyber", calls)
         self.assertIn("rename opencyber opencyber-rollback-", calls)
         self.assertNotIn("volume rm", calls)
+
+    def test_upgrade_and_rollback_preserve_workspace_data(self) -> None:
+        first = self.run_installer()
+        self.assertEqual(first.returncode, 0, first.stderr)
+        marker = self.state / "workspace-data"
+        marker.write_text("engagement-data")
+
+        upgraded = self.run_installer()
+        self.assertEqual(upgraded.returncode, 0, upgraded.stderr)
+        self.assertTrue(marker.exists(), "upgrade replaced the workspace volume")
+
+        rolled_back = self.run_installer()
+        self.assertEqual(rolled_back.returncode, 0, rolled_back.stderr)
+        self.assertTrue(marker.exists(), "rollback replaced the workspace volume")
+
+        removed = self.run_installer("--uninstall")
+        self.assertEqual(removed.returncode, 0, removed.stderr)
+        self.assertTrue(marker.exists(), "uninstall removed the workspace without purge")
+        self.assertNotIn("volume rm", self.commands())
 
     def test_existing_unmanaged_container_is_not_replaced(self) -> None:
         (self.state / "container").touch()

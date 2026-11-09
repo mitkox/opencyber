@@ -1,9 +1,12 @@
 from __future__ import annotations
 
 from pathlib import Path
+import json
 import os
 import shlex
 import subprocess
+import tempfile
+import textwrap
 import unittest
 
 
@@ -91,6 +94,175 @@ class LauncherTests(unittest.TestCase):
         self.assertIn("export", result.stdout)
         self.assertIn("verify", result.stdout)
         self.assertIn("import", result.stdout)
+
+
+class AirgapTests(unittest.TestCase):
+    def setUp(self) -> None:
+        self.temporary = tempfile.TemporaryDirectory()
+        self.addCleanup(self.temporary.cleanup)
+        root = Path(self.temporary.name)
+        self.state = root / "state"
+        self.state.mkdir()
+        self.bundle = root / "bundle"
+        bindir = root / "bin"
+        bindir.mkdir()
+        (self.state / "image_id").write_text("sha256:" + "a" * 64 + "\n")
+        (self.state / "repo_digests").write_text("opencyber@sha256:" + "b" * 64 + "\n")
+        docker = bindir / "docker"
+        docker.write_text(
+            textwrap.dedent(
+                """\
+                #!/usr/bin/env bash
+                set -eu
+                state="$FAKE_DOCKER_STATE"
+                printf '%s\n' "$*" >> "$state/commands"
+                case "${1:-}" in
+                  image)
+                    case "${2:-}" in
+                      inspect)
+                        shift 2
+                        fmt=""
+                        if [[ "${1:-}" == "--format" ]]; then
+                          fmt="$2"
+                          shift 2
+                        fi
+                        if [[ ! -f "$state/image_id" ]]; then
+                          exit 1
+                        fi
+                        case "$fmt" in
+                          '{{.Id}}') cat "$state/image_id" ;;
+                          '{{join .RepoDigests ","}}') cat "$state/repo_digests" ;;
+                          *) : ;;
+                        esac
+                        ;;
+                      save)
+                        shift 2
+                        output=""
+                        if [[ "${1:-}" == "-o" ]]; then
+                          output="$2"
+                          shift 2
+                        fi
+                        printf 'fake archive\n' > "$output"
+                        ;;
+                      *) printf 'unexpected image invocation: %s\n' "$*" >&2; exit 2 ;;
+                    esac
+                    ;;
+                  save)
+                    shift
+                    output=""
+                    if [[ "${1:-}" == "-o" ]]; then
+                      output="$2"
+                      shift 2
+                    fi
+                    printf 'fake archive\n' > "$output"
+                    ;;
+                  load)
+                    if [[ "${FAKE_FAIL_LOAD:-0}" == "1" ]]; then
+                      exit 1
+                    fi
+                    touch "$state/loaded"
+                    ;;
+                  run)
+                    entry=""
+                    arguments=()
+                    shift
+                    while [[ $# -gt 0 ]]; do
+                      case "$1" in
+                        --rm) shift ;;
+                        --entrypoint)
+                          entry="$2"
+                          shift 2
+                          ;;
+                        *)
+                          arguments+=("$1")
+                          shift
+                          ;;
+                      esac
+                    done
+                    if [[ "$entry" == "opencyber-mcp" && "${FAKE_FAIL_SELF_TEST:-0}" == "1" ]]; then
+                      exit 1
+                    fi
+                    if [[ "$entry" == "opencyber-doctor" && "${FAKE_FAIL_DOCTOR:-0}" == "1" ]]; then
+                      exit 1
+                    fi
+                    ;;
+                  *) printf 'unexpected docker invocation: %s\n' "$*" >&2; exit 2 ;;
+                esac
+                """
+            )
+        )
+        docker.chmod(0o755)
+        self.env = {
+            **os.environ,
+            "PATH": f"{bindir}:{os.environ['PATH']}",
+            "FAKE_DOCKER_STATE": str(self.state),
+            "FAKE_DOCKER_IMAGE_PRESENT": "1",
+        }
+
+    def run_airgap(self, *arguments: str) -> subprocess.CompletedProcess[str]:
+        return subprocess.run(
+            [str(AIRGAP), *arguments],
+            cwd=ROOT,
+            env=self.env,
+            text=True,
+            capture_output=True,
+            check=False,
+        )
+
+    def export_bundle(self) -> None:
+        result = self.run_airgap("export", "--image", "opencyber:1.0.0-beta.1", "--output", str(self.bundle))
+        self.assertEqual(result.returncode, 0, result.stderr)
+
+    def test_checksum_filename_mismatch_fails_before_load(self):
+        self.export_bundle()
+        checksum = self.bundle / "opencyber-1.0.0-beta.1.tar.sha256"
+        checksum.write_text("0" * 64 + "  different.tar\n")
+        result = self.run_airgap("import", "--input", str(self.bundle))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("checksum file names", result.stderr)
+        commands = (self.state / "commands").read_text()
+        self.assertNotIn("load", commands)
+
+    def test_loaded_image_identity_mismatch_fails_closed(self):
+        self.export_bundle()
+        release = json.loads((self.bundle / "release.json").read_text())
+        release["image_id"] = "sha256:" + "c" * 64
+        (self.bundle / "release.json").write_text(json.dumps(release))
+        result = self.run_airgap("import", "--input", str(self.bundle))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("image ID does not match", result.stderr)
+
+    def test_successful_import_runs_doctor_and_strict_self_test(self):
+        self.export_bundle()
+        result = self.run_airgap("import", "--input", str(self.bundle))
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertIn("identity OK", result.stdout)
+        self.assertIn("strict MCP self-test OK", result.stdout)
+        self.assertIn("doctor OK", result.stdout)
+        commands = (self.state / "commands").read_text()
+        self.assertIn("--entrypoint opencyber-mcp", commands)
+        self.assertIn("--self-test", commands)
+        self.assertIn("--entrypoint opencyber-doctor", commands)
+
+    def test_missing_release_manifest_fails_closed(self):
+        self.export_bundle()
+        (self.bundle / "release.json").unlink()
+        result = self.run_airgap("import", "--input", str(self.bundle))
+        self.assertNotEqual(result.returncode, 0)
+        self.assertIn("release.json is required", result.stderr)
+
+    def test_failed_doctor_or_self_test_aborts_import(self):
+        self.export_bundle()
+        for variable in ("FAKE_FAIL_SELF_TEST", "FAKE_FAIL_DOCTOR"):
+            with self.subTest(variable=variable):
+                env = {**self.env, variable: "1"}
+                result = subprocess.run(
+                    [str(AIRGAP), "import", "--input", str(self.bundle)],
+                    cwd=ROOT, env=env, text=True, capture_output=True, check=False,
+                )
+                self.assertNotEqual(result.returncode, 0)
+                self.assertIn("do not deploy this image", result.stderr)
+
 
 
 if __name__ == "__main__":

@@ -331,7 +331,7 @@ Runs a container from the image and checks the policy-sensitive executable set a
 
 The check rejects unapproved Burp Suite, Maltego and waybackurls binaries,
 archived Terrascan, and the vulnerable ScoutSuite/sqlitedict stack. It requires
-Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, Metasploit, NetExec, WPScan,
+Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, NetExec, WPScan,
 WhatWeb, URLFinder, subzy and Volatility, together with the installed notices,
 source offer, Go/Rust license trees, playbooks, udev rules and asset manifest.
 
@@ -360,9 +360,9 @@ Dispatches `build-candidate.yml` for the current Git ref. It validates and stage
 | Situation | Exit |
 | --- | ---: |
 | Workflow dispatched | `0` |
-| Dirty worktree, repository other than `ghcr.io/mitkox-dev/opencyber`, or `gh` absent | `1` |
+| Dirty worktree, repository other than `ghcr.io/mitkox/opencyber`, or `gh` absent | `1` |
 
-Arguments default to `ghcr.io/mitkox-dev/opencyber` and `0.5.0`.
+Arguments default to `ghcr.io/mitkox/opencyber` and `0.5.0`.
 
 ### Candidate and evidence scripts
 

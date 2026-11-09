@@ -17,7 +17,7 @@ synthetic log. The image and corresponding source work from a complete offline
 transfer. The guide includes expected results, issue reporting and cleanup.
 
 The preview retains the full toolchain and has local amd64 acceptance evidence.
-It remains unqualified, with vendor/license reviews, arm64 and physical-device
+It remains unqualified, with vendor/license reviews, amd64 platform and physical-device
 qualification open. Repository Read supplies the private release assets; GHCR
 access is not required for this preview.
 

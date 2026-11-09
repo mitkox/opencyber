@@ -1,8 +1,8 @@
 # Installing OpenCyber Harness
 
-The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 is available for Linux amd64. Start with [Beta testing](BETA_TESTING.md) for a
-synthetic first result. The preview is unqualified: native arm64, hardware and
+synthetic first result. The preview is unqualified: native amd64, hardware and
 production acceptance, vendor reviews and license metadata follow-ups remain
 open. Private access does not establish legal clearance or waive third-party
 terms. Public publication and broader distribution require separate approval.
@@ -32,7 +32,7 @@ After accepting the repository invitation, download while connected:
 ```sh
 gh auth login
 gh release download v0.5.0-private-beta.1 \
-  --repo mitkox-dev/opencyber --dir opencyber-beta
+  --repo mitkox/opencyber --dir opencyber-beta
 ```
 
 Outside collaborators with repository **Read access** can download these
@@ -94,7 +94,7 @@ Authenticate and select that source:
 
 ```sh
 gh auth login
-gh repo clone mitkox-dev/opencyber
+gh repo clone mitkox/opencyber
 cd opencyber
 BETA_SOURCE_COMMIT='REPLACE_WITH_FULL_QUALIFIED_COMMIT_FROM_MAINTAINER'
 BETA_PLATFORM_DIGEST='sha256:REPLACE_WITH_QUALIFIED_PLATFORM_DIGEST_FROM_MAINTAINER'
@@ -123,7 +123,7 @@ container it does not manage; uninstall also refuses to purge an unmanaged volum
 
 ```sh
 less install.sh
-OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
+OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
   bash install.sh --version 0.5.0 --digest "$BETA_PLATFORM_DIGEST"
 ```
 
@@ -134,7 +134,7 @@ The default install is hardened:
 
 - All capabilities dropped, then only `NET_RAW`, `NET_ADMIN`, and `NET_BIND_SERVICE` added.
 - `no-new-privileges`.
-- Read-only root filesystem with disposable tmpfs mounts at `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, and `/root/.msf4`. The last three support AutoRecon, NetExec and Metasploit state.
+- Read-only root filesystem with disposable tmpfs mounts at `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, and `/root/.msf4`. The last three support AutoRecon and NetExec state.
 - A persistent Docker volume mounted at `/workspace`.
 
 ### Options
@@ -213,7 +213,7 @@ by the maintainer, or record the current `HEAD` for development:
 
 ```sh
 gh auth login
-gh repo clone mitkox-dev/opencyber
+gh repo clone mitkox/opencyber
 cd opencyber
 git rev-parse HEAD
 python3 -m venv .venv
@@ -289,10 +289,13 @@ Passing these probes does not establish live Oracle/PDB, hardware or all-tool
 acceptance. Candidate qualification requires matching source and platform identities,
 vulnerability and license checks, native software acceptance, provenance and
 SBOMs. Eventual public publication also requires acceptance on both
-`linux/amd64` and `linux/arm64` and public access checks. The installer self-test
+`linux/amd64` and public access checks. The installer self-test
 does not replace those gates. See [Release](RELEASE.md) for the maintainer process.
 
 ## Upgrade
+
+Re-run the installer with the new version or digest. The managed container is replaced, but the `opencyber-workspace` volume is never recreated, so engagements and evidence survive the upgrade. To roll back, re-run the installer with the previous version or digest; the workspace is preserved the same way. `--uninstall` keeps the volume unless `--purge-workspace` is also supplied.
+
 
 The private-beta.1 assets remain frozen. Repository documentation updates do
 not update the installed image. For a later preview, use its release-specific
@@ -302,7 +305,7 @@ For a future **installer-managed qualified candidate**, keep its matching
 source checkout and digest to reinstall it:
 
 ```sh
-OPENCYBER_IMAGE=ghcr.io/mitkox-dev/opencyber-beta-candidates \
+OPENCYBER_IMAGE=ghcr.io/mitkox/opencyber-beta-candidates \
   bash install.sh --version 0.5.0 --digest "$BETA_PLATFORM_DIGEST"
 ```
 

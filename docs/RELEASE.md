@@ -20,7 +20,7 @@ invited group, retaining Oracle connectivity and optional Microsoft PDB
 components while vendor reviews remain pending. This decision is not evidence
 of vendor acceptance or legal clearance. The published drop is:
 
-- [Release v0.5.0-private-beta.1](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1).
+- [Release v0.5.0-private-beta.1](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1).
 - Frozen source commit `c1201976caf49c45068bb507032aee75e4509e20`.
 - Native `linux/amd64` image `opencyber:0.5.0-private-beta.1-amd64`, with image
   ID `sha256:a059c5ecd9d59489f8f99039dd237910a9c90b38a575aab58e2e7b8606344e8a`.
@@ -40,7 +40,7 @@ The strict license gate is **not green**: its 5,129-component inventory has
 2,086 unresolved license records and two vendor reviews. Unknown scanner
 metadata is not itself proof that a component is unlicensed, but the unresolved
 records still need review. No vendor agreement or entitlement is asserted.
-Native arm64, hardware, live Oracle/PDB workflows and production remain
+Native amd64, hardware, live Oracle/PDB workflows and production remain
 unqualified. The normal candidate and public-promotion gates below remain
 blocking; this preview does not satisfy or change them.
 
@@ -67,7 +67,7 @@ gitleaks dir --redact --no-banner .
 
 Inspect tracked source, examples, package contents, metadata and notices for credentials, real engagement material and private identifiers. Review findings and independent-review coverage belong in [PUBLIC_RELEASE_REVIEW.md](PUBLIC_RELEASE_REVIEW.md).
 
-The reviewed source snapshot is hosted privately at `mitkox-dev/opencyber`,
+The reviewed source snapshot is hosted privately at `mitkox/opencyber`,
 transferred from `mitkox/opencyber` with its numeric repository identity and
 clean history intact. Keep development history in `mitkox/opencyber-development`;
 never merge or push its historical Git objects into the beta repository. The
@@ -75,7 +75,7 @@ snapshot export procedure (`scripts/export-public-snapshot.py`) remains the
 way to create a fresh reviewed root if one is needed. Preserve licenses and
 authorship. Do not recreate the old repository name: that removes its redirect.
 
-Update beta clones with `git remote set-url origin https://github.com/mitkox-dev/opencyber.git`.
+Update beta clones with `git remote set-url origin https://github.com/mitkox/opencyber.git`.
 Check Actions permissions, available protections and package access after the
 transfer. Freeze the source commit before building; evidence must match the
 current repository name, numeric ID, commit, workflow, run and attempt.
@@ -88,12 +88,12 @@ This procedure is separate from the published unqualified preview. Its
 vulnerability, license, source and both native-platform gates remain required.
 
 ```sh
-gh workflow run build-candidate.yml --repo mitkox-dev/opencyber --ref main -f version=0.5.0
+gh workflow run build-candidate.yml --repo mitkox/opencyber --ref main -f version=0.5.0
 ```
 
-The workflow runs full CI and builds on native amd64 and arm64 runners. Each platform must pass doctor, strict catalog alignment, actual MCP stdio, synthetic blue-team and PoC fixtures, hardened runtime, airgap export/import, assets, image compliance and exact corresponding-source capture. SBOMs describe the tested runtime. HIGH and CRITICAL vulnerabilities, including unfixed findings, block the build. For 0.5.0, update or exclude affected components rather than adding vulnerability exceptions. License policy and missing source archives remain blocking. Valid SPDX identifiers are accepted from either CycloneDX license IDs or names; ambiguous aliases are not guessed. Unknown SPDX expressions or missing license identities require an exact-version `purl` decision in `reviewed_license_components`, naming `license_expression`, `owner`, `basis` and `reviewed_at`. A custom-license decision also records the actual redistribution basis, required notices, source obligations and a captured license file with its SHA-256 and upstream URL. `--license-evidence-root` selects the retained evidence directory (default: the policy directory). Unresolved entries are never waived by a component-name allowlist. SBOM generation uses installed-image catalogers; source-only workflow and lockfile references are not falsely reported as installed dependencies.
+The workflow runs full CI and builds on a native amd64 runner. The amd64 candidate must pass doctor, strict catalog alignment, actual MCP stdio, synthetic blue-team and PoC fixtures, hardened runtime, airgap export/import, assets, image compliance and exact corresponding-source capture. SBOMs describe the tested runtime. HIGH and CRITICAL vulnerabilities, including unfixed findings, block the build. For 0.5.0, update or exclude affected components rather than adding vulnerability exceptions. License policy and missing source archives remain blocking. Valid SPDX identifiers are accepted from either CycloneDX license IDs or names; ambiguous aliases are not guessed. Unknown SPDX expressions or missing license identities require an exact-version `purl` decision in `reviewed_license_components`, naming `license_expression`, `owner`, `basis` and `reviewed_at`. A custom-license decision also records the actual redistribution basis, required notices, source obligations and a captured license file with its SHA-256 and upstream URL. `--license-evidence-root` selects the retained evidence directory (default: the policy directory). Unresolved entries are never waived by a component-name allowlist. SBOM generation uses installed-image catalogers; source-only workflow and lockfile references are not falsely reported as installed dependencies.
 
-Images upload only to `ghcr.io/mitkox-dev/opencyber-beta-candidates`. This fresh
+Images upload only to `ghcr.io/mitkox/opencyber-beta-candidates`. This fresh
 package belongs to the clean repository, keeping beta access separate from
 historical development packages. It must remain private; anonymous access must
 receive an authentication denial. A network error is not proof of privacy.
@@ -123,18 +123,18 @@ identity. Keep the candidate package private even if the source becomes public.
 After the entire candidate build succeeds, freeze its artifact selection:
 
 ```sh
-GITHUB_REPOSITORY=mitkox-dev/opencyber python scripts/release-gate.py select --run-id BUILD_RUN_ID --commit FULL_FROZEN_COMMIT --output /private/release/candidate-selection.json
+GITHUB_REPOSITORY=mitkox/opencyber python scripts/release-gate.py select --run-id BUILD_RUN_ID --commit FULL_FROZEN_COMMIT --output /private/release/candidate-selection.json
 ```
 
 Retain the printed SHA-256 independently. A changed run attempt, replaced artifact, missing checksum or expired artifact invalidates the selection. Fetch receipts for the lab:
 
 ```sh
-GITHUB_REPOSITORY=mitkox-dev/opencyber python scripts/release-gate.py fetch --selection /private/release/candidate-selection.json --sha256 SELECTION_SHA256 --run-id BUILD_RUN_ID --commit FULL_FROZEN_COMMIT --output /private/release/candidate-evidence > /private/release/records.json
+GITHUB_REPOSITORY=mitkox/opencyber python scripts/release-gate.py fetch --selection /private/release/candidate-selection.json --sha256 SELECTION_SHA256 --run-id BUILD_RUN_ID --commit FULL_FROZEN_COMMIT --output /private/release/candidate-evidence > /private/release/records.json
 ```
 
 ## Give invited testers access
 
-The maintainer invites external testers to `mitkox-dev/opencyber` as
+The maintainer invites external testers to `mitkox/opencyber` as
 **outside collaborators with Read access**. They can clone the complete reviewed
 source and report issues without receiving push access or organization
 membership. Do not invite testers to `mitkox/opencyber-development`.
@@ -163,9 +163,9 @@ before delivery of conditional vendor binaries. Disable automatic repository
 permission inheritance where it could bypass recipient-specific checks.
 Repository transfer does not move
 personal GHCR packages into the organization. New candidates and future release
-images use `ghcr.io/mitkox-dev/opencyber-beta-candidates` and
-`ghcr.io/mitkox-dev/opencyber`, respectively. Link each organization package to
-`mitkox-dev/opencyber`, inspect permission inheritance, and grant the repository
+images use `ghcr.io/mitkox/opencyber-beta-candidates` and
+`ghcr.io/mitkox/opencyber`, respectively. Link each organization package to
+`mitkox/opencyber`, inspect permission inheritance, and grant the repository
 Actions access for builds. Do not relabel historical images as qualified
 organization candidates. Keep candidate storage private and verify anonymous
 pulls are denied. See [GitHub's package permissions](https://docs.github.com/en/packages/learn-github-packages/about-permissions-for-github-packages).
@@ -198,7 +198,7 @@ The collector creates `qualification.json` and checksummed `evidence/` files. Re
 The public publication workflow remains disabled during private beta. Only
 after the maintainer explicitly authorizes opening the repository should it be
 enabled and the remaining public gates completed. Configure the canonical
-`ghcr.io/mitkox-dev/opencyber` package separately for the new repository identity;
+`ghcr.io/mitkox/opencyber` package separately for the new repository identity;
 verify visibility and workflow access. Its harmless `bootstrap` reference must
 be available for the publisher's anonymous visibility check. Do not grant beta
 testers access to historical canonical package versions as a shortcut.
@@ -206,7 +206,7 @@ testers access to historical canonical package versions as a shortcut.
 Create an annotated `v0.5.0` tag on the frozen commit and push it. Tag pushes do not publish automatically. Prepare a draft prerelease for that tag and upload `candidate-selection.json` without replacing existing assets. Include `hardware-qualification.zip` only when supplying optional real-device evidence. Complete private acceptance before opening the fresh repository and making the release package public.
 
 ```sh
-gh workflow run publish-container.yml --repo mitkox-dev/opencyber --ref v0.5.0 -f version=0.5.0 -f candidate_run_id=BUILD_RUN_ID -f selection_sha256=SELECTION_SHA256
+gh workflow run publish-container.yml --repo mitkox/opencyber --ref v0.5.0 -f version=0.5.0 -f candidate_run_id=BUILD_RUN_ID -f selection_sha256=SELECTION_SHA256
 ```
 
 Publication validates the successful canonical workflow run, exact selected artifact IDs and archive hashes, both source receipts and build attempt before any public copy. When `qualification_sha256` is supplied it also validates the complete hardware archive; otherwise `qualification-status.json` explicitly records `not_qualified`. It never builds an image. It then:
@@ -214,16 +214,16 @@ Publication validates the successful canonical workflow run, exact selected arti
 1. Publishes deterministic source/compliance archives in 1 GiB parts, the selection, qualification status, any supplied sanitized device bundle and `SHA256SUMS`. Anonymous downloads must work before image promotion; the prerelease is labelled verification pending.
 2. Copies platform digests with `--preserve-digests`, verifies them, constructs the two-platform manifest and signs the promoted digests. Receipts identify the original build; signatures/attestations identify the promotion workflow at the canonical tag.
 3. Verifies anonymous registry access, signatures, provenance and real native runtime, MCP, blue-team and PoC acceptance on fresh runners.
-4. Publishes only `ghcr.io/mitkox-dev/opencyber:0.5.0` and retains the GitHub prerelease label. Hardware integrations are supported for beta use; the attached status and device matrix identify any qualified combinations. Production qualification remains separate.
+4. Publishes only `ghcr.io/mitkox/opencyber:0.5.0` and retains the GitHub prerelease label. Hardware integrations are supported for beta use; the attached status and device matrix identify any qualified combinations. Production qualification remains separate.
 
 Existing version references and release assets are immutable: identical retries are allowed; replacement bytes are refused. A changed published candidate needs a new version. Failed public acceptance leaves the release pending. Do not finalize manually or treat a private candidate as public acceptance evidence.
 
 ## Verify a release
 
 ```sh
-docker buildx imagetools inspect ghcr.io/mitkox-dev/opencyber:0.5.0
-gh attestation verify oci://ghcr.io/mitkox-dev/opencyber:0.5.0 --repo mitkox-dev/opencyber
-gh release download v0.5.0 --repo mitkox-dev/opencyber --dir release-evidence
+docker buildx imagetools inspect ghcr.io/mitkox/opencyber:0.5.0
+gh attestation verify oci://ghcr.io/mitkox/opencyber:0.5.0 --repo mitkox/opencyber
+gh release download v0.5.0 --repo mitkox/opencyber --dir release-evidence
 ```
 
 Check `SHA256SUMS`, concatenate each platform's `compliance.tar.part-*` files in lexical order and extract the tar. Verify its source checksums and retain corresponding source for the period promised in [SOURCE_OFFER.md](../SOURCE_OFFER.md). Exercise the documented installer against the published digest before accepting the release for use.

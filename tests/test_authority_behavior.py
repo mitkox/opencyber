@@ -17,7 +17,7 @@ class AuthorityBehaviorTests(unittest.TestCase):
         # Reports are persisted, sessions are created/closed, serial reads
         # consume buffered data, and network_log(clear=True) removes its log.
         for name in (
-            "oc_openapi_audit", "oc_graphql_audit", "oc_jwt_audit",
+            "oc_openapi_audit", "oc_graphql_audit", "oc_jwt_audit", "oc_poc_render",
             "oc_firmware_analyze", "oc_file_triage", "oc_log_timeline", "oc_pcap_triage",
             "oc_browser_create", "oc_browser_close", "oc_browser_network_log",
             "oc_serial_open", "oc_serial_read", "oc_serial_close",

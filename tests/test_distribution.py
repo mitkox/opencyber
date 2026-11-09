@@ -32,7 +32,7 @@ class DistributionComplianceTests(unittest.TestCase):
     def test_downloaded_assets_are_checksum_verified(self) -> None:
         self.assertIn("NUCLEI_TEMPLATES_SHA256", DOCKERFILE)
         self.assertIn("/out/yq /usr/local/bin/yq", DOCKERFILE)
-        self.assertEqual(DOCKERFILE.count("sha256sum -c -"), 1)
+        self.assertEqual(DOCKERFILE.count("sha256sum -c -"), 2)
         self.assertIn("ADD --checksum=sha256:", DOCKERFILE)
 
     def test_restricted_packages_are_not_installed(self) -> None:
@@ -45,7 +45,7 @@ class DistributionComplianceTests(unittest.TestCase):
             if line.strip()
         }
         self.assertTrue({"burpsuite", "maltego", "terrascan", "scoutsuite"}.isdisjoint(packages))
-        self.assertTrue({"wpscan", "nmap", "autorecon", "metasploit-framework", "netexec", "rustscan"}.issubset(packages))
+        self.assertTrue({"wpscan", "nmap", "autorecon", "netexec", "rustscan"}.issubset(packages))
         self.assertIn("whatweb", packages)
         self.assertIn("ripgrep", packages)
         self.assertNotIn("github.com/tomnomnom/waybackurls", DOCKERFILE)
@@ -90,7 +90,6 @@ class DistributionComplianceTests(unittest.TestCase):
             "bladerf",
             "ubertooth",
             "bluez",
-            "bettercap",
             "hcxdumptool",
             "proxmark3",
             "libnfc-bin",
@@ -148,7 +147,7 @@ class DistributionComplianceTests(unittest.TestCase):
         self.assertIn("sbom-path:", PUBLISH_WORKFLOW)
         self.assertIn("push-to-registry: true", PUBLISH_WORKFLOW)
         self.assertIn("LicenseRef-OpenCyber-Third-Party", DOCKERFILE)
-        self.assertIn("IMAGE_NAME: mitkox-dev/opencyber", PUBLISH_WORKFLOW)
+        self.assertIn("IMAGE_NAME: mitkox/opencyber", PUBLISH_WORKFLOW)
 
     def test_release_workflow_verifies_version_compliance_and_signatures(self) -> None:
         self.assertIn("scripts/check-version-consistency.py --print", PUBLISH_WORKFLOW)

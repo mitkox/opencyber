@@ -13,6 +13,7 @@ from urllib.parse import quote, quote_plus
 from . import __version__
 from .assets import local_cve_db, require_online
 from .engagements import resolve_engagement_path
+from .errors import OcError
 from .http_client import bounded_response, redirect_scope_hooks, request_errors, resolve_timeout
 from .envelope import coverage
 from .limits import facts
@@ -118,17 +119,22 @@ def graphql_request(
     import requests
 
     merged_headers = {"content-type": "application/json", **(headers or {})}
-    response = requests.post(
-        url,
-        headers=merged_headers,
-        json={"query": query, "variables": variables or {}},
-        timeout=resolve_timeout(timeout),
-        hooks=redirect_scope_hooks(engagement_id, tool="oc_graphql_request"),
-    )
-    try:
-        payload: Any = response.json()
-    except ValueError:
-        payload = response.text
+    hooks = redirect_scope_hooks(engagement_id, tool="oc_graphql_request")
+    hooks.setdefault("response", []).append(bounded_response)
+    with request_errors():
+        response = requests.post(
+            url,
+            headers=merged_headers,
+            json={"query": query, "variables": variables or {}},
+            timeout=resolve_timeout(timeout),
+            hooks=hooks,
+            stream=True,
+        )
+        truncated = getattr(response, "_opencyber_body_truncated", False) is True
+        try:
+            payload: Any = response.json()
+        except ValueError:
+            payload = response.text
     return {
         "status": response.status_code,
         "url": response.url,
@@ -136,6 +142,16 @@ def graphql_request(
         "response": payload,
         "scope_enforced": bool(scope["enforced"]),
         "requested_url": url,
+        **(
+            {
+                "truncated": True,
+                "coverage": coverage("partial", exhausted=False),
+                "limitations": ["The response body exceeded http.response_max_bytes; only its prefix is retained."],
+                "limit": facts("http.response_max_bytes"),
+            }
+            if truncated
+            else {}
+        ),
     }
 
 
@@ -163,11 +179,24 @@ def inspect_openapi(engagement_id: str, source: str, timeout: float | None = Non
         enforce_url_scope(engagement_id, source, tool="oc_openapi_inspect")
         import requests
 
-        response = requests.get(source, timeout=resolve_timeout(timeout),
-                                hooks=redirect_scope_hooks(engagement_id, tool="oc_openapi_inspect"))
-        response.raise_for_status()
-        document = response.json()
-        origin = response.url
+        hooks = redirect_scope_hooks(engagement_id, tool="oc_openapi_inspect")
+        hooks.setdefault("response", []).append(bounded_response)
+        with request_errors():
+            response = requests.get(
+                source,
+                timeout=resolve_timeout(timeout),
+                hooks=hooks,
+                stream=True,
+            )
+            truncated = getattr(response, "_opencyber_body_truncated", False) is True
+            response.raise_for_status()
+            if truncated:
+                raise OcError(
+                    "truncated",
+                    "the OpenAPI document exceeded http.response_max_bytes and is unusable",
+                )
+            document = response.json()
+            origin = response.url
     else:
         path = resolve_engagement_path(engagement_id, source)
         document = json.loads(Path(path).read_text(encoding="utf-8"))

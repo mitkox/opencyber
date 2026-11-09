@@ -492,7 +492,10 @@ async def oc_jwt_audit(engagement_id: str, token: str, expected_issuer: str = ""
 
 @mcp.tool(name="oc_api_fuzz", description="Run a caller-bounded, single-parameter API fuzz matrix against an authorized target and preserve complete response evidence. The caller selects payloads and max_requests.", structured_output=True)
 async def oc_api_fuzz(engagement_id: str, base_url: str, path: str, method: str, location: str, parameter: str, payloads: list[str], max_requests: int, headers: dict[str, str] | None = None, base_body: str = "", follow_redirects: bool = True, timeout: float | None = None) -> dict[str, Any]:
-    return await asyncio.to_thread(fuzz_api_parameter, engagement_id, base_url, path, method, location, parameter, payloads, max_requests, headers, base_body, follow_redirects, timeout)
+    return await _analysis_call(
+        fuzz_api_parameter, engagement_id, base_url, path, method, location,
+        parameter, payloads, max_requests, headers, base_body, follow_redirects, timeout,
+    )
 
 
 @mcp.tool(name="oc_http_session_create", description="Create a persistent engagement-scoped HTTP workbench session with declared target scope, default headers, cookies, TLS, and redirect behavior.", structured_output=True)
@@ -522,7 +525,10 @@ async def oc_http_repeater(engagement_id: str, session_id: str, method: str, url
 
 @mcp.tool(name="oc_http_intruder", description="Run caller-bounded sniper-style payload iteration through an HTTP workbench session against one query, header, body, or path location.", structured_output=True)
 async def oc_http_intruder(engagement_id: str, session_id: str, method: str, url: str, location: str, parameter: str, payloads: list[str], max_requests: int, headers: dict[str, str] | None = None, body: str = "", timeout: float | None = None) -> dict[str, Any]:
-    return await asyncio.to_thread(intrude_http_parameter, engagement_id, session_id, method, url, location, parameter, payloads, max_requests, headers, body, timeout)
+    return await _analysis_call(
+        intrude_http_parameter, engagement_id, session_id, method, url, location,
+        parameter, payloads, max_requests, headers, body, timeout,
+    )
 
 
 @mcp.tool(name="oc_http_history", description="Read the complete persisted request/response history for one engagement HTTP workbench session.", structured_output=True)
@@ -551,8 +557,8 @@ async def oc_browser_close(engagement_id: str, session_id: str) -> dict[str, Any
 
 
 @mcp.tool(name="oc_browser_navigate", description="Navigate a live OpenCyber browser session to a URL and return the resulting status, headers, URL, and title.", structured_output=True)
-async def oc_browser_navigate(engagement_id: str, session_id: str, url: str, wait_until: str = "load") -> dict[str, Any]:
-    return await BROWSER_MANAGER.navigate(engagement_id, session_id, url, wait_until)
+async def oc_browser_navigate(engagement_id: str, session_id: str, url: str, wait_until: str = "load", timeout_ms: int = 30000) -> dict[str, Any]:
+    return await BROWSER_MANAGER.navigate(engagement_id, session_id, url, wait_until, timeout_ms)
 
 
 @mcp.tool(name="oc_browser_snapshot", description="Return the current page text and accessibility-oriented ARIA snapshot, with optional complete HTML.", structured_output=True)
@@ -561,8 +567,8 @@ async def oc_browser_snapshot(engagement_id: str, session_id: str, include_html:
 
 
 @mcp.tool(name="oc_browser_action", description="Perform a selector-based browser action: click, fill, type, clear, press, check, uncheck, select, or hover.", structured_output=True)
-async def oc_browser_action(engagement_id: str, session_id: str, action: str, selector: str, value: str = "") -> dict[str, Any]:
-    return await BROWSER_MANAGER.action(engagement_id, session_id, action, selector, value)
+async def oc_browser_action(engagement_id: str, session_id: str, action: str, selector: str, value: str = "", timeout_ms: int = 30000) -> dict[str, Any]:
+    return await BROWSER_MANAGER.action(engagement_id, session_id, action, selector, value, timeout_ms)
 
 
 @mcp.tool(name="oc_browser_screenshot", description="Capture a browser screenshot into the selected engagement and return its relative artifact path.", structured_output=True)
@@ -591,8 +597,8 @@ async def oc_browser_network_rules(engagement_id: str, session_id: str, blocked_
 
 
 @mcp.tool(name="oc_browser_network_log", description="Return complete request/response metadata captured by a live browser session, optionally clearing the in-memory log afterward.", structured_output=True)
-async def oc_browser_network_log(engagement_id: str, session_id: str, clear: bool = False) -> dict[str, Any]:
-    return await BROWSER_MANAGER.network_log(engagement_id, session_id, clear)
+async def oc_browser_network_log(engagement_id: str, session_id: str, clear: bool = False, offset: int = 0, limit: int = 500) -> dict[str, Any]:
+    return await BROWSER_MANAGER.network_log(engagement_id, session_id, clear, offset, limit)
 
 
 @mcp.tool(name="oc_payload_encode", description="Encode text as base64, base64url, hex, URL, or form data.", structured_output=True)
@@ -711,7 +717,7 @@ def oc_scope_check(engagement_id: str, value: str = "", executable: str = "", ar
     }
 
 
-@mcp.tool(name="oc_assets_status", description="Report every offline asset (nuclei templates, exploitdb, Seclists, wordlists, metasploit modules, nmap scripts, hardware rules, CVE index), its size/count, and whether required assets are missing. deep adds content hashes; verify also compares the build-time manifest.", structured_output=True)
+@mcp.tool(name="oc_assets_status", description="Report every offline asset (nuclei templates, exploitdb, Seclists, wordlists, nmap scripts, hardware rules, CVE index), its size/count, and whether required assets are missing. deep adds content hashes; verify also compares the build-time manifest.", structured_output=True)
 async def oc_assets_status(deep: bool = False, verify: bool = False) -> dict[str, Any]:
     def collect() -> dict[str, Any]:
         result = assets_status(deep)
@@ -788,6 +794,7 @@ def oc_poc_spec_create(
     limits: dict[str, Any] | None = None,
     source: str = "",
     notes: str = "",
+    allow_insecure_tls: bool = False,
 ) -> dict[str, Any]:
     try:
         return create_spec(
@@ -801,6 +808,7 @@ def oc_poc_spec_create(
             limits=limits,
             source=source,
             notes=notes,
+            allow_insecure_tls=allow_insecure_tls,
         )
     except PocError as exc:
         return _poc_refusal(exc)

@@ -27,17 +27,17 @@ claimed.
 
 ### Private beta access
 
-- Published [v0.5.0-private-beta.1](https://github.com/mitkox-dev/opencyber/releases/tag/v0.5.0-private-beta.1)
+- Published [v0.5.0-private-beta.1](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
   on 2026-10-26: the full Linux amd64 image, frozen first-party source, matched
   corresponding source, notices, SBOMs, checksum lists and offline import helper.
   Its 38 assets total about 13.3 GB. The image remains an unqualified preview;
   vendor/license follow-ups, arm64 and device qualification remain open.
-- The complete reviewed source is hosted privately at `mitkox-dev/opencyber`.
+- The complete reviewed source is hosted privately at `mitkox/opencyber`.
   External beta testers receive the Read role as outside collaborators; the
   private development repository and its history remain separate.
 - The current preview uses private GitHub release assets, accessible through
   repository Read without GHCR permission. Future qualified candidates use the
-  `mitkox-dev` GHCR namespace and the full license/software qualification gates.
+  `mitkox` GHCR namespace and the full license/software qualification gates.
 
 ### Capabilities
 

@@ -5,7 +5,7 @@ name: Publish qualified prerelease
       version:
         description: Qualified prerelease version; dispatch against its annotated tag
         required: true
-        default: 0.5.1
+        default: 1.0.0-beta.1
         type: string
       candidate_run_id:
         description: Successful build-candidate workflow run ID
@@ -26,8 +26,8 @@ permissions:
   contents: read
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: mitkox-dev/opencyber
-  STAGING_NAME: mitkox-dev/opencyber-beta-candidates
+  IMAGE_NAME: mitkox/opencyber
+  STAGING_NAME: mitkox/opencyber-beta-candidates
 jobs:
   prepare:
     runs-on: ubuntu-24.04
@@ -39,8 +39,8 @@ jobs:
       run: |
         declared="$(python3 scripts/check-version-consistency.py --print)"
         requested="${REQUESTED_VERSION:-${GITHUB_REF_NAME#v}}"
-        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]
-        [[ "$GITHUB_REPOSITORY" == mitkox-dev/opencyber && "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == "v$declared" ]]
+        [[ "$requested" == "$declared" && "$declared" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]
+        [[ "$GITHUB_REPOSITORY" == mitkox/opencyber && "$GITHUB_REF_TYPE" == tag && "$GITHUB_REF_NAME" == "v$declared" ]]
         [[ "$(git cat-file -t "$GITHUB_REF_NAME")" == tag ]]
         [[ "$(git rev-parse "$GITHUB_REF_NAME^{commit}")" == "$GITHUB_SHA" ]]
         python3 scripts/check-version-consistency.py
@@ -98,7 +98,7 @@ jobs:
         sudo apt-get update && sudo apt-get install -y skopeo
         python3 scripts/release-gate.py public "$IMAGE_NAME" "${REGISTRY}/${IMAGE_NAME}:bootstrap"
         mkdir -p "$RUNNER_TEMP/assets"
-        for arch in amd64 arm64; do
+        for arch in amd64; do
           tar --sort=name --mtime=@0 --owner=0 --group=0 --numeric-owner --format=gnu -C "$RUNNER_TEMP/evidence/release-evidence-$arch" -cf - . | split -b 1G - "$RUNNER_TEMP/assets/opencyber-${VERSION}-linux-${arch}-compliance.tar.part-"
         done
         cp "$RUNNER_TEMP/inputs/candidate-selection.json" "$RUNNER_TEMP/inputs/qualification-status.json" "$RUNNER_TEMP/assets/"
@@ -124,7 +124,7 @@ jobs:
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest amd64 SBOM
       with:
-        subject-name: ghcr.io/mitkox-dev/opencyber
+        subject-name: ghcr.io/mitkox/opencyber
         subject-digest: ${{ steps.promotion.outputs.amd64_digest }}
         push-to-registry: true
         create-storage-record: false
@@ -132,29 +132,14 @@ jobs:
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest amd64 provenance
       with:
-        subject-name: ghcr.io/mitkox-dev/opencyber
+        subject-name: ghcr.io/mitkox/opencyber
         subject-digest: ${{ steps.promotion.outputs.amd64_digest }}
-        push-to-registry: true
-        create-storage-record: false
-    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
-      name: Attest arm64 SBOM
-      with:
-        subject-name: ghcr.io/mitkox-dev/opencyber
-        subject-digest: ${{ steps.promotion.outputs.arm64_digest }}
-        push-to-registry: true
-        create-storage-record: false
-        sbom-path: ${{ runner.temp }}/evidence/release-evidence-arm64/image.cdx.json
-    - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
-      name: Attest arm64 provenance
-      with:
-        subject-name: ghcr.io/mitkox-dev/opencyber
-        subject-digest: ${{ steps.promotion.outputs.arm64_digest }}
         push-to-registry: true
         create-storage-record: false
     - uses: actions/attest@1e69f48acb82d1966a394da916b4c1698aa569d6
       name: Attest manifest provenance
       with:
-        subject-name: ghcr.io/mitkox-dev/opencyber
+        subject-name: ghcr.io/mitkox/opencyber
         subject-digest: ${{ steps.promotion.outputs.digest }}
         push-to-registry: true
         create-storage-record: false
@@ -169,7 +154,6 @@ jobs:
     outputs:
       digest: ${{ steps.promotion.outputs.digest }}
       amd64_digest: ${{ steps.promotion.outputs.amd64_digest }}
-      arm64_digest: ${{ steps.promotion.outputs.arm64_digest }}
   accept:
     name: Published acceptance ${{ matrix.arch }}
     needs:
@@ -188,8 +172,6 @@ jobs:
         include:
         - arch: amd64
           runner: ubuntu-24.04
-        - arch: arm64
-          runner: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6
@@ -222,7 +204,7 @@ jobs:
       env:
         GH_TOKEN: ${{ github.token }}
         VERSION: ${{ needs.prepare.outputs.version }}
-        PLATFORM_DIGEST: ${{ matrix.arch == 'amd64' && needs.publish.outputs.amd64_digest || needs.publish.outputs.arm64_digest }}
+        PLATFORM_DIGEST: ${{ needs.publish.outputs.amd64_digest }}
         INDEX_DIGEST: ${{ needs.publish.outputs.digest }}
   finalize:
     name: Finalize verified prerelease version

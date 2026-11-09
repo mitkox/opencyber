@@ -19,7 +19,7 @@ from lib.qualification import validate_qualification
 
 
 DIGEST = re.compile(r"sha256:[a-f0-9]{64}")
-PLATFORMS = {"linux/amd64", "linux/arm64"}
+PLATFORMS = {"linux/amd64"}
 
 
 def verify_source_receipt(source: Path, image_id: str) -> None:
@@ -51,7 +51,17 @@ def verify_registry(package: str, reference: str, visibility: str) -> None:
     owner, name = package.split("/", 1)
     if reference.split(":", 1)[0].split("@", 1)[0] != f"ghcr.io/{package}":
         raise ValueError("registry probe must address the selected package")
-    metadata = json.loads(command("gh", "api", f"orgs/{quote(owner)}/packages/container/{quote(name, safe='')}"))
+    metadata = None
+    for namespace in ("users", "orgs"):
+        try:
+            metadata = json.loads(
+                command("gh", "api", f"{namespace}/{quote(owner)}/packages/container/{quote(name, safe='')}")
+            )
+            break
+        except subprocess.CalledProcessError:
+            continue
+    if metadata is None:
+        raise ValueError("cannot read package metadata for the selected registry owner")
     if metadata.get("visibility") != visibility:
         raise ValueError(f"package visibility must be verified {visibility}; received {metadata.get('visibility')!r}")
     with tempfile.TemporaryDirectory() as directory:
@@ -137,7 +147,7 @@ def validate_records(directory: Path, commit: str) -> list[dict]:
         seen.add(platform)
         records.append(record)
     if seen != PLATFORMS:
-        raise ValueError("both amd64 and arm64 must pass before public promotion")
+        raise ValueError("the amd64 candidate must pass before public promotion")
     return records
 
 
@@ -201,7 +211,7 @@ def main() -> None:
     elif args.action == "validate":
         print(json.dumps(validate_records(args.directory, args.commit), sort_keys=True))
     elif args.action == "select":
-        selected = selection_for(os.environ.get("GITHUB_REPOSITORY", "mitkox-dev/opencyber"), args.run_id, args.commit)
+        selected = selection_for(os.environ.get("GITHUB_REPOSITORY", "mitkox/opencyber"), args.run_id, args.commit)
         with args.output.open("x", encoding="utf-8") as output:
             output.write(json.dumps(selected, indent=2, sort_keys=True) + "\n")
         print(file_sha256(args.output))

@@ -22,7 +22,7 @@ REQUIRED_DOMAINS = (
     "usb", "sdr", "wifi", "bluetooth", "nfc", "jtag", "serial",
     "automotive", "logic", "gps", "ir",
 )
-PLATFORMS = {"linux/amd64", "linux/arm64"}
+PLATFORMS = {"linux/amd64"}
 NEGATIVE_CHECKS = ("missing_device", "insufficient_permissions", "disconnect", "timeout", "cleanup")
 HEX_SHA256 = re.compile(r"[a-f0-9]{64}")
 IMAGE_DIGEST = re.compile(r"sha256:[a-f0-9]{64}")
@@ -85,14 +85,14 @@ def _evidence_path(root: Path, raw: Any) -> Path:
 
 def _candidates(commit: str, records: list[dict]) -> tuple[dict[str, dict], str]:
     _require(_matches(COMMIT_SHA, commit), "commit must be a full source commit SHA")
-    _require(isinstance(records, list) and len(records) == 2, "both platform candidate receipts are required")
+    _require(isinstance(records, list) and len(records) == 1, "the amd64 candidate receipt is required")
     candidates: dict[str, dict] = {}
     catalogs = set()
     for record in records:
         _require(isinstance(record, dict), "candidate receipt must be an object")
         platform = record.get("platform")
         _require(isinstance(platform, str) and platform in PLATFORMS and platform not in candidates,
-                 "candidate platforms must be distinct amd64 and arm64")
+                 "candidate platform must be amd64")
         _require(record.get("commit") == commit, "candidate source commit mismatch")
         _require(_matches(IMAGE_DIGEST, record.get("digest")), "invalid candidate image digest")
         catalog = record.get("catalog_sha256")
