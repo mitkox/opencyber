@@ -82,6 +82,6 @@ This review does not establish hostile-client isolation or production readiness.
 ## Public-beta review assignment (2026-11-09)
 
 - **Reviewer:** `mitkox-ai`, assigned by the maintainer as the independent reviewer for the public-beta delta.
-- **Frozen review target:** the `feat/public-beta-readiness` head after the vendor-removal and license-disposition change; the exact reviewed commit is recorded in the review conversation on the pull request.
+- **Review package:** pull request https://github.com/mitkox/opencyber/pull/4 (head `feat/public-beta-readiness`, vendor-removal commit `a9544e0`). The reviewer records the final reviewed commit here after the review.
 - **Required coverage:** cookie handling, response cap, refusal codes, redirect canonicalization, PoC truncation and TLS defaults, browser bounds, airgap identity, MCP contract/authority changes, installer and release tooling.
 - **Status:** review requested; sign-off is not yet recorded. This section must be replaced with the reviewer's covered-surface statement, finding dispositions and final reviewed commit before the go/no-go record can cite a completed review.
