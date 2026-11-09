@@ -1,23 +1,21 @@
 <p align="center"><strong>OpenCyber Harness</strong><br>
 A container-native red and blue team security MCP toolkit for agent runtimes.</p>
 
-> **0.5.0 has an invited-tester private preview for Linux amd64.** Download
-> [v0.5.0-private-beta.1](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
-> with repository Read access. This preview is unqualified; native arm64,
-> hardware and production acceptance remain open. Public publication and
-> broader distribution require separate approval.
+> **1.0.0-beta.1 is the first public beta and supports Linux amd64 only.**
+> Pull `ghcr.io/mitkox/opencyber:1.0.0-beta.1` and see the
+> [release](https://github.com/mitkox/opencyber/releases/tag/v1.0.0-beta.1)
+> for its image digest, scan evidence, SBOM and checksums. arm64 is not
+> supported. Hardware and production acceptance remain open.
 
-Repository source is preparing `0.5.1` with contract and security fixes. The
-published `v0.5.0-private-beta.1` preview remains unchanged and does not include
-those fixes. A new image has not been cleared for sharing.
+This beta removes Oracle Instant Client, Microsoft DIA, Metasploit and
+oscanner because no redistribution agreement is recorded for them. The rest of
+the toolkit is included. The recorded unknown-license components and notices
+are in [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md) and
+[SOURCE_OFFER.md](SOURCE_OFFER.md); licensing metadata follow-ups do not waive
+third-party terms.
 
-**Beta testers: start with the [beta guide](docs/BETA_TESTING.md).**
-External testers receive Read access to `mitkox/opencyber`; maintainers
-manage invitations using the [beta access guide](docs/BETA_ACCESS.md). The beta
-guide covers the published archive, MCP client setup and a synthetic first
-exercise. The public beta image removes Oracle, Microsoft DIA and Metasploit components that lacked a recorded redistribution agreement; the rest of the toolkit is included. Oracle tooling and
-PDB components. Vendor reviews and license metadata follow-ups remain open;
-private access does not establish legal clearance or waive third-party terms.
+**Beta testers: start with the [beta guide](docs/BETA_TESTING.md).** It covers
+the published image, MCP client setup and a synthetic first exercise.
 
 OpenCyber Harness is the execution substrate for authorized security work: one
 container that exposes **253 security MCP tools** over stdio — 171
@@ -60,65 +58,43 @@ see the [third-party notices](THIRD_PARTY_NOTICES.md).
 
 ## Quick start
 
-### 1. Download the private preview
+### 1. Pull the public beta image
 
-Use a Linux amd64 Docker engine, Bash and Python 3. After accepting the
-maintainer's repository invitation, download all release assets while connected:
-
-```sh
-gh auth login
-gh release download v0.5.0-private-beta.1 \
-  --repo mitkox/opencyber --dir opencyber-beta
-cd opencyber-beta
-```
-
-The 38 assets total about 13.3 GB. For an offline host, transfer the **whole
-folder**, including all 14 numbered image/source parts and the checksums,
-helper, source snapshot, notices and metadata. Allow additional storage for the
-assembled image archive and Docker's expanded image. GitHub CLI is needed only
-on the connected side; no GHCR token, Docker login or registry pull is required.
-
-### 2. Verify and import locally
-
-From the downloaded folder, on the Linux amd64 Docker host:
+Use a Linux amd64 Docker engine, Bash and Python 3. The image is public:
 
 ```sh
-bash beta-import.sh --verify-only
-bash beta-import.sh
+docker pull ghcr.io/mitkox/opencyber:1.0.0-beta.1
 ```
 
-The helper checks the parts and assembled archive, imports
-`opencyber:0.5.0-private-beta.1-amd64`, and verifies the image layers,
-configuration, platform and labels against source commit
-`c1201976caf49c45068bb507032aee75e4509e20`. It runs offline doctor and strict MCP
-checks in disposable containers and leaves no persistent container or volume.
-It makes no network requests. See the [beta guide](docs/BETA_TESTING.md) for
-source assembly, storage and retry details.
+The release page carries the exact digest, SBOM, Trivy and Grype results and a
+`SHA256SUMS` file. Pin the digest when you need byte-exact reproducibility.
+
+### 2. Verify the image
+
+```sh
+docker image inspect ghcr.io/mitkox/opencyber:1.0.0-beta.1 \
+  --format '{{.Id}} {{.Os}}/{{.Architecture}}'
+```
+
+Confirm `linux/amd64` and compare the digest with the release metadata.
 
 ### 3. Start an offline workspace
 
-Extract the supplied first-party source into a new directory, then use its
-launcher with unused container and volume names:
-
 ```sh
-mkdir source-c120197
-tar -xzf opencyber-source-c120197.tar.gz -C source-c120197
 if docker container inspect opencyber-beta >/dev/null 2>&1 || \
    docker volume inspect opencyber-beta >/dev/null 2>&1; then
   echo "opencyber-beta already exists; choose unused container and volume names" >&2
 else
-  bash source-c120197/opencyber/scripts/opencyber-run.sh \
+  bash scripts/opencyber-run.sh \
     --profile blue-team --offline \
-    --image opencyber:0.5.0-private-beta.1-amd64 \
+    --image ghcr.io/mitkox/opencyber:1.0.0-beta.1 \
     --name opencyber-beta --volume opencyber-beta
 fi
 ```
 
 The blue-team profile removes networking, capabilities and device passthrough.
-The named volume keeps evidence across container removal. The source snapshot
-and image remain frozen at `c120197`; newer repository documentation does not
-change those release bytes. For development, use the separate
-[source install](docs/INSTALL.md#path-c-source-install-for-development).
+The named volume keeps evidence across container removal. For a source install,
+see [docs/INSTALL.md](docs/INSTALL.md).
 
 ### 4. Check the running container
 
@@ -152,7 +128,7 @@ branch on outcome, coverage, and provenance without special-casing tools:
 ```json
 {
   "ok": true,
-  "contract": {"schema_version": 1, "tool": "oc_file_triage", "server_version": "0.5.0"},
+  "contract": {"schema_version": 1, "tool": "oc_file_triage", "server_version": "1.0.0-beta.1"},
   "coverage": {"status": "complete", "examined": null, "total": null, "exhausted": null, "next_offset": null},
   "limitations": [],
   "provenance": {"untrusted_content": true, "source": "target"},

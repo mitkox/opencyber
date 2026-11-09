@@ -1,3 +1,22 @@
+# Release OpenCyber Harness
+
+## 1.0.0-beta.1 public beta
+
+`v1.0.0-beta.1` is the first public beta, Linux amd64 only. The image
+`ghcr.io/mitkox/opencyber:1.0.0-beta.1` (digest
+`sha256:cd119409d0884b1c7bde10f6a21bc17aad1a69309387b8a303eb7c58fbccbf0d`) is
+public; the GitHub release carries `release.json`, `SHA256SUMS`, Trivy/Grype
+results, SBOM and license evidence. It has zero CRITICAL findings; 107 Trivy and
+58 Grype HIGH findings remain and were accepted by the maintainer for this beta.
+The 1,852 recorded unknown-license components are an explicit recorded
+limitation, not a waiver of third-party terms. The image was built and scanned
+on the maintainer devbox, not by the canonical CI candidate workflow, so it has
+no CI attestations.
+
+The remainder of this page describes the earlier 0.5.0 private preview and the
+canonical candidate tooling. Where it says both architectures or a private-only
+publication, it is historical for 0.5.0; 1.0.0-beta.1 is amd64-only and public.
+
 # Release OpenCyber Harness 0.5.0
 
 0.5.0 is currently a **private pre-production beta**. The full-toolkit

@@ -1,5 +1,22 @@
 # Changelog
 
+## 1.0.0-beta.1 — first public beta
+
+- First public beta image, `ghcr.io/mitkox/opencyber:1.0.0-beta.1`, amd64 only.
+  arm64 is no longer built or claimed.
+- Remove Oracle Instant Client, Microsoft DIA, Metasploit and oscanner; no
+  redistribution agreement is recorded for those components. Recorded
+  unknown-license components and notices remain in the policy and notices.
+- Rebuild the Go tools, Pillow, Brotli, certifi, net-imap, Bouncy Castle and the
+  affected Python libraries against fixed releases. The published image scans
+  with zero CRITICAL findings under Trivy and Grype; 107 Trivy and 58 Grype HIGH
+  findings remain and are accepted by the maintainer for this beta.
+- Make candidate selection, qualification, promotion, workflows, installer and
+  docs single-platform amd64.
+- Record `mitkox-ai` review approval and the final license rescan (1,852
+  recorded unknown-license components).
+- The earlier `v0.5.0-private-beta.1` tag and bytes remain unchanged.
+
 ## 0.5.1 - next beta source, unreleased
 
 - Preserve cookie domain, host-only, path, Secure, expiry and other attributes
