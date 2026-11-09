@@ -373,6 +373,20 @@ RUN rm -rf /usr/lib/python3/dist-packages/PIL /usr/lib/python3/dist-packages/pil
         "pillow==13.0.0" "Brotli==1.2.1" "certifi==2026.10.18" \
     && python3 -c "import PIL, brotli, certifi; assert PIL.__version__ == '13.0.0'"
 
+# Replace the remaining fixable distro Python libraries with their fixed
+# releases. The old dist-info/egg-info trees are removed so the image inventory
+# reflects the imported code.
+RUN rm -rf /usr/lib/python3/dist-packages/pypdf* /usr/lib/python3/dist-packages/mistune* \
+        /usr/lib/python3/dist-packages/tornado* /usr/lib/python3/dist-packages/aiohttp* \
+        /usr/lib/python3/dist-packages/mcp-* /usr/lib/python3/dist-packages/mcp \
+        /usr/lib/python3/dist-packages/msgpack* /usr/lib/python3/dist-packages/Mako* \
+        /usr/lib/python3/dist-packages/mako* /usr/lib/python3/dist-packages/pyasn1* \
+        /usr/lib/python3/dist-packages/urllib3* \
+    && python3 -m pip install --no-cache-dir --break-system-packages --ignore-installed \
+        "pypdf==6.21.4" "mistune==3.3.0" "tornado==6.5.9" "aiohttp==3.14.4" \
+        "mcp==1.28.1" "msgpack==1.2.3" "Mako==1.3.12" "pyasn1==0.6.5" "urllib3==2.8.0" \
+    && python3 -c "import pypdf, mistune, tornado, aiohttp, mcp, msgpack, mako, pyasn1, urllib3"
+
 # Ruby: update the system net-imap gem and replace the vulnerable default zlib
 # spec with the fixed gem. The stdlib extension remains available.
 RUN gem update net-imap --no-document \

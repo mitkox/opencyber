@@ -93,7 +93,7 @@ records the device combinations and operations actually qualified.
 
 The published amd64 preview is not a qualified candidate. Normal candidate
 gates still require completed license/source review and matching native
-amd64/arm64 software acceptance under [RELEASE.md](RELEASE.md). A source install
+amd64 software acceptance under [RELEASE.md](RELEASE.md). A source install
 does not include the container toolchain, browser or offline assets.
 
 For a future qualified delivery, complete the distributor approval,

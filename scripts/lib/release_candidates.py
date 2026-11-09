@@ -13,7 +13,7 @@ import zipfile
 
 
 DIGEST = re.compile(r"sha256:[a-f0-9]{64}")
-ARTIFACTS = {"release-evidence-amd64", "release-evidence-arm64"}
+ARTIFACTS = {"release-evidence-amd64"}
 WORKFLOW = ".github/workflows/build-candidate.yml"
 
 
@@ -49,8 +49,8 @@ def validate_candidate_run(run: dict, artifacts: list[dict], *, repository: str,
             or type(run.get("run_attempt")) is not int or run["run_attempt"] < 1):
         raise ValueError("candidate repository identity or attempt mismatch")
     selected = [a for a in artifacts if a.get("name", "").startswith("release-evidence-")]
-    if len(selected) != 2 or {a.get("name") for a in selected} != ARTIFACTS:
-        raise ValueError("exactly one immutable evidence artifact per platform is required")
+    if len(selected) != 1 or {a.get("name") for a in selected} != ARTIFACTS:
+        raise ValueError("exactly one immutable candidate evidence artifact is required")
     for artifact in selected:
         try:
             expires = datetime.fromisoformat(artifact["expires_at"].replace("Z", "+00:00"))

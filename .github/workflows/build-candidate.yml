@@ -80,9 +80,6 @@ jobs:
         - platform: linux/amd64
           artifact: amd64
           runner: ubuntu-24.04
-        - platform: linux/arm64
-          artifact: arm64
-          runner: ubuntu-24.04-arm
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
     - name: Prepare ephemeral runner

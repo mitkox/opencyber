@@ -19,7 +19,7 @@ from lib.qualification import validate_qualification
 
 
 DIGEST = re.compile(r"sha256:[a-f0-9]{64}")
-PLATFORMS = {"linux/amd64", "linux/arm64"}
+PLATFORMS = {"linux/amd64"}
 
 
 def verify_source_receipt(source: Path, image_id: str) -> None:
@@ -147,7 +147,7 @@ def validate_records(directory: Path, commit: str) -> list[dict]:
         seen.add(platform)
         records.append(record)
     if seen != PLATFORMS:
-        raise ValueError("both amd64 and arm64 must pass before public promotion")
+        raise ValueError("the amd64 candidate must pass before public promotion")
     return records
 
 

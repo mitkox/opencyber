@@ -2,7 +2,7 @@
 
 The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
 is available for Linux amd64. Start with [Beta testing](BETA_TESTING.md) for a
-synthetic first result. The preview is unqualified: native arm64, hardware and
+synthetic first result. The preview is unqualified: native amd64, hardware and
 production acceptance, vendor reviews and license metadata follow-ups remain
 open. Private access does not establish legal clearance or waive third-party
 terms. Public publication and broader distribution require separate approval.
@@ -289,7 +289,7 @@ Passing these probes does not establish live Oracle/PDB, hardware or all-tool
 acceptance. Candidate qualification requires matching source and platform identities,
 vulnerability and license checks, native software acceptance, provenance and
 SBOMs. Eventual public publication also requires acceptance on both
-`linux/amd64` and `linux/arm64` and public access checks. The installer self-test
+`linux/amd64` and public access checks. The installer self-test
 does not replace those gates. See [Release](RELEASE.md) for the maintainer process.
 
 ## Upgrade

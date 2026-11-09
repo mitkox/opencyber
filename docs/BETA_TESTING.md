@@ -26,7 +26,7 @@ This preview retains the full toolkit, including Oracle tooling and PDB
 components. It is **unqualified**. Recorded amd64 checks include 689 tests
 with one skip and 81% coverage, actual offline image checks, and a Trivy scan
 with no HIGH or CRITICAL findings. They do not qualify all features or live
-Oracle/PDB integrations. Native arm64, hardware and production acceptance remain
+Oracle/PDB integrations. Native amd64, hardware and production acceptance remain
 open. Two vendor reviews and 2,086 unknown license metadata records across
 5,129 components remain open; private access does not establish legal clearance
 or waive third-party terms. Public publication and broader distribution need
@@ -36,7 +36,7 @@ inventory and captured gate results for the recorded limits.
 ## What you need
 
 - A native Linux `amd64` Docker engine, and a user who can already run
-  `docker info`. This preview is not an arm64 image.
+  `docker info`. This preview is amd64-only; arm64 is not supported.
 - Bash and Python 3 on the Docker host. GitHub CLI (`gh`) is needed only on
   the connected download machine.
 - Read access to `mitkox/opencyber` and all 38 private release assets

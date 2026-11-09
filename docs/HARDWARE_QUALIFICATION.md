@@ -18,7 +18,7 @@ An operator supplies the equipped lab and runs the procedures below against
 the exact private candidate images selected through [RELEASE.md](RELEASE.md).
 Each domain needs at least one tested host; it does not need both CPU
 architectures. Software and container acceptance still require native amd64 and
-arm64 candidates. Record the actual device, firmware and architecture matrix
+amd64 candidates. Record the actual device, firmware and architecture matrix
 with the qualification bundle. A successful test does not establish support
 for untested models, operations or architectures. Public sharing remains a
 future release step.
@@ -95,9 +95,9 @@ template emits this structure with pending values to fill in after testing.
 | --- | --- |
 | `domain`, `status` | Canonical domain name and `passed`; missing, failed and skipped records refuse the submitted qualification bundle |
 | `kind` | `real_device` for hardware, `board_sample` for firmware; synthetic/fixture records are refused |
-| `platform`, `image_digest` | `linux/amd64` or `linux/arm64` and that candidate's exact `sha256:` registry digest |
+| `platform`, `image_digest` | `linux/amd64` and that candidate's exact `sha256:` registry digest |
 | `device` | Object containing nonempty `model` and `firmware` identity; explain versions the hardware cannot report |
-| `host` | Object containing `architecture` (`amd64` or `arm64`, matching the platform), `os` and `kernel` |
+| `host` | Object containing `architecture` (`amd64`, matching the platform), `os` and `kernel` |
 | `launcher_flags` | Nonempty list of the exact runtime flags, including device, network, capability and mount flags |
 | `limits` | `timeout_s` greater than zero and at most 3600; integer `max_output_bytes` greater than zero and at most 268435456 |
 | `operation`, `expected`, `observed` | Nonempty descriptions of the bounded action, predetermined result and actual observation |

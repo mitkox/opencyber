@@ -23,9 +23,8 @@ ROOT = Path(__file__).resolve().parents[1]
 COMMIT = "a" * 40
 CATALOG = "b" * 64
 RECORDS = [
-    {"platform": "linux/" + arch, "digest": "sha256:" + digit * 64,
+    {"platform": "linux/amd64", "digest": "sha256:" + "1" * 64,
      "commit": COMMIT, "catalog_sha256": CATALOG}
-    for arch, digit in (("amd64", "1"), ("arm64", "2"))
 ]
 
 
@@ -119,7 +118,7 @@ class HardwareQualificationTests(unittest.TestCase):
                 elif change == "catalog":
                     bundle["catalog_sha256"] = "c" * 64
                 elif change == "image":
-                    bundle["domains"][0]["image_digest"] = RECORDS[1]["digest"]
+                    bundle["domains"][0]["image_digest"] = "sha256:" + "2" * 64
                 elif change == "platform":
                     bundle["domains"][0]["platform"] = "linux/other"
                 elif change == "architecture":

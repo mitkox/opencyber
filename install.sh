@@ -165,8 +165,8 @@ fi
 
 architecture="$(docker info --format '{{.Architecture}}' 2>/dev/null || true)"
 case "$architecture" in
-  x86_64|amd64|aarch64|arm64) ;;
-  *) die "unsupported Docker architecture '$architecture'; use linux/amd64 or linux/arm64." ;;
+  x86_64|amd64) ;;
+  *) die "unsupported Docker architecture '$architecture'; use linux/amd64; arm64 is not supported." ;;
 esac
 
 if [[ -n "$digest" ]]; then

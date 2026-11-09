@@ -26,7 +26,7 @@ class CandidateIdentityTests(unittest.TestCase):
             "expired": False, "digest": "sha256:" + str(index) * 64,
             "expires_at": (datetime.now(timezone.utc) + timedelta(days=20)).isoformat(),
             "workflow_run": {"id": 12, "repository_id": 42, "head_sha": "a" * 40},
-        } for index, arch in ((1, "amd64"), (2, "arm64"))]
+        } for index, arch in ((1, "amd64"),)]
         return run, artifacts
 
     def validate(self, run, artifacts):
@@ -36,7 +36,7 @@ class CandidateIdentityTests(unittest.TestCase):
     def test_only_successful_canonical_build_and_exact_artifacts_are_selected(self):
         run, artifacts = self.fixtures()
         selected = self.validate(run, artifacts + [{"name": "coverage-xml"}])
-        self.assertEqual([a["id"] for a in selected], [1, 2])
+        self.assertEqual([a["id"] for a in selected], [1])
 
     def test_wrong_identity_incomplete_or_replaced_run_is_rejected(self):
         run, artifacts = self.fixtures()
@@ -60,7 +60,7 @@ class CandidateIdentityTests(unittest.TestCase):
             changed = deepcopy(artifacts)
             changed[0][field] = value
             bad.append(changed)
-        bad.extend([artifacts[:1], artifacts + [artifacts[0]]])
+        bad.extend([[], artifacts + [artifacts[0]]])
         for changed in bad:
             with self.subTest(artifacts=changed), self.assertRaises(ValueError):
                 self.validate(run, changed)

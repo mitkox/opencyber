@@ -4,7 +4,7 @@ The published [v0.5.0-private-beta.1 private preview](https://github.com/mitkox/
 supplies the full toolkit for native **Linux amd64**. Its frozen source is
 `c1201976caf49c45068bb507032aee75e4509e20`, and its local image tag is
 `opencyber:0.5.0-private-beta.1-amd64`. It is an **unqualified private preview**:
-vendor reviews and license metadata remain unresolved, and native arm64,
+vendor reviews and license metadata remain unresolved, and amd64-only platform
 physical hardware, live Oracle/PDB workflows and production are unqualified.
 Private access does not waive component terms. See [RELEASE.md](RELEASE.md)
 for the recorded evidence and the separate qualified-candidate gates.
