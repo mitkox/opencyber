@@ -148,7 +148,7 @@ RUN --mount=type=cache,target=/usr/local/cargo/registry --mount=type=cache,targe
     && if [ -d /usr/local/cargo/git ]; then tar -czf /out/sources/rust-git.tar.gz -C /usr/local/cargo git; fi \
     && cd /usr/local/cargo/bin && sha256sum x8 pwninit > /out/sources/binaries.sha256
 
-FROM --platform=$TARGETPLATFORM debian:bookworm@sha256:854dd8ab51d62866dbd8f5431d15ce77b12983a2a4a1e1fe43a2395dc7ef9f61 AS hashpump-tools
+FROM --platform=$TARGETPLATFORM debian:bookworm@sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8 AS hashpump-tools
 
 ARG HASHPUMP_COMMIT=b822764fa71209858c91378736d43d082c674e96
 
@@ -165,7 +165,7 @@ RUN apt-get update \
     && tar --exclude=.git --exclude=hashpump/hashpump --exclude='*.o' -czf /out/sources/hashpump.tar.gz -C /src hashpump \
     && cd /out && sha256sum hashpump > /out/sources/binaries.sha256
 
-FROM --platform=$BUILDPLATFORM debian:bookworm@sha256:854dd8ab51d62866dbd8f5431d15ce77b12983a2a4a1e1fe43a2395dc7ef9f61 AS seclists-assets
+FROM --platform=$BUILDPLATFORM debian:bookworm@sha256:268fb24c39bca92d326dd83ea3abebe4a3f7751c804ffef23bb6d857dd343ff8 AS seclists-assets
 ARG SECLISTS_VERSION=2026.1
 RUN apt-get update && apt-get install -y --no-install-recommends python3 \
     && rm -rf /var/lib/apt/lists/*
