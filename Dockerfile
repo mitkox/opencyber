@@ -95,7 +95,7 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     && cp -a "$katana_src" /tmp/katana-src \
     && chmod -R u+w /tmp/katana-src \
     && cd /tmp/katana-src \
-    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 \
+    && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 golang.org/x/net@v0.60.0 github.com/andybalholm/brotli@v1.2.7 \
     && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy \
     && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/rebuilt/katana ./cmd/katana \
     && amass_src="$(go list -m -f '{{.Dir}}' github.com/owasp-amass/amass/v4@v4.2.0)" \
@@ -105,6 +105,25 @@ RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache
     && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get github.com/jackc/pgx/v5@v5.9.0 \
     && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy \
     && CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o /out/rebuilt/amass ./cmd/amass
+
+# Rebuild the remaining Go tools whose upstream modules pin vulnerable x/net
+# and brotli releases.
+RUN --mount=type=cache,target=/go/pkg/mod --mount=type=cache,target=/root/.cache/go-build \
+    set -eu; \
+    go mod download github.com/projectdiscovery/httpx@v1.12.0 github.com/projectdiscovery/nuclei/v3@v3.11.1 github.com/projectdiscovery/subfinder/v2@v2.17.0 github.com/ffuf/ffuf/v2@v2.3.0 \
+    && for spec in \
+        "github.com/projectdiscovery/httpx@v1.12.0|./cmd/httpx|httpx" \
+        "github.com/projectdiscovery/nuclei/v3@v3.11.1|./cmd/nuclei|nuclei" \
+        "github.com/projectdiscovery/subfinder/v2@v2.17.0|./cmd/subfinder|subfinder" \
+        "github.com/ffuf/ffuf/v2@v2.3.0|.|ffuf"; do \
+      module="${spec%%|*}"; rest="${spec#*|}"; pkg="${rest%%|*}"; out="${rest#*|}"; \
+      src="$(go list -m -f '{{.Dir}}' "$module")"; \
+      rm -rf "/tmp/build-$out"; cp -a "$src" "/tmp/build-$out"; chmod -R u+w "/tmp/build-$out"; \
+      cd "/tmp/build-$out"; \
+      CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go get golang.org/x/net@v0.60.0 github.com/andybalholm/brotli@v1.2.7; \
+      CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go mod tidy; \
+      CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -o "/out/rebuilt/$out" "$pkg"; \
+    done
 
 FROM --platform=$TARGETPLATFORM rust:1.99-bookworm@sha256:48b7f435b8fc6378ce43b44f15e3a47fd8919b2825f835c39bd4bd3da50af5b8 AS rust-tools
 
@@ -367,8 +386,10 @@ RUN rm -rf /usr/share/ghidra/Ghidra/Features/GhidraServer/data/yajsw-stable-13.1
     && curl -fsSL -o /tmp/bcprov-jdk18on-1.85.jar \
         https://repo1.maven.org/maven2/org/bouncycastle/bcprov-jdk18on/1.85/bcprov-jdk18on-1.85.jar \
     && echo "20af26bf6060bb8005cc2389916812c1e0e998dc48d2ced7131b89461b54cff7  /tmp/bcprov-jdk18on-1.85.jar" | sha256sum -c - \
-    && cp /tmp/bcprov-jdk18on-1.85.jar /usr/share/ghidra/Ghidra/Framework/Generic/lib/bcprov-jdk18on-1.84.jar \
-    && rm /tmp/bcprov-jdk18on-1.85.jar
+    && mv /usr/share/ghidra/Ghidra/Framework/Generic/lib/bcprov-jdk18on-1.84.jar /tmp/bcprov-jdk18on-1.84.jar \
+    && cp /tmp/bcprov-jdk18on-1.85.jar /usr/share/ghidra/Ghidra/Framework/Generic/lib/bcprov-jdk18on-1.85.jar \
+    && rm /tmp/bcprov-jdk18on-1.84.jar /tmp/bcprov-jdk18on-1.85.jar \
+    && rm -f /usr/share/zaproxy/plugin/network-beta-0.25.0.zap
 
 # Kali adds file capabilities to Nmap. They can exceed a hardened container's
 # bounding set and make exec fail with EPERM, even for --version. The launcher
