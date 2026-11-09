@@ -1,18 +1,16 @@
 # Working on OpenCyber
 
-OpenCyber 0.5.0 is in private pre-production beta. The maintainer manages beta
-invitations; keep the source repository and candidate packages private until an
-explicit publication decision. Read [README.md](README.md),
-[CONTRIBUTING.md](CONTRIBUTING.md) and the [security model](docs/SECURITY_MODEL.md)
-before changing runtime behavior. Beta testers should start with
-[docs/BETA_TESTING.md](docs/BETA_TESTING.md).
+OpenCyber 1.0.0-beta.1 is the public amd64 beta. The repository and its GHCR
+package are public. Read [README.md](README.md), [CONTRIBUTING.md](CONTRIBUTING.md)
+and the [security model](docs/SECURITY_MODEL.md) before changing runtime
+behavior. Beta testers should start with [docs/BETA_TESTING.md](docs/BETA_TESTING.md).
 
-The published `v0.5.0-private-beta.1` preview is a Linux amd64 archive delivery
-with full tooling, including Oracle/PDB components. Its source is frozen at
-`c1201976caf49c45068bb507032aee75e4509e20`. Repository Read includes the release
-assets. Keep that tag and its bytes unchanged while repository documentation
-advances. The preview is unqualified; pending vendor and license reviews are
-recorded in its `KNOWN_ISSUES.md`, not represented as cleared by private access.
+The `v0.5.0-private-beta.1` tag is a frozen earlier private preview; keep its
+bytes unchanged. The current `v1.0.0-beta.1` image removes Oracle Instant
+Client, Microsoft DIA, Metasploit and oscanner. arm64 is not supported. The beta
+is unqualified for production; hardware acceptance, anonymous-install
+acceptance and the remaining HIGH findings are recorded release limitations,
+not cleared vendor or legal terms.
 
 ## Set up and verify
 
@@ -92,8 +90,9 @@ and the changelog consistent. Explain an intentional compatibility change.
 
 Choose maintained tools by their security condition and verified distribution
 terms; do not exclude a license family as a shortcut. The configured image
-includes Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, Metasploit, NetExec and
-WPScan. Nmap scripts and Metasploit modules are required offline assets.
+includes Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, NetExec and WPScan.
+Nmap scripts are required offline assets. Metasploit, Oracle Instant Client and
+Microsoft DIA are not included in 1.0.0-beta.1.
 ScoutSuite remains optional because of its unresolved sqlitedict vulnerability;
 Terrascan remains optional because upstream is archived and no longer maintained.
 
@@ -112,21 +111,23 @@ Follow [docs/RELEASE.md](docs/RELEASE.md). Qualified candidate builds and public
 publication are separate from the published private preview. Promotion uses
 the exact qualified digests and requires matching
 repository, commit, workflow, run, attempt and artifact identities. Do not rebuild
-during promotion, overwrite release bytes, advance moving aliases for 0.5.0,
+during promotion, overwrite release bytes, advance moving aliases for 0.5.0 or 1.0.0-beta.1,
 weaken vulnerability/license gates or fabricate evidence.
 
 Hardware integrations are supported for beta use. Hardware qualification is
 optional for this prerelease. Untested device and architecture combinations
 remain unqualified; a submitted qualification bundle must pass its checks.
-Native amd64/arm64 software acceptance remains required for qualified shared
-candidates; anonymous public acceptance is an additional
-gate for a future public release. Store qualification outputs outside the
+Native amd64 software acceptance is required for qualified shared candidates;
+anonymous public acceptance is an additional gate for a future public release. Store qualification outputs outside the
 frozen source tree.
 
 Distinguish the configured source image from an actual built and qualified
 candidate. Airgap qualification requires image and asset checks with networking
 disabled; setting offline mode alone does not remove network access. Keep the
-HIGH/CRITICAL vulnerability gate, including unfixed findings, unchanged.
+CRITICAL vulnerability gate, including unfixed findings, unchanged. The
+1.0.0-beta.1 maintainer decision accepts the recorded HIGH findings for this
+public beta only; that exception must not be silently extended to a later
+release.
 
 Preserve unrelated working-tree changes and private development history. The
 public repository starts with one reviewed root snapshot; do not import private

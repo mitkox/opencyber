@@ -1,37 +1,27 @@
-# Start beta testing 0.5.0
+# Start beta testing 1.0.0-beta.1
 
-The repository source is preparing `0.5.1`. It includes the HTTP cookie,
-response-limit and refusal-contract fixes described in the changelog. There is
-no updated binary preview yet. The download below remains the frozen 0.5.0
-preview and does not contain those fixes.
+The first public beta is `ghcr.io/mitkox/opencyber:1.0.0-beta.1`, Linux amd64
+only. The image is public; no repository invitation is needed. arm64 is not
+supported.
+
+```sh
+docker pull ghcr.io/mitkox/opencyber:1.0.0-beta.1
+docker image inspect ghcr.io/mitkox/opencyber:1.0.0-beta.1 \
+  --format '{{.Id}} {{.Os}}/{{.Architecture}}'
+```
+
+The [v1.0.0-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v1.0.0-beta.1)
+carries the image digest, SBOM, Trivy and Grype results and checksums. The image
+has zero CRITICAL findings; 107 Trivy and 58 Grype HIGH findings remain and are
+accepted for this beta. Hardware and production acceptance remain open. The
+1,852 recorded unknown-license components are listed in the release assets and
+`compliance/unknown-license-components.txt`; recording them does not waive
+third-party terms.
 
 Testers run their own local copies. Do not connect an untrusted tester to a
-maintainer's Docker socket, backend, workspace, approval keys or host credentials.
-Use synthetic evidence first, separate workspace volumes, no host-directory
-mounts or devices, and the network-disabled profile below. Keep tokens outside
-the backend; tool results can still reach the tester's chosen model provider.
-
-The invited-tester [v0.5.0-private-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
-is available for **Linux amd64**. The maintainer adds beta testers; accept the
-private repository invitation before downloading. Use an owned lab and
-synthetic evidence.
-
-| Preview identity | Value |
-| --- | --- |
-| Source and runtime revision | `c1201976caf49c45068bb507032aee75e4509e20` |
-| Local image tag | `opencyber:0.5.0-private-beta.1-amd64` |
-| First-party source archive | `opencyber-source-c120197.tar.gz` |
-
-This preview retains the full toolkit, including Oracle tooling and PDB
-components. It is **unqualified**. Recorded amd64 checks include 689 tests
-with one skip and 81% coverage, actual offline image checks, and a Trivy scan
-with no HIGH or CRITICAL findings. They do not qualify all features or live
-Oracle/PDB integrations. Native amd64, hardware and production acceptance remain
-open. Two vendor reviews and 2,086 unknown license metadata records across
-5,129 components remain open; private access does not establish legal clearance
-or waive third-party terms. Public publication and broader distribution need
-separate approval. See the release's `release-manifest.json`, SBOM, license
-inventory and captured gate results for the recorded limits.
+maintainer's Docker socket, backend, workspace, approval keys or host
+credentials. Use synthetic evidence first, a separate workspace volume, no host
+directory mounts or devices, and the network-disabled profile below.
 
 ## What you need
 

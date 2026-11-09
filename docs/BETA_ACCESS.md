@@ -1,24 +1,14 @@
-# Manage private beta access
+# Beta access
 
-The complete reviewed OpenCyber source and the published
-[v0.5.0-private-beta.1 full-toolkit amd64 preview](https://github.com/mitkox/opencyber/releases/tag/v0.5.0-private-beta.1)
-are in the same private [`mitkox/opencyber`](https://github.com/mitkox/opencyber)
-repository. A repository **Read** invitation exposes both the source and all
-private release assets, including the image and source/compliance bundles.
-GitHub Releases cannot restrict those assets separately from repository Read.
-Invite only the small group selected by the maintainer; a source-only invitation
-is not possible in this repository while those assets are present.
+The 1.0.0-beta.1 public beta does not require an invitation: the source
+repository is public and the image is public at
+`ghcr.io/mitkox/opencyber:1.0.0-beta.1` (Linux amd64). Start with
+[BETA_TESTING.md](BETA_TESTING.md) and the
+[v1.0.0-beta.1 release](https://github.com/mitkox/opencyber/releases/tag/v1.0.0-beta.1).
 
-The maintainer chose to retain the full toolkit in this unqualified private
-preview. Oracle/PDB vendor reviews and license metadata remain unresolved; no
-accepted vendor agreement or redistribution entitlement is asserted. Private
-access does not waive component terms. See [BETA_VENDOR_TERMS.md](BETA_VENDOR_TERMS.md).
-Keep private development history in `mitkox/opencyber-development`.
-
-GitHub Free supports this setup without paid collaborator seats. If the
-organization later adopts a paid plan, outside collaborators on private
-repositories consume paid licenses. Outside collaborators cannot join teams.
-See [GitHub's outside-collaborator guide](https://docs.github.com/en/organizations/managing-user-access-to-your-organizations-repositories/managing-outside-collaborators/adding-outside-collaborators-to-repositories-in-your-organization).
+The sections below describe the earlier 0.5.0 private archive preview and are
+kept only as historical operations guidance. They are not the current beta
+access path.
 
 ## Invite a tester
 
