@@ -717,7 +717,7 @@ def oc_scope_check(engagement_id: str, value: str = "", executable: str = "", ar
     }
 
 
-@mcp.tool(name="oc_assets_status", description="Report every offline asset (nuclei templates, exploitdb, Seclists, wordlists, metasploit modules, nmap scripts, hardware rules, CVE index), its size/count, and whether required assets are missing. deep adds content hashes; verify also compares the build-time manifest.", structured_output=True)
+@mcp.tool(name="oc_assets_status", description="Report every offline asset (nuclei templates, exploitdb, Seclists, wordlists, nmap scripts, hardware rules, CVE index), its size/count, and whether required assets are missing. deep adds content hashes; verify also compares the build-time manifest.", structured_output=True)
 async def oc_assets_status(deep: bool = False, verify: bool = False) -> dict[str, Any]:
     def collect() -> dict[str, Any]:
         result = assets_status(deep)

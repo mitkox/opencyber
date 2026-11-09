@@ -66,7 +66,7 @@ the complete image and corresponding-source archives. Retain the source
 manifest, notices, SBOMs and actual license-gate report with the bundle. The
 captured source matched 1,428 components and 3,717 artifacts against the tested
 amd64 image. This records source matching, not completion of the remaining
-license metadata or Oracle/PDB vendor reviews.
+license metadata or Oracle/PDB vendor reviews; those vendor components are removed from the public beta image.
 
 This private preview uses local image tag
 `opencyber:0.5.0-private-beta.1-amd64`; `release-manifest.json` records its image
@@ -91,7 +91,7 @@ repository access.
 - Nmap, Ncat, Ndiff, Nping and the bundled Nmap scripts require the exact
   applicable license and source coverage. Include the Kali source package,
   patches and build inputs for the binary version actually distributed.
-  Metasploit modules and the other required offline assets retain their own
+  The required offline assets retain their own
   notices and source coverage. WPScan retains its unmodified custom license and
   copyright notices; this offer does not confer commercial or database rights.
 - For future public releases, those payloads and manifests will be publicly

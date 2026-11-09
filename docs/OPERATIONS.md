@@ -52,7 +52,7 @@ docker run -d --name opencyber \
 | `--security-opt no-new-privileges` | Blocks privilege gain through setuid or file capabilities. |
 | `--read-only` | Protects the image filesystem from persistent change. |
 | tmpfs `/tmp`, `/run` | Writable scratch space for tools that assume it exists. |
-| tmpfs `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Disposable AutoRecon, NetExec and Metasploit state under the read-only root filesystem. |
+| tmpfs `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Disposable AutoRecon and NetExec state under the read-only root filesystem. |
 | tmpfs `/root/.config`, `/root/.cache` | Required for Chromium's crashpad handler under a read-only rootfs. Without them browser tools fail with `chrome_crashpad_handler: --database is required`. |
 | `-v ...:/workspace` | Persistent engagement and evidence storage. |
 

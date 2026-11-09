@@ -78,3 +78,10 @@ Keep first exercises synthetic and use the network-disabled blue-team profile.
 Tools intentionally execute as container root, evidence can contain credentials,
 and the tester's MCP/model client may transmit returned data to its provider.
 This review does not establish hostile-client isolation or production readiness.
+
+## Public-beta review assignment (2026-11-09)
+
+- **Reviewer:** `mitkox-ai`, assigned by the maintainer as the independent reviewer for the public-beta delta.
+- **Frozen review target:** the `feat/public-beta-readiness` head after the vendor-removal and license-disposition change; the exact reviewed commit is recorded in the review conversation on the pull request.
+- **Required coverage:** cookie handling, response cap, refusal codes, redirect canonicalization, PoC truncation and TLS defaults, browser bounds, airgap identity, MCP contract/authority changes, installer and release tooling.
+- **Status:** review requested; sign-off is not yet recorded. This section must be replaced with the reviewer's covered-surface statement, finding dispositions and final reviewed commit before the go/no-go record can cite a completed review.

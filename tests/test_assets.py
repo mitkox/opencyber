@@ -25,7 +25,6 @@ class AssetTests(unittest.TestCase):
     def test_bundled_integrations_require_their_offline_assets(self):
         specs = {spec.name: spec for spec in assets.ASSET_SPECS}
         self.assertTrue(specs["nmap-scripts"].required)
-        self.assertTrue(specs["metasploit-modules"].required)
         self.assertTrue(specs["baseline-password-dictionary"].required)
         self.assertFalse(specs["rockyou"].required)
 

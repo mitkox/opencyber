@@ -2,10 +2,10 @@
 
 # Tool reference
 
-OpenCyber Harness 0.5.1 exposes **256 MCP tools**:
-174 executable-backed tools and 82 native tools.
+OpenCyber Harness 0.5.1 exposes **254 MCP tools**:
+172 executable-backed tools and 82 native tools.
 
-Contract digest: `a1ad621b1ab972dcb5aee20d18da386ec13f28ae58ec333d60dba2fe067b25cc`. A running server reports the digest it
+Contract digest: `824ba7cd37e955829e25591adcb26f5052b5c1b2d47c2dd5ce170dd766a71f3b`. A running server reports the digest it
 actually advertises with `oc_catalog`, so a stale container or a modified
 registration is detectable. Pass `expected_catalog_digest` to `oc_catalog`
 to pin the contract a client was built against.
@@ -31,7 +31,7 @@ the advertised executable set; it has no effect in compact mode.
 
 | Task shape | Tools |
 | --- | ---: |
-| `execute` | 178 |
+| `execute` | 176 |
 | `inspect` | 41 |
 | `manage` | 15 |
 | `observe` | 9 |
@@ -41,10 +41,10 @@ the advertised executable set; it has no effect in compact mode.
 | Effect | Tools |
 | --- | ---: |
 | `device` | 75 |
-| `filesystem` | 229 |
-| `mutation` | 213 |
-| `network` | 128 |
-| `process` | 197 |
+| `filesystem` | 227 |
+| `mutation` | 211 |
+| `network` | 126 |
+| `process` | 195 |
 | `secret` | 5 |
 
 ## Executable-backed tools
@@ -63,7 +63,7 @@ Every call runs under a named deadline and per-stream output cap; see
 | credentials | 8 |
 | embedded (hardware) | 16 |
 | enumeration | 16 |
-| exploitation | 3 |
+| exploitation | 1 |
 | forensics | 11 |
 | gps (hardware) | 3 |
 | ir (hardware) | 1 |
@@ -77,7 +77,7 @@ Every call runs under a named deadline and per-stream output cap; see
 | wireless | 5 |
 | wireless_attack (hardware) | 15 |
 
-**Total: 174**
+**Total: 172**
 
 ### automotive
 
@@ -182,8 +182,6 @@ Every call runs under a named deadline and per-stream output cap; see
 | Tool | Executable | Description |
 | --- | --- | --- |
 | `oc_exploit_search` | `searchsploit` | Run exploit search from the OpenCyber exploitation toolkit. The container executes `searchsploit` directly with the supplied argv tokens; shell parsing is never used. |
-| `oc_metasploit` | `msfconsole` | Run metasploit from the OpenCyber exploitation toolkit. The container executes `msfconsole` directly with the supplied argv tokens; shell parsing is never used. |
-| `oc_msfvenom` | `msfvenom` | Run msfvenom from the OpenCyber exploitation toolkit. The container executes `msfvenom` directly with the supplied argv tokens; shell parsing is never used. |
 
 ### forensics
 
@@ -485,7 +483,7 @@ documented helper programs.
 
 | Tool | Shape | Effects | Scope | Description |
 | --- | --- | --- | --- | --- |
-| `oc_assets_status` | inspect | `filesystem` | none | Report every offline asset (nuclei templates, exploitdb, Seclists, wordlists, metasploit modules, nmap scripts, hardware rules, CVE index), its size/count, and whether required assets are missing. deep adds content hashes; verify also compares the build-time manifest. |
+| `oc_assets_status` | inspect | `filesystem` | none | Report every offline asset (nuclei templates, exploitdb, Seclists, wordlists, nmap scripts, hardware rules, CVE index), its size/count, and whether required assets are missing. deep adds content hashes; verify also compares the build-time manifest. |
 | `oc_offline_status` | inspect | none | none | Report airgap posture: offline mode, required asset readiness, local CVE database presence, and which features still require internet access. |
 
 ### blue_team

@@ -180,7 +180,7 @@ protocol. Starting the command in a terminal opens a protocol stream, not an
 interactive chat.
 
 Ask the client to call `oc_catalog()` and `oc_doctor()`. In default full mode
-the catalog advertises 256 tools. Tool availability depends on the image;
+the catalog advertises 254 tools. Tool availability depends on the image;
 registered optional adapters can return `integration_unavailable` with a
 remediation. Do not ask the agent to install missing integrations automatically.
 

@@ -134,7 +134,7 @@ The default install is hardened:
 
 - All capabilities dropped, then only `NET_RAW`, `NET_ADMIN`, and `NET_BIND_SERVICE` added.
 - `no-new-privileges`.
-- Read-only root filesystem with disposable tmpfs mounts at `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, and `/root/.msf4`. The last three support AutoRecon, NetExec and Metasploit state.
+- Read-only root filesystem with disposable tmpfs mounts at `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, and `/root/.msf4`. The last three support AutoRecon and NetExec state.
 - A persistent Docker volume mounted at `/workspace`.
 
 ### Options

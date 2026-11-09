@@ -218,7 +218,6 @@ RUN --mount=type=bind,from=seclists-assets,source=/out/package/opencyber-offline
         masscan \
         mdk4 \
         medusa \
-        metasploit-framework \
         mfcuk \
         mfoc \
         minicom \
@@ -344,6 +343,7 @@ RUN python3 -m venv --system-site-packages /opt/opencyber-analysis \
     && /opt/opencyber-analysis/bin/python -m pip install --no-cache-dir \
         angr==10.0.0 \
         volatility3==2.28.0 \
+    && /opt/opencyber-analysis/bin/python -m pip uninstall -y pyxdia \
     && python3 -m venv --system-site-packages /opt/opencyber-checkov \
     && /opt/opencyber-checkov/bin/python -m pip install --no-cache-dir --upgrade pip==26.2.2 \
     && /opt/opencyber-checkov/bin/python -m pip install --no-cache-dir checkov==3.3.20 \

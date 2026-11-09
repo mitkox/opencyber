@@ -48,7 +48,6 @@ class LicenseBundleTests(unittest.TestCase):
         paths = (
             "/usr/share/doc/fixture/copyright",
             "/usr/share/common-licenses/GPL-2",
-            "/usr/share/metasploit-framework/vendor/bundle/ruby/gems/fixture/LICENSE",
             "/usr/share/rubygems-integration/all/gems/fixture/xdia.LICENSE.txt",
             "/usr/share/ghidra/licenses/LICENSE-texts/fixture.txt",
             "/usr/share/ghidra/Ghidra/Features/Fixture/Module.manifest",

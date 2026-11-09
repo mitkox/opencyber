@@ -15,12 +15,12 @@ those fixes. A new image has not been cleared for sharing.
 External testers receive Read access to `mitkox/opencyber`; maintainers
 manage invitations using the [beta access guide](docs/BETA_ACCESS.md). The beta
 guide covers the published archive, MCP client setup and a synthetic first
-exercise. The preview includes the full toolkit, including Oracle tooling and
+exercise. The public beta image removes Oracle, Microsoft DIA and Metasploit components that lacked a recorded redistribution agreement; the rest of the toolkit is included. Oracle tooling and
 PDB components. Vendor reviews and license metadata follow-ups remain open;
 private access does not establish legal clearance or waive third-party terms.
 
 OpenCyber Harness is the execution substrate for authorized security work: one
-container that exposes **256 security MCP tools** over stdio — 174
+container that exposes **254 security MCP tools** over stdio — 172
 executable-backed tools and 82 native ones — across the software and physical
 layers: SDR, Wi-Fi, Bluetooth/BLE, NFC/RFID, USB, JTAG/SWD, UART, CAN/automotive,
 logic analyzers, GPS, and IR. It ships isolated engagement workspaces, serial
@@ -39,8 +39,8 @@ API and hardware integrations. Blue teams can analyze supplied files, logs and
 PCAPs offline, build timelines, and export independently verifiable evidence.
 Start with the [blue-team guide](docs/BLUE_TEAM.md) for that workflow.
 
-The catalog has 174 executable integrations and 82 native tools. The image
-includes Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, Metasploit, NetExec and
+The catalog has 172 executable integrations and 82 native tools. The image
+includes Nmap, Ncat, Ndiff, Nping, RustScan, AutoRecon, NetExec and
 WPScan, with their local assets. Terrascan is excluded because upstream is
 archived; ScoutSuite is excluded because its sqlitedict dependency has an unresolved critical
 advisory. Their optional adapters report the reason when unavailable.
@@ -146,7 +146,7 @@ command directly. Exact snippets and the full client matrix are in
 
 ## What a tool result looks like
 
-Every one of the 256 tools returns the same contract block, so a client can
+Every one of the 254 tools returns the same contract block, so a client can
 branch on outcome, coverage, and provenance without special-casing tools:
 
 ```json
@@ -175,7 +175,7 @@ are in [tool result contracts](docs/CONTRACTS.md), [errors](docs/ERRORS.md), and
 
 ## What is in the image
 
-- **Software toolchain.** 174 executable integrations across network,
+- **Software toolchain.** 172 executable integrations across network,
   enumeration, web, credentials, exploitation, binary analysis, forensics,
   cloud/container/IaC, and utilities. Optional adapters remain catalogued even
   when their binaries are excluded for the reasons above.
@@ -199,7 +199,7 @@ are in [tool result contracts](docs/CONTRACTS.md), [errors](docs/ERRORS.md), and
 
 ## Tool modes
 
-Full mode advertises all 256 tools. Tool schemas cost context; if that is too
+Full mode advertises all 254 tools. Tool schemas cost context; if that is too
 much, compact mode advertises the 82 native tools and dispatches executable
 tools through `oc_execute`. `oc_catalog` reports both the advertised payload
 size and the catalog digest, so you can see the context cost and whether the
@@ -267,7 +267,7 @@ harness to untrusted clients or targets.
 | [Security model](docs/SECURITY_MODEL.md) | Trust boundary, controls, limitations |
 | [Operations](docs/OPERATIONS.md) | Deployment, hardening, backup, upgrades |
 | [CLI reference](docs/CLI_REFERENCE.md) | Console commands and exit codes |
-| [Tool reference](docs/TOOLS.md) | Generated list of all 256 tools |
+| [Tool reference](docs/TOOLS.md) | Generated list of all 254 tools |
 | [Hardware](docs/HARDWARE.md) | Device passthrough and physical-layer work |
 | [Airgap](docs/AIRGAP.md) | Offline build, export, import, CVE index |
 | [Troubleshooting](docs/TROUBLESHOOTING.md) | Diagnosis and common failures |

@@ -19,11 +19,9 @@ REFERENCE_FUNCTIONS = frozenset(
     prowler scout-suite trivy kube-hunter kube-bench docker-bench-security checkov terrascan falco clair
     amass subfinder fierce dnsenum theharvester sherlock social-analyzer recon-ng maltego spiderfoot shodan-cli
     censys-cli have-i-been-pwned
-    metasploit exploit-db searchsploit
     api-schema-analyzer postman insomnia curl httpie anew qsreplace uro
     kismet wireshark tshark tcpdump
     smbmap volatility sleuthkit autopsy evil-winrm airmon-ng airodump-ng aireplay-ng aircrack-ng
-    msfvenom msfconsole
     """.split()
 )
 
@@ -44,8 +42,6 @@ REFERENCE_ALIASES: dict[str, str] = {
     "jwt-analyzer": "oc_jwt_decode",
     "libc-database": "oc_pwninit",
     "maltego": "oc_spiderfoot",
-    "metasploit": "oc_metasploit",
-    "msfconsole": "oc_metasploit",
     "one-gadget": "oc_one_gadget",
     "outguess": "oc_steghide",
     "photorec": "oc_testdisk",

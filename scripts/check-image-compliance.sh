@@ -16,19 +16,19 @@ docker_arguments+=(--entrypoint sh "$image" -c)
 
 docker "${docker_arguments[@]}" '
   set -eu
-  for forbidden in burpsuite maltego waybackurls terrascan scout; do
+  for forbidden in burpsuite maltego waybackurls terrascan scout msfconsole msfvenom; do
     if command -v "$forbidden" >/dev/null 2>&1; then
       echo "forbidden executable present: $forbidden" >&2
       exit 1
     fi
   done
-  for forbidden_package in terrascan scoutsuite python3-sqlitedict; do
+  for forbidden_package in terrascan scoutsuite python3-sqlitedict metasploit-framework oracle-instantclient-basic; do
     if dpkg-query -W -f="\${db:Status-Status}" "$forbidden_package" 2>/dev/null | grep -qx installed; then
       echo "excluded unmaintained or vulnerable package present: $forbidden_package" >&2
       exit 1
     fi
   done
-  for required in whatweb urlfinder subzy vol nmap ncat ndiff nping autorecon rustscan msfconsole msfvenom nxc wpscan; do
+  for required in whatweb urlfinder subzy vol nmap ncat ndiff nping autorecon rustscan nxc wpscan; do
     command -v "$required" >/dev/null 2>&1 || {
       echo "required executable missing: $required" >&2
       exit 1
@@ -38,6 +38,10 @@ docker "${docker_arguments[@]}" '
   test -f /usr/share/opencyber/licenses/opencyber/SOURCE_OFFER.md
   test -d /usr/share/opencyber/licenses/go
   test -d /usr/share/opencyber/licenses/rust
+  if /opt/opencyber-analysis/bin/python -c "import pyxdia" >/dev/null 2>&1; then
+    echo "forbidden pyxdia package present" >&2
+    exit 1
+  fi
   test -f /usr/share/opencyber/docs/HARDWARE.md
   test -f /usr/share/opencyber/docs/AIRGAP.md
   test -f /usr/share/opencyber/docs/TOOLS.md

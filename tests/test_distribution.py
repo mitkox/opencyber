@@ -45,7 +45,7 @@ class DistributionComplianceTests(unittest.TestCase):
             if line.strip()
         }
         self.assertTrue({"burpsuite", "maltego", "terrascan", "scoutsuite"}.isdisjoint(packages))
-        self.assertTrue({"wpscan", "nmap", "autorecon", "metasploit-framework", "netexec", "rustscan"}.issubset(packages))
+        self.assertTrue({"wpscan", "nmap", "autorecon", "netexec", "rustscan"}.issubset(packages))
         self.assertIn("whatweb", packages)
         self.assertIn("ripgrep", packages)
         self.assertNotIn("github.com/tomnomnom/waybackurls", DOCKERFILE)

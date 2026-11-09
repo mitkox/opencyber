@@ -147,16 +147,7 @@
       "reason": "Free/noncommercial use is not a redistribution grant. Current vendor terms restrict copying and third-party distribution; obtain written permission covering the bundled binary and beta recipients."
     }
   ],
-  "review_required_components": [
-    {
-      "name": "oracle-instantclient-basic",
-      "reason": "Retained for Oracle modules. Distributor approval of Oracle's distribution obligations and signed recipient terms remain pending; complete docs/BETA_VENDOR_TERMS.md before binary delivery. A successful build or SPDX identity does not accept those obligations."
-    },
-    {
-      "name": "pyxdia",
-      "reason": "Retained for optional PDB analysis. Its MIT wrapper includes Microsoft's msdia140.dll; establish the exact binary's redistribution entitlement and protective recipient terms under docs/BETA_VENDOR_TERMS.md before binary delivery. Wrapper metadata alone does not license the DLL."
-    }
-  ],
+  "review_required_components": [],
   "notice_required_components": [
     {
       "name": "nmap",
@@ -194,5 +185,36 @@
       "name": "subzy",
       "reason": "Retain GPL terms and corresponding-source information."
     }
-  ]
+  ],
+  "removed_components": [
+    {
+      "name": "oracle-instantclient-basic",
+      "removed_at": "2026-11-09",
+      "scope": "public beta",
+      "reason": "No redistribution agreement is recorded. Removed with its Metasploit/ruby-oci8 delivery path for the public beta; the corresponding tools are removed from the catalog and image compliance forbids the package."
+    },
+    {
+      "name": "pyxdia",
+      "removed_at": "2026-11-09",
+      "scope": "public beta",
+      "reason": "Bundles Microsoft DIA (msdia140.dll) without a redistribution grant. Uninstalled from the analysis environment; angr cle degrades PDB symbol loading without it. Image compliance forbids the package."
+    },
+    {
+      "name": "metasploit-framework",
+      "removed_at": "2026-11-09",
+      "scope": "public beta",
+      "reason": "Removed because it carried Oracle Instant Client and a separate redistribution review. oc_metasploit, oc_msfvenom and the metasploit-modules asset are removed from the catalog."
+    }
+  ],
+  "recorded_unknown_licenses": {
+    "scope": "public beta",
+    "owner": "OpenCyber maintainer",
+    "reviewer": "mitkox-ai",
+    "recorded_at": "2026-11-09",
+    "basis": "Maintainer direction: unknown-license components are recorded as accepted residual risk for the public beta after removing Oracle Instant Client, Microsoft DIA, Metasploit and oscanner. This disposition is bound to the exact projected component set; any candidate scan whose unknown set differs must be reviewed and this record refreshed before publication.",
+    "count": 1912,
+    "sha256": "e47183728496464e968aca859f345907d0dbdb0f4ba7cdc7a4aed3d6251c1239",
+    "source_scan": "release-evidence/0.5.1-candidate-3378ada-20261029/checks/license-policy.txt projected over sbom/image.cdx.json after vendor removal; retained at .review/reports/u7-projected-license-policy.err",
+    "component_list": "compliance/unknown-license-components.txt"
+  }
 }

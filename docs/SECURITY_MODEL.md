@@ -54,7 +54,7 @@ docker run -d --name opencyber \
 | `--cap-drop=ALL` plus three adds | Limits raw sockets, interface changes, and low-port binding to what the toolchain needs. | `NET_RAW` and `NET_ADMIN` are still powerful. Remove them for workloads that do not need packet capture or interface changes. |
 | `--security-opt no-new-privileges` | Prevents a child process from gaining privileges through setuid or file capabilities. | Root already has most in-container privileges. |
 | `--read-only` | Prevents persistent modification of the image filesystem. | `/workspace` and the listed tmpfs mounts remain writable. |
-| tmpfs `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Provides scratch space for Chromium, AutoRecon, NetExec and Metasploit under a read-only rootfs. | tmpfs is memory-backed; large tool caches can consume RAM. |
+| tmpfs `/tmp`, `/run`, `/root/.config`, `/root/.cache`, `/root/.local/share`, `/root/.nxc`, `/root/.msf4` | Provides scratch space for Chromium, AutoRecon and NetExec under a read-only rootfs. | tmpfs is memory-backed; large tool caches can consume RAM. |
 | No `--privileged` | The included tooling does not require it. | `--privileged` would effectively remove the container boundary. Do not add it for convenience. |
 | Device flags per profile | Passes only the needed device nodes. | `/dev/bus/usb` exposes the whole USB bus; prefer specific nodes and host udev rules. |
 | `--network host` for Wi-Fi, Bluetooth, and CAN | Gives access to host network interfaces and stacks. | It also removes Docker network isolation. Pair it with host firewall rules or a dedicated lab network. |

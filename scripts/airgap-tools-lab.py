@@ -31,8 +31,6 @@ REQUIRED_TOOLS = {
     "oc_nmap": "nmap",
     "oc_rustscan": "rustscan",
     "oc_autorecon": "autorecon",
-    "oc_metasploit": "msfconsole",
-    "oc_msfvenom": "msfvenom",
     "oc_netexec": "nxc",
     "oc_wpscan": "wpscan",
 }
@@ -251,8 +249,6 @@ def main() -> int:
             ("nping", ["nping", "--version"], ("nping",)),
             ("rustscan", ["rustscan", "--version"], ("rustscan",)),
             ("autorecon", ["autorecon", "--help"], ("autorecon",)),
-            ("metasploit", ["msfconsole", "--version"], ("framework",)),
-            ("msfvenom", ["msfvenom", "--list", "formats"], ("framework executable formats",)),
             ("netexec", ["nxc", "--help"], ("netexec",)),
             ("wpscan", ["wpscan", "--version", "--no-update"], ("wordpress security scanner",)),
         ]

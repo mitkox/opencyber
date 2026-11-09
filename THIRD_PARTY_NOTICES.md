@@ -18,7 +18,7 @@ is published for native `linux/amd64`, from source commit
 `c1201976caf49c45068bb507032aee75e4509e20`, with local tag
 `opencyber:0.5.0-private-beta.1-amd64`. Its catalog has 256 MCP tools: 174
 executable integrations and 82 native tools. The maintainer chose to retain
-the full toolkit for a small invited group. Oracle connectivity and optional
+the toolkit for a small invited group. The public beta removes Oracle connectivity, optional
 Microsoft PDB components remain included with vendor review unresolved; no
 accepted agreement or redistribution entitlement is asserted.
 
@@ -139,8 +139,7 @@ is an honestly named generated dictionary; cracking tools remain included.
 ## Required assessment tools and custom licenses
 
 The Dockerfile includes Nmap, Ncat, Ndiff, Nping (supplied by the Nmap package),
-RustScan, AutoRecon, Metasploit, NetExec and WPScan. Nmap scripts and Metasploit
-modules are required offline assets. Exact installed versions, licenses and
+RustScan, AutoRecon, NetExec and WPScan. Nmap scripts are required offline assets. Exact installed versions, licenses and
 asset hashes must come from the built image and its qualification bundle.
 These tools are not excluded merely because they use custom or reciprocal
 licenses.

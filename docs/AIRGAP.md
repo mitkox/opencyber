@@ -76,7 +76,7 @@ drop. Repository Read also exposes its private release assets; see
 ## Included assets and offline-mode limits
 
 The image includes nuclei templates, SecLists dictionaries, exploitdb, a generated baseline dictionary
-and host udev rules. Nmap NSE scripts and fingerprints, Metasploit modules and payloads, and the
+and host udev rules. Nmap NSE scripts and fingerprints and the
 restored local assessment tools are included in the image. Use the catalog's
 availability and omission reasons for the two excluded adapters. Hardware playbooks are not loose files: they are deterministic data and functions in
 `src/opencyber/hardware.py`, returned by `oc_hardware_plan` and
@@ -268,7 +268,7 @@ The build writes `/usr/share/opencyber/asset-manifest.json`. At runtime,
 `opencyber-doctor` compares measured counts and sizes against it and reports a
 mismatch instead of silently accepting a truncated template store or wordlist.
 Required assets include the nuclei template store, SecLists, the generated baseline dictionary,
-exploitdb, the shared wordlist directory, bundled Metasploit modules, Nmap
+exploitdb, the shared wordlist directory, Nmap
 scripts and WPScan local-detection metadata. Optional entries include the webshell collection,
 Wireshark data, the host udev rules, playbook documents and the CVE database.
 
