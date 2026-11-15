@@ -30,7 +30,7 @@ classifiers = [
 # verified with the 2.3 SDK. Keep future major changes outside this contract.
 dependencies = [
   "mcp>=2.3,<3",
-  "playwright==1.64.1",
+  "playwright==1.65.1",
   "requests>=2.31",
 ]
 
